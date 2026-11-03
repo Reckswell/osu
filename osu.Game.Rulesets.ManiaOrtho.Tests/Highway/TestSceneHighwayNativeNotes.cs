@@ -102,6 +102,80 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 h.Parent is BufferedContainer cover && cover.Parent is PlayfieldCoveringWrapper && cover.Children[0] == h));
         }
 
+        [TestCase(CoverExpandDirection.AlongScroll)]
+        [TestCase(CoverExpandDirection.AgainstScroll)]
+        public void TestCoverHidesNativeNotes(CoverExpandDirection direction)
+        {
+            const float margin = 0.02f;
+
+            AddStep("load with Cover", () => LoadPlayer(new Mod[] { new ManiaModCover { Direction = { Value = direction } } }));
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1);
+            AddUntilStep("notes gathered", () => highway.NoteLayer.Count > 0);
+
+            // Cover's default coverage: half the column fully covered (the far half along scroll, the near half against it),
+            // fading over the next quarter. Positions are fractions of the column from the hit position.
+            AddAssert("cover measured in track depth", () =>
+            {
+                float length = highway.Warp.Scroll.ScrollLength;
+                var c = highway.ColumnCovers[0];
+
+                return direction == CoverExpandDirection.AlongScroll
+                    ? near(c.CoveredFrom, 0.5f * length) && c.CoveredTo == float.MaxValue && near(c.FadeFrom, 0.5f * length) && near(c.FadeTo, 0.25f * length)
+                      && near(c.FadeAlpha, 1)
+                    : c.CoveredFrom == float.MinValue && near(c.CoveredTo, 0.5f * length) && near(c.FadeFrom, 0.5f * length) && near(c.FadeTo, 0.75f * length)
+                      && near(c.FadeAlpha, 1);
+
+                static bool near(float actual, float expected) => Math.Abs(actual - expected) < 0.005f;
+            });
+
+            AddUntilStep("notes under the cover are not drawn, fading notes fade, notes clear of it are drawn", () =>
+            {
+                bool along = direction == CoverExpandDirection.AlongScroll;
+                float length = highway.Warp.Scroll.ScrollLength;
+                float thickness = HighwayNoteLayer.NOTE_THICKNESS / length;
+                int covered = 0, fading = 0, clear = 0;
+
+                foreach (var note in columns.SelectMany(c => c.HitObjectContainer.AliveObjects).OfType<DrawableNote>())
+                {
+                    if (note.Alpha < 1 || note.Judged)
+                        continue;
+
+                    float near = warpedDepth(note) / length;
+                    float far = near + thickness;
+
+                    if (near < 0 || far > 1)
+                        continue;
+
+                    float shown = quadsFor(note.HitObject).Select(q => Math.Max(q.Near.A, q.Far.A)).DefaultIfEmpty(0).Max();
+
+                    if (along ? near > 0.5f + margin : far < 0.5f - margin)
+                    {
+                        if (shown > 0.01f)
+                            throw new AssertionException($"note at {note.HitObject.StartTime} ({near:0.00} of the column) is under the cover but drawn at {shown}");
+
+                        covered++;
+                    }
+                    else if (along ? far < 0.25f - margin : near > 0.75f + margin)
+                    {
+                        if (shown < 0.99f)
+                            throw new AssertionException($"note at {note.HitObject.StartTime} ({near:0.00} of the column) is clear of the cover but drawn at {shown}");
+
+                        clear++;
+                    }
+                    else if (along ? near > 0.3f && far < 0.45f : near > 0.55f && far < 0.7f)
+                    {
+                        // In the middle of the fade, which runs from the cover (hidden) to the clear part (shown).
+                        if (shown < 0.05f || shown > 0.95f)
+                            throw new AssertionException($"note at {note.HitObject.StartTime} ({near:0.00} of the column) is in the fade but drawn at {shown}");
+
+                        fading++;
+                    }
+                }
+
+                return covered > 0 && fading > 0 && clear > 0;
+            });
+        }
+
         [Test]
         public void TestNotesUseTheSkinsColumnColours()
         {

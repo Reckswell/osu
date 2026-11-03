@@ -47,7 +47,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         [TestCase("synthetic-7k", 4)]
         public void TestJudgementParityWithNativeNotes(string source, int seed) => testParity(source, seed, HighwayNoteStyle.Highway);
 
-        private void testParity(string source, int seed, HighwayNoteStyle noteStyle)
+        /// <summary>
+        /// Hidden, Fade In and Cover wrap mania's note containers, which native notes read to fade the same way.
+        /// </summary>
+        [TestCase("synthetic-7k", 5, "HD")]
+        [TestCase("synthetic-7k", 6, "FI")]
+        [TestCase("synthetic-7k", 7, "CO")]
+        public void TestJudgementParityWithVisibilityMods(string source, int seed, string mod) => testParity(source, seed, HighwayNoteStyle.Highway, mod);
+
+        private void testParity(string source, int seed, HighwayNoteStyle noteStyle, params string[] mods)
         {
             PlayRecord mania = null!;
             PlayRecord ortho = null!;
@@ -56,11 +64,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             AddStep($"notes: {noteStyle}", () => ((ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(new ManiaOrthoRuleset()).AsNonNull())
                                                .Highway.SetValue(HighwaySetting.NoteStyle, noteStyle));
 
-            play(new ManiaRuleset(), source, seed, r => mania = r);
-            play(new ManiaOrthoRuleset(), source, seed, r => ortho = r);
+            play(new ManiaRuleset(), source, seed, mods, r => mania = r);
+            play(new ManiaOrthoRuleset(), source, seed, mods, r => ortho = r);
 
             AddAssert("ortho run used the ortho playfield", () => ortho.DrawableRulesetType, () => Is.EqualTo(nameof(DrawableManiaOrthoRuleset)));
             AddAssert($"ortho run drew notes as {noteStyle}", () => ortho.NativeNotes, () => Is.EqualTo(noteStyle == HighwayNoteStyle.Highway));
+            AddAssert("both runs played with the mods", () => new[] { mania.Mods, ortho.Mods }, () => Has.All.EquivalentTo(mods));
             AddAssert("replay produced a realistic mix of judgements", () => mania.Judgements.Select(j => j.Type).Distinct().Count(), () => Is.GreaterThanOrEqualTo(3));
             AddAssert("same judgement count", () => ortho.Judgements.Count, () => Is.EqualTo(mania.Judgements.Count));
             AddAssert("same judgement sequence", () => ortho.Judgements, () => Is.EqualTo(mania.Judgements));
@@ -68,10 +77,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             AddAssert("same accuracy", () => ortho.Accuracy, () => Is.EqualTo(mania.Accuracy));
         }
 
-        private void play(Ruleset ruleset, string source, int seed, System.Action<PlayRecord> store)
+        private void play(Ruleset ruleset, string source, int seed, string[] mods, System.Action<PlayRecord> store)
         {
             AddStep($"[{ruleset.ShortName}] set beatmap", () => Beatmap.Value = CreateWorkingBeatmap(PlaytestBeatmaps.Load(source)));
             AddStep($"[{ruleset.ShortName}] set ruleset", () => Ruleset.Value = ruleset.RulesetInfo);
+            AddStep($"[{ruleset.ShortName}] set mods", () => SelectedMods.Value = mods.Select(m => ruleset.CreateModFromAcronym(m).AsNonNull()).ToArray());
             AddStep($"[{ruleset.ShortName}] push replay player", () =>
             {
                 var replay = HumanisedReplayGenerator.Generate(PlaytestBeatmaps.Load(source), seed);
@@ -116,7 +126,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     processor.TotalScore.Value,
                     processor.Accuracy.Value,
                     currentPlayer.ChildrenOfType<osu.Game.Rulesets.UI.DrawableRuleset>().Single().GetType().Name,
-                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NativeNotes == true));
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NativeNotes == true,
+                    currentPlayer.GameplayState.Mods.Select(m => m.Acronym).ToArray()));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -126,6 +137,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
-        private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes);
+        private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods);
     }
 }

@@ -3,11 +3,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Shapes;
 using osu.Framework.Testing;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Skinning.Legacy;
@@ -83,6 +85,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private bool noteProxiesCreated;
 
         /// <summary>
+        /// Each column's cover from a cover mod (Hidden, Fade In, Cover), in playfield column order, or empty without one.
+        /// </summary>
+        private CoverBoxes?[] coverBoxes = Array.Empty<CoverBoxes?>();
+
+        /// <summary>
+        /// Each column's cover in track depth this frame, in playfield column order. Empty without a cover mod.
+        /// </summary>
+        public ReadOnlySpan<DepthCover> ColumnCovers => columnCovers;
+
+        private DepthCover[] columnCovers = Array.Empty<DepthCover>();
+
+        /// <summary>
         /// Each column's left and right edge in lane space, in playfield column order.
         /// </summary>
         private Vector2[] columnLanes = Array.Empty<Vector2>();
@@ -125,6 +139,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private readonly ManiaPlayfieldAdjustmentContainer mania;
 
         private HighwayConfigManager? config;
+
+        /// <summary>
+        /// How close (in track depth) a cover's edge must be to an end of the column to count as reaching it.
+        /// </summary>
+        private const float cover_edge_tolerance = 1e-3f;
 
         private readonly Bindable<bool> timingBasedColouring = new Bindable<bool>();
 
@@ -250,7 +269,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             {
                 NoteLayer.Layout = Projection.Layout;
                 NoteLayer.SnapColours = timingBasedColouring.Value;
-                NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll, Time.Current);
+                measureCovers(stage);
+                NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
+                    Time.Current);
             }
 
             for (int i = 0; i < judgementLayers.Count; i++)
@@ -264,12 +285,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private void createNoteProxies()
         {
             var stages = drawableRuleset.Playfield.Stages;
+            var covers = new List<CoverBoxes?>();
 
             for (int i = 0; i < stages.Count; i++)
             {
                 foreach (var column in stages[i].Columns)
                 {
                     var hitObjects = column.HitObjectContainer;
+                    covers.Add(findCover(hitObjects));
+
                     var holder = new Container
                     {
                         RelativeSizeAxes = Axes.Both,
@@ -290,6 +314,98 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     noteProxyHolders.Add(holder);
                 }
             }
+
+            if (covers.Any(c => c != null))
+            {
+                coverBoxes = covers.ToArray();
+                columnCovers = new DepthCover[coverBoxes.Length];
+            }
+        }
+
+        /// <summary>
+        /// The two boxes of a <see cref="PlayfieldCoveringWrapper"/>'s cover: the gradient (opaque at its own bottom edge) and
+        /// the fully covered part.
+        /// </summary>
+        private readonly record struct CoverBoxes(Drawable Gradient, Drawable Filled);
+
+        /// <summary>
+        /// Mania's cover mods wrap each column's notes in a <see cref="PlayfieldCoveringWrapper"/>: a buffer holding the notes
+        /// and the cover, a container of a gradient box and a filled box that the wrapper sizes every frame. Reading the drawn
+        /// boxes keeps native notes covered exactly as mania covers its own (coverage changes with combo, eases in, legacy
+        /// hit positions, direction), without copying any of that.
+        /// </summary>
+        private static CoverBoxes? findCover(Drawable hitObjects)
+        {
+            if (hitObjects.Parent is not Container<Drawable> buffer || buffer.Parent is not PlayfieldCoveringWrapper)
+                return null;
+
+            foreach (var child in buffer.Children)
+            {
+                if (child is not Container<Drawable> cover || cover.Children.Count != 2 || !cover.Children.All(c => c is Box))
+                    continue;
+
+                var gradient = cover.Children.FirstOrDefault(c => !c.Colour.TryExtractSingleColour(out _));
+                var filled = cover.Children.FirstOrDefault(c => c.Colour.TryExtractSingleColour(out _));
+
+                if (gradient != null && filled != null)
+                    return new CoverBoxes(gradient, filled);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Converts each column's cover, as mania draws it in the flat stage, to track depth through the warp's mapping (the
+        /// stage's rows map linearly to depth 0 at the hit position up to the scroll length at the top).
+        /// </summary>
+        private void measureCovers(RectangleF source)
+        {
+            if (source.Height <= 0)
+                return;
+
+            float scrollLength = Warp.Scroll.ScrollLength;
+
+            for (int i = 0; i < coverBoxes.Length; i++)
+            {
+                if (coverBoxes[i] is not CoverBoxes boxes)
+                {
+                    columnCovers[i] = DepthCover.None;
+                    continue;
+                }
+
+                float coveredFrom = 0, coveredTo = 0;
+
+                if (boxes.Filled.IsPresent && boxes.Filled.DrawHeight > 0)
+                {
+                    var quad = boxes.Filled.ScreenSpaceDrawQuad;
+                    float a = depthAt(Warp.ToLocalSpace(quad.TopLeft).Y);
+                    float b = depthAt(Warp.ToLocalSpace(quad.BottomLeft).Y);
+
+                    coveredFrom = Math.Min(a, b);
+                    coveredTo = Math.Max(a, b);
+
+                    // A cover reaching an end of the column also covers what is past that end: mania's column masks it.
+                    if (coveredFrom <= cover_edge_tolerance)
+                        coveredFrom = float.MinValue;
+                    if (coveredTo >= scrollLength - cover_edge_tolerance)
+                        coveredTo = float.MaxValue;
+                }
+
+                float fadeFrom = 0, fadeTo = 0, fadeAlpha = 0;
+
+                if (boxes.Gradient.IsPresent && boxes.Gradient.DrawHeight > 0)
+                {
+                    var gradient = boxes.Gradient;
+
+                    fadeFrom = depthAt(Warp.ToLocalSpace(gradient.ToScreenSpace(new Vector2(0, gradient.DrawHeight))).Y);
+                    fadeTo = depthAt(Warp.ToLocalSpace(gradient.ToScreenSpace(Vector2.Zero)).Y);
+                    fadeAlpha = gradient.Alpha;
+                }
+
+                columnCovers[i] = new DepthCover(coveredFrom, coveredTo, fadeFrom, fadeTo, fadeAlpha);
+            }
+
+            float depthAt(float y) => (source.Bottom - y) / source.Height * scrollLength;
         }
 
         protected override void Dispose(bool isDisposing)

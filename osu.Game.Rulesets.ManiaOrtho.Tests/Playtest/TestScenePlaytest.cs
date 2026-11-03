@@ -51,6 +51,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
         protected override bool Autoplay => true;
 
+        // The player is loaded below, with the chosen mods.
+        protected override bool HasCustomSteps => true;
+
         protected override Ruleset CreatePlayerRuleset() => options.CreateRuleset();
 
         protected override IBeatmap CreateBeatmap(RulesetInfo ruleset) => PlaytestBeatmaps.Load(options.Beatmap);
@@ -81,6 +84,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             });
 
             base.SetUpSteps();
+
+            AddStep("load player", () => LoadPlayer(options.CreateMods(CreatePlayerRuleset())));
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1);
         }
 
         [Test]
@@ -217,6 +223,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 wall = options.Wall,
                 skin = options.Skin,
                 notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.NoteStyle.ToString() : null,
+                mods = Player.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),
                 clockAtCapture,

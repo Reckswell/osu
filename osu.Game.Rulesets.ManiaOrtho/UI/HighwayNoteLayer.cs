@@ -112,11 +112,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
-        /// Collects every alive note of <paramref name="playfield"/>, in the lanes <paramref name="columnLanes"/> gives for each
-        /// column (in playfield column order, lane space), at the depths <paramref name="scroll"/> maps their times to.
+        /// The cover of the column being gathered.
         /// </summary>
-        public void Gather(ManiaPlayfield playfield, ReadOnlySpan<Vector2> columnLanes, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
-                           double currentTime)
+        private DepthCover cover;
+
+        /// <summary>
+        /// Collects every alive note of <paramref name="playfield"/>, in the lanes <paramref name="columnLanes"/> gives for each
+        /// column (in playfield column order, lane space), at the depths <paramref name="scroll"/> maps their times to, under
+        /// each column's cover in <paramref name="columnCovers"/> (Hidden, Fade In, Cover; empty or <see cref="DepthCover.None"/>
+        /// for none).
+        /// </summary>
+        public void Gather(ManiaPlayfield playfield, ReadOnlySpan<Vector2> columnLanes, ReadOnlySpan<DepthCover> columnCovers, IScrollAlgorithm algorithm,
+                           double timeRange, HighwayScroll scroll, double currentTime)
         {
             Count = 0;
             Invalidate(Invalidation.DrawNode);
@@ -140,6 +147,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     float lane0 = lanes.X + inset;
                     float lane1 = lanes.Y - inset;
                     Color4 colour = ColumnColour(column.AccentColour.Value, j, columns.Length, column.IsSpecial);
+                    cover = columnIndex < columnCovers.Length ? columnCovers[columnIndex] : DepthCover.None;
 
                     foreach (var entry in column.HitObjectContainer.AliveEntries)
                     {
@@ -240,7 +248,50 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             add(new NoteQuad(hitObject, kind, lane0, lane1, depth, rim, Color4.White.Opacity(alpha), Color4.White.Opacity(alpha)));
         }
 
+        /// <summary>
+        /// Adds <paramref name="quad"/>, cut where the column's cover changes so each piece fades as mania's cover would fade
+        /// it. Fully covered pieces are left out.
+        /// </summary>
         private void add(in NoteQuad quad)
+        {
+            if (!cover.IsActive)
+            {
+                append(quad);
+                return;
+            }
+
+            float from = quad.Depth0;
+
+            while (from < quad.Depth1)
+            {
+                float to = cover.NextCut(from, quad.Depth1);
+                float middle = (from + to) / 2;
+
+                float visibleFrom = cover.VisibilityAt(from, middle);
+                float visibleTo = cover.VisibilityAt(to, middle);
+
+                if (visibleFrom > 0 || visibleTo > 0)
+                {
+                    Color4 near = colourAt(quad, from);
+                    Color4 far = colourAt(quad, to);
+
+                    append(quad with
+                    {
+                        Depth0 = from,
+                        Depth1 = to,
+                        Near = near.Opacity(near.A * visibleFrom),
+                        Far = far.Opacity(far.A * visibleTo),
+                    });
+                }
+
+                from = to;
+            }
+        }
+
+        private static Color4 colourAt(in NoteQuad quad, float depth)
+            => quad.Depth1 > quad.Depth0 ? Interpolation.ValueAt(depth, quad.Near, quad.Far, quad.Depth0, quad.Depth1) : quad.Near;
+
+        private void append(in NoteQuad quad)
         {
             if (Count == quads.Length)
                 Array.Resize(ref quads, quads.Length * 2);

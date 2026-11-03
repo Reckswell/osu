@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.Mods;
 using osu.Game.Skinning;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
@@ -26,6 +27,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_WALL = "ORTHO_PLAYTEST_WALL";
         public const string ENV_SKIN = "ORTHO_PLAYTEST_SKIN";
         public const string ENV_NOTES = "ORTHO_PLAYTEST_NOTES";
+        public const string ENV_MODS = "ORTHO_PLAYTEST_MODS";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -65,6 +67,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// </summary>
         public HighwayNoteStyle NoteStyle { get; init; } = HighwayNoteStyle.Skin;
 
+        /// <summary>
+        /// Mod acronyms to play with besides autoplay (and no fail), such as HD, FI or CO.
+        /// </summary>
+        public string[] Mods { get; init; } = Array.Empty<string>();
+
+        public Mod[] CreateMods(Ruleset ruleset) => Mods.Select(acronym => ruleset.CreateModFromAcronym(acronym)
+                                                                   ?? throw new ArgumentException($"{ruleset.Description} has no mod \"{acronym}\".")).ToArray();
+
         public SkinInfo CreateSkinInfo() => Skin switch
         {
             "argon" => ArgonSkin.CreateInfo(),
@@ -102,6 +112,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 Wall = get(ENV_WALL) is string w ? float.Parse(w, CultureInfo.InvariantCulture) : null,
                 Skin = get(ENV_SKIN) ?? defaults.Skin,
                 NoteStyle = get(ENV_NOTES) is string n ? Enum.Parse<HighwayNoteStyle>(n, true) : defaults.NoteStyle,
+                Mods = get(ENV_MODS)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.Mods,
             };
         }
     }

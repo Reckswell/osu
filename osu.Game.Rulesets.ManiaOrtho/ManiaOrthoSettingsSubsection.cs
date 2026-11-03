@@ -138,8 +138,7 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Caption = "Notes",
                     HintText = "Skin: your skin's notes, tilted with the track. Highway: sharp notes drawn on the track at Chunithm's "
-                               + "thickness, in your skin's colours or white and pink lanes (Hidden, Fade In and Cover only show with the Flat camera for now). "
-                               + "Applies from the next play.",
+                               + "thickness, in your skin's colours or white and pink lanes. Applies from the next play.",
                     Current = highway.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle),
                 })
                 {

@@ -42,8 +42,8 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [~] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
   Gate: replay parity still green; screenshots show holds aligned at all depths; flat mode matches mania's layout.
   (`HighwayNoteLayer`, opt-in "Notes: Highway"; parity with native notes green; holds aligned in captures of
-  Armageddon 4K, C18H27NO3 7K and synthetic 7K, also with the classic skin; flat camera keeps cover mods. Open:
-  visibility mods on tilted native notes, then make it the default.)
+  Armageddon 4K, C18H27NO3 7K and synthetic 7K, also with the classic skin; flat camera keeps cover mods; Hidden,
+  Fade In and Cover fade native notes as mania does. Open: make it the default.)
 - [x] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and
   1.75x sections. (Warped with the stage. Playtest found SV was dropped under maniaortho; fixed in
   `DrawableManiaOrthoRuleset`, `TestScrollSpeedChangesApply`; captures match mania in Chunithm and Parallel.)
@@ -61,7 +61,9 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [ ] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
 - [ ] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
 - [ ] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.
-- [ ] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
+- [~] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
+  (Hidden, Fade In, Cover done on native notes: `DepthCover`, `TestCoverHidesNativeNotes`, replay parity with each.
+  Open: Flashlight, still a flat band over the screen.)
 - [ ] Gameplay hotkeys for wall and speed (like mania's F3/F4). Gate: input test scene.
 - [ ] **MG2**: device playtest (L3) with frame times on Alpha's PC; ask Alpha for an L4 session and replays.
 

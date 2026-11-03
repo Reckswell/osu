@@ -227,3 +227,29 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Left from research P5 for later**: hold bodies use normal blending, not additive; thickness is a constant, not the
   0.015-0.06 setting P5 proposes. After a drop, mania freezes the hold's drawn length so the head slides past the line;
   here the head goes back to its unclamped depth and is clipped at once. Only visible around the line.
+
+## 2026-11-03: Hidden, Fade In and Cover on native notes, by reading mania's own cover
+
+- **Decision**: native notes fade exactly where mania's cover fades its own notes. Each frame, for every column, the
+  highway reads the two boxes of the column's `PlayfieldCoveringWrapper` (the fully covered part and the gradient,
+  opaque at its own bottom edge), maps their flat-stage rows to track depth with the warp's mapping (`DepthCover`),
+  and multiplies each note piece's alpha by what the cover leaves. Pieces are cut at the cover's edges, and the fade is
+  cut into steps of at most 0.02 depth, because colours are interpolated linearly on screen, which is not linear in
+  depth under perspective. Fully covered pieces are not drawn. A cover reaching an end of the column also covers what is
+  past that end (mania's column masks it).
+- **Why read the drawn boxes**: they already include everything the mods do: Hidden's coverage growing with combo and
+  dropping in breaks, the ease-in of coverage, the legacy hit position scaling, Cover's direction and the scroll
+  direction. Recomputing any of that would copy mania code and drift from it. Reading needs no core patch.
+- **Risk**: it depends on the wrapper's layout (a buffer with the notes and a container of exactly two boxes). If
+  upstream changes it, covers silently stop applying to native notes; `TestCoverHidesNativeNotes` (both directions)
+  fails in that case. Scoring is never affected: the mods still apply to mania's own drawables.
+- **Playtest**: Hidden and Fade In on Armageddon 4K at speed 29, Cover (along scroll) on synthetic 7K: what is covered
+  matches mania's capture at the same time, including hold bodies cut off in the fade.
+- **Alternatives considered**: recomputing the cover from the mod's `Coverage` and direction (copies mania's easing and
+  legacy hit-position maths, drifts when upstream changes them); removing the three mods from this ruleset (SPEC 9
+  allows it, but they work and players use them); a core patch exposing the wrapper's state (unlisted core change).
+- **Overrides**: the "Why opt-in for now" bullet of the native notes entry above: Hidden, Fade In and Cover now reach
+  native notes. Flashlight is still drawn flat over the screen, as with skin notes.
+- **How to reverse**: pass no covers to `HighwayNoteLayer.Gather` (drop `measureCovers`); the rest is unchanged.
+- **Tests**: `DepthCoverTest` (maths), `TestCoverHidesNativeNotes` (measured cover in depth for both directions, notes
+  hidden, fading and clear), `TestJudgementParityWithVisibilityMods` (HD, FI, CO with native notes).
