@@ -33,12 +33,14 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] `ProjectedQuad` drawable/DrawNode that draws an arbitrary quad with perspective-correct texture coordinates.
   Gate: a test scene showing a checkerboard on a strong trapezoid; screenshot shows straight checker lines.
   (`TrackDrawing` grid subdivision + `TrackSprite`; `TestSceneTrackSprite` shows subdivided vs one-quad bend.)
-- [~] Highway playfield: replace mania's column layout with projected lanes, lane dividers, judgement line, receptors.
+- [x] Highway playfield: replace mania's column layout with projected lanes, lane dividers, judgement line, receptors.
   Notes still drawn by mania for now if that is simpler. Gate: screenshots for 4K/7K in perspective and flat.
   (First version: `HighwayWarpContainer` warps mania's whole stage; replay parity green. Done since: receptor area
   below the line drawn at flat height, upright judgements (`HighwayJudgementLayer`), field wall drawn (`HighwayWall`,
   M2 wall task's L0 test and screenshots still open), Chunithm judgement line and lane guides (`HighwayGuides`,
-  skin hit target hidden when tilted, settings "Lane guides" and "Use skin hit target"). Open: flat-mode capture.)
+  skin hit target hidden when tilted, settings "Lane guides" and "Use skin hit target"). Flat camera: captures of
+  Armageddon 4K, C18H27NO3 7K and synthetic 7K (both SV sections) differ from mania only in random judgement
+  particles and HUD text, the stage pixel for pixel; `/mnt/project-files/ortho-agent/flat/`.)
 - [x] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
   Gate: replay parity still green; screenshots show holds aligned at all depths; flat mode matches mania's layout.
   (`HighwayNoteLayer`, opt-in "Notes: Highway"; parity with native notes green; holds aligned in captures of
