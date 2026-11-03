@@ -5,8 +5,8 @@ Status: `todo`, `draft` (some claims unverified), `done` (every claim sourced).
 | Reference | Why it matters | Open source? | Note | Status |
 |---|---|---|---|---|
 | osu!mania (lazer) | The base: scrolling algorithms, scroll speed to time range, hit position, skins | Yes, this repo (MIT) | `game-osu-mania.md` | todo |
-| Sound Voltex | Primary visual reference: fixed button lanes on a tilted highway | No | `game-sdvx.md` | todo |
-| Unnamed SDVX Clone (USC) | Open-source SDVX-style track rendering and camera | Yes: https://github.com/Drewol/unnamed-sdvx-clone (licence to check) | `game-usc.md` | todo |
+| Sound Voltex | Voltex preset: highway geometry (USC landscape: judgement 0.941H, far edge 0.284H, far/near 0.106, whole highway 0.435W, BT area 0.290W); 4 BT + 2 FX + 2 lasers vs N mania lanes; chart-driven camera out of scope. No arcade frame measured: arcade numbers are USC's portrait camera as a proxy | No (read: USC and KSM, MIT; sdvx_helper, Apache-2.0; vox2ksh, MIT, low confidence) | `game-sdvx.md` | draft |
+| Unnamed SDVX Clone (USC) and K-Shoot MANIA | Open-source SDVX camera rigs, projected to screen trapezoids; portrait camera tuned to the arcade; speed (T = 480000 / (BPM × HS) ms), covers, chart camera mapping | Yes: https://github.com/Drewol/unnamed-sdvx-clone (MIT); https://github.com/kshootmania/ksm-v2 and ksm-v1 (MIT) | `game-usc.md` | draft |
 | Chunithm | Alpha's primary reference: track geometry (judgement 0.926H, far edge 0.163H, far/near 0.24), field wall, speed to visible time, guide lines, note thickness | No (read: Seaurchin, MIT; Chunithm-Studio decodes, no licence, numbers only) | `game-chunithm.md` | draft |
 | Chunithm: animations and feedback | Alpha's main reference: hit effects, per-note judgement text and combo on the field, lane lighting, end-of-chart banners | No (fan reimplementations read: Seaurchin, MIT; UMIGURI screenshot, MIT repo) | `game-chunithm-feedback.md` | draft |
 | Project Sekai | Note art, hit effects, steep perspective lane | No | `game-sekai.md` | todo |

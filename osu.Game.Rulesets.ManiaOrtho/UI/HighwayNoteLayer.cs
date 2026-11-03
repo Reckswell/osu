@@ -33,14 +33,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
     public partial class HighwayNoteLayer : Drawable
     {
         /// <summary>
-        /// Note thickness in track depth: Chunithm's TAP is 2.55% of the visible track (research P5).
+        /// The default note thickness in track depth: Chunithm's TAP is 2.55% of the visible track (research P5). Each camera
+        /// preset sets its own (<see cref="HighwaySettings.NoteThickness"/>).
         /// </summary>
-        public const float NOTE_THICKNESS = 0.0255f;
+        public const float NOTE_THICKNESS = HighwaySettings.DEFAULT_NOTE_THICKNESS;
 
         /// <summary>
-        /// A hold's tail cap, in track depth.
+        /// Note (and hold head) thickness in track depth. A hold's tail cap is half of it.
         /// </summary>
-        public const float TAIL_THICKNESS = NOTE_THICKNESS / 2;
+        public float NoteThickness { get; set; } = NOTE_THICKNESS;
 
         /// <summary>
         /// The gap on each side of a note, as a fraction of its lane (a 98% wide note).
@@ -197,7 +198,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 return;
 
             float depth = scroll.DepthAt(algorithm, note.HitObject.StartTime, currentTime, timeRange);
-            addBar(note.HitObject, NoteQuadKind.Note, lane0, lane1, depth, NOTE_THICKNESS, noteColour(note, columnColour), note.Alpha);
+            addBar(note.HitObject, NoteQuadKind.Note, lane0, lane1, depth, NoteThickness, noteColour(note, columnColour), note.Alpha);
         }
 
         private void addHold(DrawableHoldNote hold, float lane0, float lane1, Color4 columnColour, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
@@ -221,7 +222,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             float bodyInset = (lane1 - lane0) * (1 - BODY_WIDTH) / 2;
             float bodyAlpha = broken ? 0.35f : hold.IsHolding.Value ? 0.85f : 0.55f;
-            float bodyStart = headDepth + NOTE_THICKNESS / 2;
+            float bodyStart = headDepth + NoteThickness / 2;
 
             if (tailDepth > bodyStart)
             {
@@ -229,8 +230,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 add(new NoteQuad(hold.HitObject, NoteQuadKind.HoldBody, lane0 + bodyInset, lane1 - bodyInset, bodyStart, tailDepth, body, body));
             }
 
-            addBar(hold.HitObject, NoteQuadKind.HoldTail, lane0, lane1, tailDepth, TAIL_THICKNESS, colour, hold.Alpha * hold.Tail.Alpha);
-            addBar(hold.HitObject, NoteQuadKind.HoldHead, lane0, lane1, headDepth, NOTE_THICKNESS, colour, hold.Alpha * hold.Head.Alpha);
+            addBar(hold.HitObject, NoteQuadKind.HoldTail, lane0, lane1, tailDepth, NoteThickness / 2, colour, hold.Alpha * hold.Tail.Alpha);
+            addBar(hold.HitObject, NoteQuadKind.HoldHead, lane0, lane1, headDepth, NoteThickness, colour, hold.Alpha * hold.Head.Alpha);
         }
 
         /// <summary>

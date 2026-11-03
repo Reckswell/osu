@@ -63,6 +63,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             GetOriginalBindable<float>(HighwaySetting.FarEdgeHeight).ValueChanged += _ => onPresetValueChanged();
             GetOriginalBindable<float>(HighwaySetting.TrackWidth).ValueChanged += _ => onPresetValueChanged();
             GetOriginalBindable<float>(HighwaySetting.Wall).ValueChanged += _ => onPresetValueChanged();
+            GetOriginalBindable<float>(HighwaySetting.NoteThickness).ValueChanged += _ => onPresetValueChanged();
 
             void onPresetValueChanged()
             {
@@ -87,6 +88,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, precision);
             SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
             SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.01f);
+            SetDefault(HighwaySetting.NoteThickness, defaults.NoteThickness, 0.005f, 0.06f, 0.0005f);
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
             SetDefault(HighwaySetting.LaneGuides, true);
             SetDefault(HighwaySetting.SkinHitTarget, false);
@@ -104,6 +106,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             FarEdgeHeight = Get<float>(HighwaySetting.FarEdgeHeight),
             TrackWidth = Get<float>(HighwaySetting.TrackWidth),
             Wall = Get<float>(HighwaySetting.Wall),
+            NoteThickness = Get<float>(HighwaySetting.NoteThickness),
             WallKeepsVisibleTime = Get<bool>(HighwaySetting.WallKeepsVisibleTime),
             LaneGuides = Get<bool>(HighwaySetting.LaneGuides),
             SkinHitTarget = Get<bool>(HighwaySetting.SkinHitTarget),
@@ -132,6 +135,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
                 SetValue(HighwaySetting.FarEdgeHeight, values.FarEdgeHeight);
                 SetValue(HighwaySetting.TrackWidth, values.TrackWidth);
                 SetValue(HighwaySetting.Wall, values.Wall);
+                SetValue(HighwaySetting.NoteThickness, values.NoteThickness);
             }
             finally
             {
@@ -152,7 +156,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
                    && near(current.JudgementLineHeight, preset.JudgementLineHeight)
                    && near(current.FarEdgeHeight, preset.FarEdgeHeight)
                    && near(current.TrackWidth, preset.TrackWidth)
-                   && near(current.Wall, preset.Wall);
+                   && near(current.Wall, preset.Wall)
+                   && near(current.NoteThickness, preset.NoteThickness);
 
             static bool near(float a, float b) => Math.Abs(a - b) < 1e-4f;
         }
@@ -171,5 +176,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         LaneGuides,
         SkinHitTarget,
         NoteStyle,
+        NoteThickness,
     }
 }

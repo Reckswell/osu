@@ -273,6 +273,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             if (NativeNotes && !flat)
             {
                 NoteLayer.Layout = Projection.Layout;
+                NoteLayer.NoteThickness = Settings.NoteThickness;
                 NoteLayer.SnapColours = timingBasedColouring.Value;
                 measureCovers(stage);
                 NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,

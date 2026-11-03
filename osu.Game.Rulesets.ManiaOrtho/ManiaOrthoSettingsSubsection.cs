@@ -137,12 +137,23 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormEnumDropdown<HighwayNoteStyle>
                 {
                     Caption = "Notes",
-                    HintText = "Skin: your skin's notes, tilted with the track. Highway: sharp notes drawn on the track at Chunithm's "
-                               + "thickness, in your skin's colours or white and pink lanes. Applies from the next play.",
+                    HintText = "Skin: your skin's notes, tilted with the track. Highway: sharp notes drawn on the track at the "
+                               + "preset's thickness, in your skin's colours or white and pink lanes. Applies from the next play.",
                     Current = highway.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle),
                 })
                 {
                     Keywords = new[] { "note skin", "thickness", "native" },
+                },
+                new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Note thickness",
+                    HintText = "How deep Highway notes are, as a share of the track's length. Chunithm's notes are 2.55%.",
+                    Current = highway.GetBindable<float>(HighwaySetting.NoteThickness),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.0005f,
+                })
+                {
+                    Keywords = new[] { "note size", "note height" },
                 },
             };
         }

@@ -66,7 +66,10 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   DECISIONS. `TestJudgementsFollowTheLift`, `TestJudgementParityWithLift`. Captures at 30% on Armageddon 4K
   (also with HD and FL) and synthetic 7K with the classic skin, and at 0%: the line, receptors, lane lighting and
   judgements move up together; HD and FL cover and light the same notes as mania. Playtest `--set Name=value`.)
-- [ ] Presets (Voltex, Chunithm, Parallel, Classic) with values from research. Gate: compare sheet per preset.
+- [x] Presets (Voltex, Chunithm, Parallel, Classic) with values from research. Gate: compare sheet per preset.
+  (Voltex from USC's camera, `research/game-sdvx.md`; note thickness per preset. Sheets: Armageddon 4K and
+  C18H27NO3 7K at speed 29 with mania, Chunithm, Voltex, Parallel, Classic, and Voltex with its faithful far edge;
+  Armageddon at speed 18 for mania, Chunithm, Voltex. Classic matches mania.)
 - [ ] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
 - [ ] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
 - [ ] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.

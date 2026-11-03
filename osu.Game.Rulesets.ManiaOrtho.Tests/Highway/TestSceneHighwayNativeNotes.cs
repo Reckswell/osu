@@ -135,7 +135,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             {
                 bool along = direction == CoverExpandDirection.AlongScroll;
                 float length = highway.Warp.Scroll.ScrollLength;
-                float thickness = HighwayNoteLayer.NOTE_THICKNESS / length;
+                float thickness = highway.NoteLayer.NoteThickness / length;
                 int covered = 0, fading = 0, clear = 0;
 
                 foreach (var note in columns.SelectMany(c => c.HitObjectContainer.AliveObjects).OfType<DrawableNote>())
@@ -318,15 +318,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 () => Is.EqualTo(highway.Warp.Scroll.AppearDepth / 2).Within(depth_tolerance));
         }
 
-        [Test]
-        public void TestNotesHaveAFixedThicknessOnTheTrack()
+        /// <summary>
+        /// SPEC 6: notes have a fixed thickness in track units; each camera preset sets it.
+        /// </summary>
+        [TestCase(HighwayPreset.Chunithm)]
+        [TestCase(HighwayPreset.Voltex)]
+        public void TestNotesHaveAFixedThicknessOnTheTrack(HighwayPreset preset)
         {
-            AddAssert("every note is the same depth thick", () =>
+            float expected = HighwayPresets.Get(preset).NoteThickness;
+
+            AddStep($"{preset} preset", () => highwayConfig.SetValue(HighwaySetting.Preset, preset));
+            AddUntilStep("highway uses its thickness", () => highway.NoteLayer.NoteThickness, () => Is.EqualTo(expected).Within(1e-5f));
+            AddWaitStep("let the highway gather", 2);
+
+            AddAssert("every note is that depth thick", () =>
             {
                 var notes = Enumerable.Range(0, highway.NoteLayer.Count).Select(highway.NoteLayer.GetQuad).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note)
                                       .GroupBy(q => q.HitObject).ToArray();
 
-                return notes.Length > 0 && notes.All(g => Math.Abs(g.Max(q => q.Depth1) - g.Min(q => q.Depth0) - HighwayNoteLayer.NOTE_THICKNESS) < 1e-4f);
+                return notes.Length > 0 && notes.All(g => Math.Abs(g.Max(q => q.Depth1) - g.Min(q => q.Depth0) - expected) < 1e-4f);
             });
         }
 
@@ -353,7 +363,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 () => Is.EqualTo(0).Within(1e-4));
 
             AddAssert("its body starts under the head", () => quadsFor(held.HitObject).Single(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody).Depth0,
-                () => Is.EqualTo(HighwayNoteLayer.NOTE_THICKNESS / 2).Within(1e-4));
+                () => Is.EqualTo(highway.NoteLayer.NoteThickness / 2).Within(1e-4));
 
             AddAssert("its tail is where the warped tail is", () =>
             {

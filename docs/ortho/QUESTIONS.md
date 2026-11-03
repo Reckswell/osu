@@ -36,6 +36,10 @@ SPEC 2 and Alpha's brief say notes come from the top of the screen.
   (b) exact arcade geometry, far edge visible 16% below the top; (c) exact geometry with a dark frame over the top 16%
   hiding the far edge, as in the arcade.
 - **Default until answered**: (a). Asked on a decision card in the thread.
+- **Same for Voltex**: SDVX's track ends at a narrow visible far edge about 28% below the top, with the vanishing point
+  just above it (USC's camera, `research/game-sdvx.md` P1). Stretching it to the top edge, as now, flattens the lanes'
+  lean from 28 to 20 degrees and makes notes rush about 43% faster near the line. The Voltex preset follows whatever
+  Q7 resolves to; the research recommends the faithful edge (0.284) for Voltex.
 - **Answer**:
 
 ### Q8. Wall behaviour in the Chunithm preset

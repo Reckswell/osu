@@ -245,6 +245,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         used.TrackWidth,
                         used.Wall,
                         used.WallKeepsVisibleTime,
+                        used.NoteThickness,
                         notes = used.NoteStyle.ToString(),
                     }
                     : null,

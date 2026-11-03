@@ -297,7 +297,9 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 
 - **Decision**: osu!'s HUD layout is left alone. Argon puts the key counter at the bottom right of the screen (global
   HUD layout); the Chunithm track is wider near the line than mania's stage, so on 4K at 16:9 the counter overlaps
-  the right edge of the track's near end (playtest v11 captures).
+  the right edge of the track's near end (playtest v11 captures), and on 7K it covers the near end of the three
+  right lanes (v15). The counter only shows in replays and autoplay unless the player turns on osu!'s key overlay
+  setting (`OsuSetting.KeyOverlay`, off by default; `KeyCounterDisplay`), so normal play is not affected.
 - **Why**: SPEC 7 keeps the osu! HUD unchanged, and lazer skins already have per-ruleset HUD layouts, so a player can
   move the counter in the skin editor for maniaortho alone without touching mania's layout. Alternatives: ship a
   maniaortho default layout that moves it (changes the HUD the spec keeps, and needs a skin transformer of our own
@@ -325,3 +327,27 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   judgement line sits on the screen's bottom edge, so half its core and its lower glow are cut off (cosmetic).
 - **How to reverse**: add a `Lift` setting outside the presets and add it to `JudgementLineHeight` in
   `HighwaySettings.ToLayout`.
+
+## 2026-11-03: Voltex preset from USC's camera; note thickness is part of each preset
+
+- **Decision**: the Voltex preset copies the default camera of USC (the open-source SDVX clone, MIT) in a landscape
+  window, projected into our four numbers (`research/game-sdvx.md` P1, `research/game-usc.md`): judgement line 5.9%
+  above the bottom, highway 0.435 of the screen wide at the line for every key count, far/near width 0.106, wall off.
+  Its far edge (28% below the top in USC) is stretched to the top edge, as Q7's default does for Chunithm; QUESTIONS Q7
+  now asks the same for Voltex. Notes in this preset are 1.25% of the track deep (USC's note depth).
+- **Why USC**: no arcade frame could be measured (every image source was blocked); USC's portrait camera was tuned
+  against the arcade by its developers and its landscape camera is the same rig. K-Shoot MANIA agrees within about 15%
+  except for the line height. The arcade numbers stay unverified until one EG or ∇ frame is measured.
+- **Note thickness**: notes have a fixed thickness in track units (SPEC 6), but the same depth looks very different
+  under different cameras: at Chunithm's 2.55%, SDVX's stronger perspective drew notes about 200 px tall at the line
+  at 1080p, twice Chunithm's. So thickness is now a setting that each preset sets ("Note thickness", 0.5-6%, changing
+  it makes the preset Custom): Chunithm and Parallel 2.55%, Voltex 1.25%. Alternative rejected: deriving it from the
+  camera so notes keep one height on screen at the line, which makes Parallel's notes about 11% of the track deep
+  (Parallel draws every depth at the line's scale).
+- **Outside SPEC 2's range**: SPEC 2 says the far/near width is "typically 0.3-0.6"; SDVX's 0.106 (and Chunithm's 0.24)
+  are below it. The range was a guess made before research; the measured and projected values win, and Alpha can
+  change the SPEC text.
+- **Known effect**: the thickness slider does nothing with Skin notes, but moving it still makes the preset Custom. Not
+  disabled there: disabling a config bindable from the panel would make applying a preset throw.
+- **How to reverse**: restore the placeholder values in `HighwayPresets.Get(Voltex)`; drop `HighwaySetting.NoteThickness`
+  and use `HighwayNoteLayer.NOTE_THICKNESS` again.
