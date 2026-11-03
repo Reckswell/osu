@@ -6,6 +6,7 @@
 #   scripts/ortho/playtest.sh --beatmap ~/osu/Songs/x/y.osu     # any .osu file (repeatable)
 #   scripts/ortho/playtest.sh --times 5000,12000 --scroll-speed 24 --size 1920x1080 --play-to-end --no-baseline
 #   scripts/ortho/playtest.sh --preset Voltex --wall 0.3   (maniaortho highway settings; mania ignores them)
+#   scripts/ortho/playtest.sh --wall 0.4 --speed-lock      (the wall keeps the note speed instead of the visible time)
 #   scripts/ortho/playtest.sh --skin classic                (built-in skin: argon, argon-pro, triangles, classic)
 #   scripts/ortho/playtest.sh --notes skin                  (maniaortho notes: highway, the default, or skin)
 #   scripts/ortho/playtest.sh --mods HD                     (mod acronyms, comma separated, besides autoplay and no fail)
@@ -26,7 +27,7 @@ while [ $# -gt 0 ]; do
     --beatmap) beatmaps+=("$2"); shift ;;
     --times|--scroll-speed|--preset|--wall|--skin|--notes|--mods) extra+=("$1" "$2"); shift ;;
     --size) size="$2"; shift ;;
-    --play-to-end) extra+=("$1") ;;
+    --play-to-end|--speed-lock) extra+=("$1") ;;
     --no-baseline) baseline=0 ;;
     --out) out="$2"; shift ;;
     *) echo "unknown option $1" >&2; exit 2 ;;

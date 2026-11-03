@@ -25,6 +25,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_FULL = "ORTHO_PLAYTEST_PLAY_TO_END";
         public const string ENV_PRESET = "ORTHO_PLAYTEST_PRESET";
         public const string ENV_WALL = "ORTHO_PLAYTEST_WALL";
+        public const string ENV_SPEED_LOCK = "ORTHO_PLAYTEST_SPEED_LOCK";
         public const string ENV_SKIN = "ORTHO_PLAYTEST_SKIN";
         public const string ENV_NOTES = "ORTHO_PLAYTEST_NOTES";
         public const string ENV_MODS = "ORTHO_PLAYTEST_MODS";
@@ -56,6 +57,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// The wall position, if overriding the preset's (maniaortho only).
         /// </summary>
         public float? Wall { get; init; }
+
+        /// <summary>
+        /// Whether moving the wall keeps the note speed instead of the visible time (maniaortho only).
+        /// </summary>
+        public bool SpeedLock { get; init; }
 
         /// <summary>
         /// One of the built-in skins: argon (the default), argon-pro, triangles or classic (the legacy skin).
@@ -110,6 +116,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 PlayToEnd = get(ENV_FULL) == "1",
                 Preset = get(ENV_PRESET) is string p ? Enum.Parse<HighwayPreset>(p, true) : defaults.Preset,
                 Wall = get(ENV_WALL) is string w ? float.Parse(w, CultureInfo.InvariantCulture) : null,
+                SpeedLock = get(ENV_SPEED_LOCK) == "1",
                 Skin = get(ENV_SKIN) ?? defaults.Skin,
                 NoteStyle = get(ENV_NOTES) is string n ? Enum.Parse<HighwayNoteStyle>(n, true) : defaults.NoteStyle,
                 Mods = get(ENV_MODS)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.Mods,

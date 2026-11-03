@@ -12,6 +12,7 @@ using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Mods;
+using osu.Game.Rulesets.Mania.Objects;
 using osu.Game.Rulesets.Mania.Objects.Drawables;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
@@ -20,6 +21,7 @@ using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 using osuTK.Graphics;
@@ -72,6 +74,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddStep("default notes, default skin", () =>
             {
                 highwayConfig.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).SetDefault();
+                highwayConfig.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
                 rulesetConfig.SetValue(ManiaRulesetSetting.TimingBasedNoteColouring, false);
                 skins.CurrentSkinInfo.SetDefault();
             });
@@ -247,6 +250,72 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
                 return checkedNotes > 0;
             });
+        }
+
+        /// <summary>
+        /// SPEC 4: the scroll speed is a visible time. A note reaches the wall (the far edge when there is none) exactly that
+        /// long before its hit, in every camera mode and at every wall; with the speed lock the visible time shrinks instead.
+        /// </summary>
+        [TestCase(HighwayCameraMode.Perspective, 0f, true)]
+        [TestCase(HighwayCameraMode.Perspective, 0.4f, true)]
+        [TestCase(HighwayCameraMode.Perspective, 0.7f, true)]
+        [TestCase(HighwayCameraMode.Perspective, 0.4f, false)]
+        [TestCase(HighwayCameraMode.ParallelTilt, 0.4f, true)]
+        public void TestNoteAppearsOneVisibleTimeBeforeItsHit(HighwayCameraMode mode, float wall, bool keepVisibleTime)
+        {
+            HitObject note = null!;
+            double visibleTime = 0;
+            double appearTime = 0;
+
+            AddStep($"{mode}, wall {wall:0%}, keep visible time: {keepVisibleTime}", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.CameraMode, mode);
+                highwayConfig.SetValue(HighwaySetting.WallKeepsVisibleTime, keepVisibleTime);
+                highwayConfig.SetValue(HighwaySetting.Wall, wall);
+            });
+
+            AddUntilStep("highway uses the camera and wall", () => highway.Settings.CameraMode == mode
+                                                                  && Math.Abs(highway.Warp.Scroll.Wall - wall) < 1e-4f
+                                                                  && highway.Warp.Scroll.WallKeepsVisibleTime == keepVisibleTime);
+
+            AddStep("stop when a note should appear", () =>
+            {
+                // A tap well before the synthetic chart's first SV change (bar 16), so time maps to depth linearly.
+                note = drawableRuleset.Objects.First(h => h is Note && h.StartTime >= 6000);
+                visibleTime = highway.Warp.Scroll.VisibleTime(((IDrawableScrollingRuleset)drawableRuleset).ScrollingInfo.TimeRange.Value);
+                appearTime = note.StartTime - visibleTime;
+
+                Player.GameplayClockContainer.Stop();
+                Player.GameplayClockContainer.Seek(appearTime);
+            });
+
+            AddUntilStep("playfield at that time", () => Math.Abs(Player.DrawableRuleset.FrameStableClock.CurrentTime - appearTime) < 1);
+            AddWaitStep("let the highway gather", 2);
+
+            AddAssert("the note is at the wall", () => quadsFor(note).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note).Min(q => q.Depth0),
+                () => Is.EqualTo(highway.Warp.Scroll.AppearDepth).Within(depth_tolerance));
+
+            AddAssert("on screen too", () =>
+            {
+                // Where this camera draws the note's leading edge, against the drawn wall's lower edge (the track's far edge
+                // when there is no wall).
+                float noteY = highway.Projection.YAt(quadsFor(note).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note).Min(q => q.Depth0));
+                float edgeY = wall > 0
+                    ? highway.ToLocalSpace(highway.Wall.ScreenSpaceDrawQuad.BottomLeft).Y
+                    : highway.Projection.Layout.FarY * highway.Projection.Size.Y;
+
+                return Math.Abs(noteY - edgeY);
+            }, () => Is.LessThan(1.5f));
+
+            AddAssert("the visible time is mania's time range unless the speed is locked", () => visibleTime,
+                () => Is.EqualTo(((IDrawableScrollingRuleset)drawableRuleset).ScrollingInfo.TimeRange.Value * (keepVisibleTime ? 1 : 1 - wall)).Within(1e-6));
+
+            AddStep("half way", () => Player.GameplayClockContainer.Seek(appearTime + visibleTime / 2));
+            AddUntilStep("playfield at that time", () => Math.Abs(Player.DrawableRuleset.FrameStableClock.CurrentTime - (appearTime + visibleTime / 2)) < 1);
+            AddWaitStep("let the highway gather", 2);
+
+            AddAssert("the note is half way to the line", () => quadsFor(note).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note).Min(q => q.Depth0),
+                () => Is.EqualTo(highway.Warp.Scroll.AppearDepth / 2).Within(depth_tolerance));
         }
 
         [Test]

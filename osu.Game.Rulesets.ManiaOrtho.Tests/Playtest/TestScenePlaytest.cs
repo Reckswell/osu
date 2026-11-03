@@ -18,7 +18,9 @@ using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 using SixLabors.ImageSharp;
@@ -79,6 +81,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     if (options.Wall is float wall)
                         ortho.Highway.SetValue(HighwaySetting.Wall, wall);
 
+                    ortho.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, !options.SpeedLock);
                     ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.NoteStyle);
                 }
             });
@@ -139,6 +142,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         return;
                     }
 
+                    double timeRange = (Player.DrawableRuleset as IDrawableScrollingRuleset)?.ScrollingInfo.TimeRange.Value ?? 0;
+
                     clockAtCapture.Add(new
                     {
                         target = times[index],
@@ -146,6 +151,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         frameStable = Math.Round(Player.DrawableRuleset.FrameStableClock.CurrentTime, 1),
                         combo = Player.ScoreProcessor.Combo.Value,
                         judged = Player.ScoreProcessor.JudgedHits,
+                        // How long a note takes from the top of mania's stage to the line, and (maniaortho) from the far edge or
+                        // wall to the line: the time range, shorter with the speed lock.
+                        timeRange = Math.Round(timeRange, 1),
+                        visibleTime = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Warp.Scroll.VisibleTime(timeRange) is double visible
+                            ? Math.Round(visible, 1)
+                            : (double?)null,
                     });
                     captureTask = capture($"{options.Ruleset}-{index}-{times[index]:0}ms");
                 });
@@ -221,6 +232,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 scrollSpeed = options.ScrollSpeed,
                 preset = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.Preset.ToString() : null,
                 wall = options.Wall,
+                speedLock = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.SpeedLock : (bool?)null,
                 skin = options.Skin,
                 notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.NoteStyle.ToString() : null,
                 mods = Player.GameplayState.Mods.Select(m => m.Acronym).ToArray(),

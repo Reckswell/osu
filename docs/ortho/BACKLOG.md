@@ -53,9 +53,15 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 
 ## M2: Gameplay settings and feel
 
-- [ ] Visible-time scroll speed across camera modes. Gate: L0 test + screenshot timed at hit time minus visible time
-  shows the note at the far edge.
-- [ ] Top wall with constant visible time (default) and speed lock toggle. Gate: L0 test; screenshots at wall 0/40/70%.
+- [x] Visible-time scroll speed across camera modes. Gate: L0 test + screenshot timed at hit time minus visible time
+  shows the note at the far edge. (`HighwayScrollTest`; in game `TestNoteAppearsOneVisibleTimeBeforeItsHit` for
+  Perspective and Parallel tilt, also checked on screen against the far edge and the drawn wall. Armageddon 4K at
+  speed 29, time range 405.1 ms: the notes hit at 33446 ms are exactly at the far edge at 33041 ms (not yet in view,
+  as at the top of mania's stage, which shows the same notes), just inside it at 33061 ms, on the line at 33446 ms.)
+- [x] Top wall with constant visible time (default) and speed lock toggle. Gate: L0 test; screenshots at wall 0/40/70%.
+  (Same captures at walls 0, 40% and 70%: the same notes on screen as mania, entering at the wall. With the speed lock
+  at 40% the visible time is 243.1 ms and they reach the wall at 33203 ms. Playtest `--speed-lock`; summaries record
+  the time range and visible time.)
 - [ ] Bottom lift. Gate: screenshot; parity green.
 - [ ] Presets (Voltex, Chunithm, Parallel, Classic) with values from research. Gate: compare sheet per preset.
 - [ ] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.

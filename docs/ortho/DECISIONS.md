@@ -292,3 +292,15 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   `TestSceneHighwayFlashlight` (notes lit in mania are drawn inside the drawn lit band, dark ones outside it; the band is
   mania's under the flat camera), replay parity with FL. Playtest: Armageddon 4K at speed 29 and synthetic 7K, the same
   notes lit as in mania's capture.
+
+## 2026-11-03: The HUD's key counter stays where the skin puts it
+
+- **Decision**: osu!'s HUD layout is left alone. Argon puts the key counter at the bottom right of the screen (global
+  HUD layout); the Chunithm track is wider near the line than mania's stage, so on 4K at 16:9 the counter overlaps
+  the right edge of the track's near end (playtest v11 captures).
+- **Why**: SPEC 7 keeps the osu! HUD unchanged, and lazer skins already have per-ruleset HUD layouts, so a player can
+  move the counter in the skin editor for maniaortho alone without touching mania's layout. Alternatives: ship a
+  maniaortho default layout that moves it (changes the HUD the spec keeps, and needs a skin transformer of our own
+  for every built-in skin), or shrink the track (changes the camera presets research set).
+- **How to reverse**: return a `DefaultSkinComponentsContainer` for `MainHUDComponents` with `Ruleset` set from a
+  maniaortho skin transformer that wraps mania's.
