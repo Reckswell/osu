@@ -37,3 +37,29 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Decision**: no `CreateSettings()` yet. `ManiaSettingsSubsection` requires a `ManiaRuleset` instance, and passing
   `MANIA` would bind to mania's settings rather than this ruleset's. In-game scroll speed hotkeys still work.
 - **Reverse**: backlog M0 "Settings plumbing".
+
+## 2026-11-03: Chunithm is the primary reference; perspective + Chunithm preset by default
+
+- **Decision**: default camera is perspective with the Chunithm preset. SDVX becomes a secondary reference (the
+  Voltex preset). Research priority: Chunithm viewfield and Chunithm animations/feedback first.
+- **Why**: Alpha, in the project thread: Chunithm is the "game i want to mirror most", including animations and the
+  gameplay viewfield. Chunithm's field is a perspective view, so this also answers Q1.
+- **Reverse**: the camera mode and preset are settings; only the defaults change.
+
+## 2026-11-03: Mania maps list natively under `maniaortho` via `Ruleset.PlaysBeatmapsOfRuleset`
+
+- **Decision**: a new virtual on `Ruleset` names another ruleset whose beatmaps it plays as its own;
+  `AllowGameplayWithRuleset` honours it, and both `PresentBeatmap` paths use `AllowGameplayWithRuleset(..., false)`
+  instead of ruleset equality so presenting a mania map keeps `maniaortho` selected.
+- **Why**: the alternatives were hard-coding `maniaortho` in osu.Game (worse: leaks our name into core) or relying on
+  "show converted beatmaps" (does not work: converts only cover osu!standard maps). The lookup creates each ruleset
+  once and caches the answer, so song select filtering stays allocation-free per beatmap.
+- **Evidence**: `BeatmapCompatibilityTest` (10 cases, including upstream behaviour unchanged); osu!mania suite 840/840;
+  osu.Game filtering + present-beatmap tests 269/269.
+
+## 2026-11-03: Alpha's osu! stable install is the gameplay baseline, read-only
+
+- **Decision**: use `C:\Users\alpha\AppData\Local\osu!` (stable, not lazer) as the reference for how the game should
+  run: settings summarised in `research/baseline-alpha.md`; individual `.osu` files staged into the cloud container for
+  playtests, never committed (copyright); skins only looked at, never copied. Nothing is ever written to that folder.
+- **Why**: Alpha offered it as the baseline. It is stable, so its mania settings are translated to lazer equivalents.

@@ -52,6 +52,12 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         public override string PlayingVerb => "Riding the highway";
 
+        /// <summary>
+        /// osu!mania beatmaps are this ruleset's own: they list under it at song select without enabling converted
+        /// beatmaps (see <see cref="BeatmapInfoExtensions.AllowGameplayWithRuleset"/>).
+        /// </summary>
+        public override string PlaysBeatmapsOfRuleset => MANIA.ShortName;
+
         public override string RulesetAPIVersionSupported => CURRENT_RULESET_API_VERSION;
 
         public override Drawable CreateIcon() => new SpriteIcon { Icon = FontAwesome.Solid.Road };

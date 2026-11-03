@@ -13,9 +13,9 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] Parity tests: judgements, score, accuracy (replays); playable beatmap, SR, pp (direct).
 - [ ] Harness polish: hide the menu cursor that appears in playtest captures; add a `--preset`/settings pass-through
   once settings exist. Gate: captures show no cursor.
-- [ ] Core patch: `AllowGameplayWithRuleset` accepts mania beatmaps for `maniaortho` (and only for it).
+- [x] Core patch: `AllowGameplayWithRuleset` accepts mania beatmaps for `maniaortho` (and only for it).
   Gate: unit test in the ruleset tests; song select filter test shows mania maps under `maniaortho`;
-  `check.sh --mania` green.
+  `check.sh --mania` green. (Done via `Ruleset.PlaysBeatmapsOfRuleset`; `PresentBeatmap` no longer switches to mania.)
 - [ ] Research baseline (delegate to `vsrg-researcher`): one note per reference game in `research/`, covering camera,
   note approach, judgement line position, lane covers/walls, speed definition, hold rendering, key-count handling.
   SDVX, Chunithm, osu!mania first, then Project Sekai, IIDX, StepMania/Etterna, Quaver, YARG/Clone Hero, USC,
