@@ -89,7 +89,10 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   (Hidden, Fade In, Cover on native notes: `DepthCover`, `TestCoverHidesNativeNotes`. Flashlight lights the track rows
   mania lights: `ManiaOrthoModFlashlight`, `TestSceneHighwayFlashlight`, `ModListTest`. Replay parity with HD, FI, CO
   and FL.)
-- [ ] Gameplay hotkeys for wall and speed (like mania's F3/F4). Gate: input test scene.
+- [x] Gameplay hotkeys for wall and speed (like mania's F3/F4). Gate: input test scene.
+  (Shift+F3/Shift+F4 move the wall 5% with a toast; mania's F3/F4 speed keys already worked. `TestSceneHighwayHotkeys`:
+  keys still reach mania's input manager, work in a replay player, range, modifiers, no column pressed;
+  `TestWallChangesShowAToast`.)
 - [ ] **MG2**: device playtest (L3) with frame times on Alpha's PC; ask Alpha for an L4 session and replays.
 
 ## M3: Separate client and local scoring

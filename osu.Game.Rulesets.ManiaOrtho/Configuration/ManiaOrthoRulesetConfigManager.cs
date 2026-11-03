@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using osu.Framework.Configuration.Tracking;
 using osu.Game.Configuration;
 using osu.Game.Rulesets.Configuration;
 using osu.Game.Rulesets.Mania.Configuration;
@@ -166,6 +167,23 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
 
             static bool near(float a, float b) => Math.Abs(a - b) < 1e-4f;
         }
+
+        /// <summary>
+        /// Shown as a toast when changed during gameplay (the wall hotkeys), as osu! does for the scroll speed.
+        /// </summary>
+        public override TrackedSettings CreateTrackedSettings() => new TrackedSettings
+        {
+            new TrackedSetting<float>(HighwaySetting.Wall, wall => new SettingDescription(
+                rawValue: wall,
+                name: "Wall",
+                value: wall > 0 ? $"{wall:0%} covered" : "Off",
+                shortcut: WALL_SHORTCUT))
+        };
+
+        /// <summary>
+        /// The keys that move the wall in gameplay (<see cref="UI.HighwayHotkeys"/>), named under the wall's toast.
+        /// </summary>
+        public const string WALL_SHORTCUT = "Shift+F3 / Shift+F4";
     }
 
     public enum HighwaySetting

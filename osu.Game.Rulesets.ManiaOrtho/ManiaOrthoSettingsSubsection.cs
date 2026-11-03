@@ -102,7 +102,8 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormSliderBar<float>
                 {
                     Caption = "Wall",
-                    HintText = "How much of the far end of the track is covered. Notes appear at the wall.",
+                    HintText = "How much of the far end of the track is covered. Notes appear at the wall. In gameplay, Shift+F3 "
+                               + "and Shift+F4 move it (F3 and F4 change the scroll speed).",
                     Current = highway.GetBindable<float>(HighwaySetting.Wall),
                     DisplayAsPercentage = true,
                     KeyboardStep = 0.01f,

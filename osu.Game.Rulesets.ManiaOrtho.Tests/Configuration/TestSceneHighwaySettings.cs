@@ -3,6 +3,7 @@
 
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Configuration.Tracking;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
@@ -102,6 +103,32 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     return config.Highway.Current.Track;
                 }
             }, () => Is.EqualTo(HighwayTrackStyle.Skin));
+        }
+
+        [Test]
+        public void TestWallChangesShowAToast()
+        {
+            AddStep("move the wall", () =>
+            {
+                using (var config = create())
+                {
+                    var tracked = config.Highway.CreateTrackedSettings();
+                    SettingDescription? shown = null;
+
+                    config.Highway.LoadInto(tracked);
+                    tracked.SettingChanged += description => shown = description;
+
+                    config.Highway.SetValue(HighwaySetting.Wall, 0.05f);
+                    Assert.That(shown?.Name.ToString(), Is.EqualTo("Wall"));
+                    Assert.That(shown?.Value.ToString(), Is.EqualTo("5% covered"));
+                    Assert.That(shown?.Shortcut.ToString(), Is.EqualTo(HighwayConfigManager.WALL_SHORTCUT));
+
+                    config.Highway.SetValue(HighwaySetting.Wall, 0f);
+                    Assert.That(shown?.Value.ToString(), Is.EqualTo("Off"));
+
+                    tracked.Unload();
+                }
+            });
         }
 
         [Test]

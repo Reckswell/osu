@@ -440,3 +440,28 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   are carried by the notes (native notes use the skin's lane colours or white and pink), not the floor.
 - **How to reverse**: set "Track" to Skin, or change the default in `ManiaOrthoRulesetConfigManager` and
   `HighwaySettings`.
+
+## 2026-11-03: Shift+F3 and Shift+F4 move the wall; F3 and F4 stay mania's scroll speed
+
+- **Decision**: the gameplay hotkeys SPEC 4 asks for are Shift+F3 (wall down) and Shift+F4 (wall up), 5% of the track
+  per press, held keys repeating as F3 and F4 do. The scroll speed needed nothing new: mania's F3 and F4 already work
+  under maniaortho (inherited from `DrawableManiaRuleset`, same limits: the first 10 seconds of a play and breaks, never
+  paused). A toast shows the new wall ("Wall: 5% covered", with the keys named under it), as osu! does for the speed.
+- **Why these keys**: next to the speed keys, so a player finds them; Shift+F3/F4 are bound to nothing in osu!
+  (global actions match modifiers exactly, so they do not trigger the speed keys either).
+- **Input**: a plain component on the drawable ruleset, outside the ruleset's input manager, watches key-downs and
+  never handles them (returns false), so every key goes on to exactly what it reaches in mania: a column bound to F3 or
+  F4 is still pressed, and nothing about who judges a press changes. The first version used a key binding container
+  that handled the keys; review found it would swallow Shift+F4 before mania's input manager (a parity break for anyone
+  with a column on F4) and that it never fired while watching a replay, where osu! takes Shift's own key event to
+  fast-forward. Shift is now read from the keyboard state. `TestSceneHighwayHotkeys` checks both (a listener inside
+  mania's input manager still receives Shift+F4; the keys work in a replay player), plus range limits, other
+  modifiers, F3/F4 speed, and that no column is pressed.
+- **Fixed, not rebindable**: osu!'s key binding settings list only global actions and each ruleset's own actions.
+  Adding wall actions to the ruleset's would change the ruleset's action set and put them into mania replays.
+- **Any time**: unlike the speed, the wall moves at any point of a song and while paused, as lane covers do in the
+  arcade games (IIDX's SUD+ is moved mid-song). It never changes what is judged, and the ruleset is never submittable.
+- **Side effects, accepted**: moving the wall switches the preset to Custom, as moving the slider does; while watching
+  a replay, holding Shift also fast-forwards it; a player with a column bound to Shift who presses F3 or F4 while
+  holding it moves the wall instead of the speed.
+- **How to reverse**: remove `HighwayHotkeys` from `DrawableManiaOrthoRuleset.load`.

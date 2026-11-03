@@ -48,6 +48,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         [BackgroundDependencyLoader]
         private void load()
         {
+            if (HighwayConfig != null)
+                AddInternal(new HighwayHotkeys(HighwayConfig));
+
             // Mania keeps a beatmap's scroll speed changes (SV) only when the beatmap was made for the ruleset being played,
             // which it checks against Ruleset.RulesetInfo: maniaortho here, so every mania beatmap would lose its SV. This
             // runs after mania's loader and restores what mania keeps for its own beatmaps: at each control point, the

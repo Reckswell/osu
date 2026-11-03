@@ -104,6 +104,10 @@ note the licence in the research note).
   their time from below (the playtest harness stops short and seeks forward; `overshoot` in the summary should be 0).
 - osu-framework transforms are affine. Perspective needs a custom `DrawNode` emitting arbitrary quads; textured
   trapezoids need perspective-correct UVs (a plain two-triangle quad shows a visible bend).
+- To watch a key without changing what mania receives, handle `OnKeyDown` outside the ruleset's input manager and
+  return false (see `HighwayHotkeys`). A key binding container that handles a key swallows it before mania's, and it
+  only matches keys whose key-down reached it: osu! takes Shift's own event while watching a replay (fast-forward).
+  Read modifiers from the event's state (`e.ShiftPressed`) instead.
 
 ## Code conventions (from upstream; CI enforces most)
 

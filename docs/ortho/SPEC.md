@@ -68,8 +68,8 @@ Requirements:
 - **Bottom lift** (IIDX's LIFT): optional, raises the judgement line. Off by default.
 - **Constant visible time by default**: moving the wall changes on-screen speed so that visible time stays the same.
   A toggle "keep speed when moving the wall" switches to keeping on-screen speed instead (visible time shrinks).
-- Walls are ruleset **settings**, adjustable from settings and with a hotkey during gameplay *(later)*. They never
-  change judgement or scoring, so they are not mods.
+- Walls are ruleset **settings**, adjustable from settings and with a hotkey during gameplay (Shift+F3 / Shift+F4).
+  They never change judgement or scoring, so they are not mods.
 
 ## 5. Lanes and key modes
 
