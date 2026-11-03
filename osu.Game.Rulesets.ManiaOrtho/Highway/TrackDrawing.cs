@@ -138,6 +138,62 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
                 }
             }
         }
+
+        /// <summary>
+        /// A line running along the track at <paramref name="lane"/>, from the judgement line to <paramref name="farDepth"/>,
+        /// <paramref name="width"/> track widths wide, so it thins with distance (Chunithm's guide lines). Where it would be
+        /// thinner than <paramref name="minPixels"/> on screen it keeps that width instead, so it never breaks up.
+        /// </summary>
+        /// <remarks>
+        /// On a projected plane both a lane's x and the track's width are linear in screen y, so each part is an exact
+        /// trapezoid and the point where the line reaches the minimum width is found in closed form.
+        /// </remarks>
+        /// <param name="projection">The projection, in the space the quads are wanted in.</param>
+        /// <param name="lane">Where the line runs, in lane space.</param>
+        /// <param name="width">The line's width, in track widths.</param>
+        /// <param name="farDepth">Where the line ends.</param>
+        /// <param name="minPixels">The least width on screen.</param>
+        /// <param name="near">The part from the judgement line, tapering.</param>
+        /// <param name="far">The part of constant (minimum) width beyond it. Empty when <paramref name="split"/> is 1.</param>
+        /// <param name="split">Where the parts meet, as a fraction of the line's length on screen (0 at the judgement line).</param>
+        public static void GetLaneLine(in HighwayProjection projection, float lane, float width, float farDepth, float minPixels,
+                                       out Quad near, out Quad far, out float split)
+        {
+            float nearY = projection.YAt(0);
+            float farY = projection.YAt(farDepth);
+            float nearX = projection.ToScreen(lane, 0).X;
+            float farX = projection.ToScreen(lane, farDepth).X;
+            float nearWidth = width * projection.WidthAt(0);
+            float farWidth = width * projection.WidthAt(farDepth);
+
+            if (farWidth >= minPixels || nearWidth <= minPixels)
+            {
+                near = line(nearX, nearY, Math.Max(nearWidth, minPixels), farX, farY, Math.Max(farWidth, minPixels));
+                far = default;
+                split = 1;
+                return;
+            }
+
+            split = (nearWidth - minPixels) / (nearWidth - farWidth);
+
+            float splitX = nearX + (farX - nearX) * split;
+            float splitY = nearY + (farY - nearY) * split;
+
+            near = line(nearX, nearY, nearWidth, splitX, splitY, minPixels);
+            far = line(splitX, splitY, minPixels, farX, farY, minPixels);
+
+            static Quad line(float x0, float y0, float w0, float x1, float y1, float w1) => new Quad(
+                new Vector2(x1 - w1 / 2, y1), new Vector2(x1 + w1 / 2, y1),
+                new Vector2(x0 - w0 / 2, y0), new Vector2(x0 + w0 / 2, y0));
+        }
+
+        /// <summary>
+        /// The band across the whole track between screen heights <paramref name="top"/> and <paramref name="bottom"/>, its
+        /// sides on the track's edges (the judgement line and its glow).
+        /// </summary>
+        public static Quad GetAcrossTrack(in HighwayProjection projection, float top, float bottom) => new Quad(
+            new Vector2(projection.XAt(0, top), top), new Vector2(projection.XAt(1, top), top),
+            new Vector2(projection.XAt(0, bottom), bottom), new Vector2(projection.XAt(1, bottom), bottom));
     }
 
     /// <summary>

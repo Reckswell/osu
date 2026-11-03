@@ -9,7 +9,9 @@ using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Testing;
 using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Rulesets.Mania.Configuration;
+using osu.Game.Rulesets.Mania.Skinning.Legacy;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
@@ -17,6 +19,7 @@ using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.UI;
 using osu.Game.Rulesets.UI.Scrolling;
+using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 using osuTK;
 
@@ -39,6 +42,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
         private HighwayJudgementLayer layer => highway.JudgementLayers.Single();
 
+        [Resolved]
+        private SkinManager skins { get; set; } = null!;
+
         private HighwayConfigManager highwayConfig => ((ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull()).Highway;
 
         [SetUpSteps]
@@ -48,6 +54,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             {
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
+                highwayConfig.SetValue(HighwaySetting.LaneGuides, true);
+                highwayConfig.SetValue(HighwaySetting.SkinHitTarget, false);
+                skins.CurrentSkinInfo.SetDefault();
             });
 
             base.SetUpSteps();
@@ -166,6 +175,71 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         }
 
         [Test]
+        public void TestGuidesFollowTheColumns()
+        {
+            AddUntilStep("hit targets found", () => highway.HitTargets.Count == 4);
+
+            AddAssert("guides and judgement line shown", () => highway.Guides.IsPresent && highway.Guides.ShowLaneLines && highway.Guides.ShowJudgementLine);
+            AddAssert("skin hit targets hidden", () => highway.HitTargets.All(t => t.Alpha == 0));
+
+            // Two edges and three dividers for 4K, on the warped column boundaries: equal lanes in the default skin.
+            AddAssert("one line per column boundary", () => highway.Guides.LineCount == 5);
+            AddAssert("lines at the column boundaries", () => Enumerable.Range(0, 5).All(i =>
+            {
+                var line = highway.Guides.GetLine(i);
+                return Math.Abs(line.Lane - i / 4f) < 0.01f && line.IsEdge == (i == 0 || i == 4);
+            }));
+        }
+
+        [Test]
+        public void TestGuideSettings()
+        {
+            AddUntilStep("hit targets found", () => highway.HitTargets.Count == 4);
+
+            AddStep("use the skin's hit target", () => highwayConfig.SetValue(HighwaySetting.SkinHitTarget, true));
+            AddUntilStep("skin hit targets shown", () => highway.HitTargets.All(t => t.Alpha == 1));
+            AddAssert("no highway judgement line", () => !highway.Guides.ShowJudgementLine);
+            AddAssert("lane guides stay", () => highway.Guides.ShowLaneLines);
+
+            AddStep("lane guides off", () => highwayConfig.SetValue(HighwaySetting.LaneGuides, false));
+            AddUntilStep("no lane guides", () => !highway.Guides.ShowLaneLines);
+
+            AddStep("reset", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.SkinHitTarget, false);
+                highwayConfig.SetValue(HighwaySetting.LaneGuides, true);
+            });
+            AddUntilStep("skin hit targets hidden", () => highway.HitTargets.All(t => t.Alpha == 0));
+        }
+
+        [Test]
+        public void TestLegacySkinHitTargetHidden()
+        {
+            AddStep("classic skin", () => skins.CurrentSkinInfo.Value = DefaultLegacySkin.CreateInfo().ToLiveUnmanaged());
+
+            // Legacy skins with key textures draw their hit target (stage hint and judgement line) in the stage background.
+            AddUntilStep("legacy hit target found", () => highway.HitTargets.OfType<LegacyHitTarget>().Any());
+            AddAssert("every legacy hit target is tracked", () => legacyHitTargets().All(highway.HitTargets.Contains));
+            AddAssert("and hidden", () => legacyHitTargets().All(t => t.Alpha == 0));
+
+            AddStep("use the skin's hit target", () => highwayConfig.SetValue(HighwaySetting.SkinHitTarget, true));
+            AddUntilStep("legacy hit target shown", () => legacyHitTargets().All(t => t.Alpha == 1));
+
+            AddStep("default skin", () => skins.CurrentSkinInfo.SetDefault());
+            AddUntilStep("legacy hit target gone", () => !highway.HitTargets.OfType<LegacyHitTarget>().Any());
+        }
+
+        [Test]
+        public void TestFlatCameraKeepsManiasLook()
+        {
+            AddUntilStep("hit targets found", () => highway.HitTargets.Count == 4);
+
+            AddStep("flat camera", () => highwayConfig.SetValue(HighwaySetting.CameraMode, HighwayCameraMode.Flat));
+            AddUntilStep("no guides", () => !highway.Guides.IsPresent);
+            AddAssert("skin hit targets shown", () => highway.HitTargets.All(t => t.Alpha == 1));
+        }
+
+        [Test]
         public void TestManiaDrawablesSeeThisRulesetsConfig()
         {
             ConfigProbe probe = null!;
@@ -211,6 +285,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             // Let the highway place it at least once.
             AddWaitStep("let it settle", 2);
         }
+
+        private LegacyHitTarget[] legacyHitTargets() => drawableRuleset.Playfield.ChildrenOfType<LegacyHitTarget>().ToArray();
 
         private Drawable maniaJudgements() => drawableRuleset.Playfield.Stages.Single().ChildrenOfType<JudgementContainer<DrawableManiaJudgement>>().Single();
 

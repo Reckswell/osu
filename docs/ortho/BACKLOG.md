@@ -37,12 +37,13 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   Notes still drawn by mania for now if that is simpler. Gate: screenshots for 4K/7K in perspective and flat.
   (First version: `HighwayWarpContainer` warps mania's whole stage; replay parity green. Done since: receptor area
   below the line drawn at flat height, upright judgements (`HighwayJudgementLayer`), field wall drawn (`HighwayWall`,
-  M2 wall task's L0 test and screenshots still open). Open: lane dividers and a judgement line of our own, flat-mode
-  and 7K captures.)
+  M2 wall task's L0 test and screenshots still open), Chunithm judgement line and lane guides (`HighwayGuides`,
+  skin hit target hidden when tilted, settings "Lane guides" and "Use skin hit target"). Open: flat-mode capture.)
 - [ ] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
   Gate: replay parity still green; screenshots show holds aligned at all depths; flat mode matches mania's layout.
-- [ ] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and
-  1.75x sections.
+- [x] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and
+  1.75x sections. (Warped with the stage. Playtest found SV was dropped under maniaortho; fixed in
+  `DrawableManiaOrthoRuleset`, `TestScrollSpeedChangesApply`; captures match mania in Chunithm and Parallel.)
 - [ ] **MG1**: report to Alpha with a compare sheet (mania vs perspective vs parallel, 4K and 7K, real-4k map) and
   ask for an L3/L4 playtest on device.
 

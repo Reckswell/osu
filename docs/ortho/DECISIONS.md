@@ -172,3 +172,26 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Also checked, fine**: the hit-window "is convert" check (song-select display goes through `MANIA`, so it compares
   with mania), `ManiaModClassic` (compares with a new `ManiaRuleset`), the converter and difficulty calculator (given
   `MANIA`). Key bindings are stored under maniaortho's own ruleset, on purpose (separate from mania's, like the settings).
+
+## 2026-11-03: The highway draws its own judgement line and lane guides; the skin's hit target is hidden when tilted
+
+- **Decision**: under tilted cameras, a Chunithm-style judgement line (white core 1.0% H, gold glow 3.3% H) and teal
+  guide lines on every lane boundary (#45D9C8, stage edges #1F6763, 0.22% of the track wide, at least 1 px, fading from
+  80% to 30% alpha with distance) are drawn in the highway's screen-space overlay. Mania's skin hit target is hidden.
+  Two preferences, outside presets: "Lane guides" (on) and "Use skin hit target" (off; on brings back the skin's hit
+  target and drops the highway line). The flat camera shows mania's own look, untouched.
+- **Why**: the warp magnified the skin's hit target about 4.6x near the line (a 23 px band became about 110 px at
+  720p), because it sits just above the hit position where the perspective is strongest. Values are from
+  research/game-chunithm.md ("Judgement line and receptors", P4). Guides are placed on the measured column boundaries,
+  not at k/N, so they stay on legacy skins' uneven columns and on dual stages.
+- **Deviation from the arcade**: Chunithm draws its judgement line and guides under the notes. Ours are drawn over them
+  (the notes are inside the warped buffer, under one texture with the column backgrounds), so the core is kept to 1% H
+  and the glow fades out; the leading edge of a note at its hit time is covered by half the core (about 3-5 px), and a
+  divider covers about 1 px of the edges of the notes beside it.
+- **Legacy skins**: with key textures they leave the column hit target empty and draw their own (`LegacyHitTarget`:
+  stage hint and the skin's judgement line) inside the stage background, which is rebuilt on a skin change. Both are
+  hidden, and the search runs again after every skin change (found by review; `TestLegacySkinHitTargetHidden`).
+- **Minimum width** is 1 screen pixel, converted through the draw matrix (gameplay sits in a scaling container).
+- **Known leftover**: the default skin's key area has a 7 px grey bar just above the hit position, which the warp also
+  magnifies (about 20 px above the line at 720p). It is part of the key area, not the hit target, so it stays for now.
+- **Asked**: whether the default should be the Chunithm line or the skin's hit target goes to Alpha with the MG1 report.

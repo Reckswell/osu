@@ -72,6 +72,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public bool WallKeepsVisibleTime { get; init; }
 
+        /// <summary>
+        /// Whether to draw guide lines along the lane boundaries (Chunithm's guidelines). Tilted cameras only.
+        /// </summary>
+        public bool LaneGuides { get; init; }
+
+        /// <summary>
+        /// Whether to keep the skin's hit target at the judgement line instead of the highway's own judgement line. Under a
+        /// tilted camera the perspective magnifies the skin's hit target several times near the line. Tilted cameras only.
+        /// </summary>
+        public bool SkinHitTarget { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -81,6 +92,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             TrackWidth = 0.5f;
             Wall = 0;
             WallKeepsVisibleTime = true;
+            LaneGuides = true;
+            SkinHitTarget = false;
         }
 
         /// <summary>

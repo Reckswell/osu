@@ -88,6 +88,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
             SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.01f);
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
+            SetDefault(HighwaySetting.LaneGuides, true);
+            SetDefault(HighwaySetting.SkinHitTarget, false);
         }
 
         /// <summary>
@@ -102,11 +104,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             TrackWidth = Get<float>(HighwaySetting.TrackWidth),
             Wall = Get<float>(HighwaySetting.Wall),
             WallKeepsVisibleTime = Get<bool>(HighwaySetting.WallKeepsVisibleTime),
+            LaneGuides = Get<bool>(HighwaySetting.LaneGuides),
+            SkinHitTarget = Get<bool>(HighwaySetting.SkinHitTarget),
         };
 
         /// <summary>
-        /// Writes a preset's values into the individual settings. Leaves <see cref="HighwaySetting.WallKeepsVisibleTime"/>
-        /// alone (a preference, not part of a look).
+        /// Writes a preset's values into the individual settings. Leaves <see cref="HighwaySetting.WallKeepsVisibleTime"/>,
+        /// <see cref="HighwaySetting.LaneGuides"/> and <see cref="HighwaySetting.SkinHitTarget"/> alone (preferences, not
+        /// part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
         {
@@ -161,5 +166,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         TrackWidth,
         Wall,
         WallKeepsVisibleTime,
+        LaneGuides,
+        SkinHitTarget,
     }
 }

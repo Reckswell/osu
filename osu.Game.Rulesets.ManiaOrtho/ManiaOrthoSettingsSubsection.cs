@@ -116,6 +116,24 @@ namespace osu.Game.Rulesets.ManiaOrtho
                     HintText = "On: moving the wall slows notes so they stay visible for the same time. Off: notes keep their speed.",
                     Current = highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime),
                 }),
+                new SettingsItemV2(new FormCheckBox
+                {
+                    Caption = "Lane guides",
+                    HintText = "Thin lines along the lane boundaries that fade into the distance, as in Chunithm.",
+                    Current = highway.GetBindable<bool>(HighwaySetting.LaneGuides),
+                })
+                {
+                    Keywords = new[] { "guidelines", "dividers", "column lines" },
+                },
+                new SettingsItemV2(new FormCheckBox
+                {
+                    Caption = "Use skin hit target",
+                    HintText = "On: the skin's hit target marks the judgement line. Off: a Chunithm-style judgement line does.",
+                    Current = highway.GetBindable<bool>(HighwaySetting.SkinHitTarget),
+                })
+                {
+                    Keywords = new[] { "judgement line", "receptor", "stage hint" },
+                },
             };
         }
     }
