@@ -35,8 +35,10 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   (`TrackDrawing` grid subdivision + `TrackSprite`; `TestSceneTrackSprite` shows subdivided vs one-quad bend.)
 - [~] Highway playfield: replace mania's column layout with projected lanes, lane dividers, judgement line, receptors.
   Notes still drawn by mania for now if that is simpler. Gate: screenshots for 4K/7K in perspective and flat.
-  (First version: `HighwayWarpContainer` warps mania's whole stage; replay parity green. Open: below-line area,
-  screen-space judgements, wall, flat-mode capture.)
+  (First version: `HighwayWarpContainer` warps mania's whole stage; replay parity green. Done since: receptor area
+  below the line drawn at flat height, upright judgements (`HighwayJudgementLayer`), field wall drawn (`HighwayWall`,
+  M2 wall task's L0 test and screenshots still open). Open: lane dividers and a judgement line of our own, flat-mode
+  and 7K captures.)
 - [ ] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
   Gate: replay parity still green; screenshots show holds aligned at all depths; flat mode matches mania's layout.
 - [ ] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and

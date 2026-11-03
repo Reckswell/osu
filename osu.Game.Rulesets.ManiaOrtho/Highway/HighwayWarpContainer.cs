@@ -129,17 +129,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
 
                 var texture = SharedData.MainBuffer.Texture;
 
-                // The stage from the top of its scrolling area down to the bottom of this container, in buffer pixels.
+                // Above the judgement line: the scrolling area, in perspective. The hit position is depth 0 and the top of
+                // the scrolling area is the scroll length, linearly in source y, so notes keep exactly mania's timing.
                 Vector2 topLeft = toBufferSpace(new Vector2(source.Left, source.Top));
+                Vector2 lineRight = toBufferSpace(new Vector2(source.Right, source.Bottom));
+                var aboveRect = new RectangleF(topLeft.X, topLeft.Y, lineRight.X - topLeft.X, lineRight.Y - topLeft.Y);
+
+                TrackDrawing.DrawTrackRectangle(renderer, texture, projection, DrawInfo.Matrix, 0, 1, 0, scroll.ScrollLength, DrawColourInfo.Colour, aboveRect);
+
+                // Below the line (receptors, key area): at its flat height. Perspective would magnify it several times.
+                float belowHeight = localSize.Y - source.Bottom;
                 Vector2 bottomRight = toBufferSpace(new Vector2(source.Right, localSize.Y));
-                var textureRect = new RectangleF(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+                var belowRect = new RectangleF(topLeft.X, lineRight.Y, lineRight.X - topLeft.X, bottomRight.Y - lineRight.Y);
 
-                // Depth is linear in source y: the hit position is depth 0, the top of the scrolling area is the scroll length.
-                float depthPerPixel = scroll.ScrollLength / scrollHeight;
-                float farDepth = scroll.ScrollLength;
-                float nearDepth = -(localSize.Y - source.Bottom) * depthPerPixel;
-
-                TrackDrawing.DrawTrackRectangle(renderer, texture, projection, DrawInfo.Matrix, 0, 1, nearDepth, farDepth, DrawColourInfo.Colour, textureRect);
+                TrackDrawing.DrawBelowLine(renderer, texture, projection, DrawInfo.Matrix, belowHeight, DrawColourInfo.Colour, belowRect);
             }
 
             private Vector2 toBufferSpace(Vector2 local)

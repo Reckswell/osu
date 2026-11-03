@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -38,6 +39,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public HighwayWarpContainer Warp { get; }
 
         /// <summary>
+        /// The field wall, in <see cref="Overlay"/> under the judgements.
+        /// </summary>
+        public HighwayWall Wall { get; }
+
+        /// <summary>
+        /// One upright judgement display per stage, in <see cref="Overlay"/>.
+        /// </summary>
+        public IReadOnlyList<HighwayJudgementLayer> JudgementLayers => judgementLayers;
+
+        private readonly List<HighwayJudgementLayer> judgementLayers = new List<HighwayJudgementLayer>();
+
+        /// <summary>
         /// The current highway settings, refreshed every frame.
         /// </summary>
         public HighwaySettings Settings { get; private set; } = new HighwaySettings();
@@ -67,7 +80,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                         Origin = Anchor.Centre,
                     },
                 },
-                Overlay = new Container { RelativeSizeAxes = Axes.Both },
+                Overlay = new Container
+                {
+                    RelativeSizeAxes = Axes.Both,
+                    Child = Wall = new HighwayWall(),
+                },
             };
         }
 
@@ -76,6 +93,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         {
             // The drawable ruleset's dependencies (and so its config) are set up before its children load.
             config = drawableRuleset.HighwayConfig;
+
+            // The playfield (and so its stages) is created with this container, before it loads.
+            foreach (var stage in drawableRuleset.Playfield.Stages)
+            {
+                var layer = new HighwayJudgementLayer(stage);
+                judgementLayers.Add(layer);
+                Overlay.Add(layer);
+            }
         }
 
         protected override void UpdateAfterChildren()
@@ -92,15 +117,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             Warp.Warp = !flat;
             Warp.Layout = Projection.Layout;
             Warp.Scroll = Settings.ToScroll();
+            Wall.Place(Projection, Warp.Scroll, flat);
 
             if (!drawableRuleset.IsLoaded || drawableRuleset.Playfield.Stages.Count == 0)
                 return;
 
             RectangleF stage = stageBounds();
-            Warp.Source = stage;
 
             // Render the stage in the buffer at about the width it will have at the judgement line, so the near end is
-            // not magnified (blurry). The far end is then minified, which filters well.
+            // not magnified (blurry). The far end is minified instead (see DECISIONS on far-end shimmer).
             float currentScale = mania.Scale.X;
             float targetScale = 1;
 
@@ -111,7 +136,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             }
 
             if (Math.Abs(targetScale - currentScale) > 1e-3f)
+            {
+                // Measure again at the new stretch, so this frame is not drawn from a stale stage rectangle.
                 mania.Scale = new Vector2(targetScale, 1);
+                stage = stageBounds();
+            }
+
+            Warp.Source = stage;
+
+            for (int i = 0; i < judgementLayers.Count; i++)
+                judgementLayers[i].Place(Projection, flat, stage, mania.Scale.X);
         }
 
         /// <summary>
@@ -122,11 +156,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         {
             float left = float.MaxValue, right = float.MinValue, top = float.MaxValue, bottom = float.MinValue;
 
-            foreach (var stage in drawableRuleset.Playfield.Stages)
+            var stages = drawableRuleset.Playfield.Stages;
+
+            // Indexed loops: enumerating an IReadOnlyList boxes its enumerator, and this runs every frame.
+            for (int i = 0; i < stages.Count; i++)
             {
-                foreach (var column in stage.Columns)
+                var columns = stages[i].Columns;
+
+                for (int j = 0; j < columns.Length; j++)
                 {
-                    var quad = column.HitObjectContainer.ScreenSpaceDrawQuad;
+                    var quad = columns[j].HitObjectContainer.ScreenSpaceDrawQuad;
 
                     Vector2 topLeft = Warp.ToLocalSpace(quad.TopLeft);
                     Vector2 bottomRight = Warp.ToLocalSpace(quad.BottomRight);

@@ -12,7 +12,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
     /// </summary>
     public readonly struct HighwayScroll
     {
-        public const float MAX_WALL = 0.8f;
+        /// <summary>
+        /// The highest wall. Arcade players use up to about 0.885 (Chunithm wall 14; research/game-chunithm.md).
+        /// </summary>
+        public const float MAX_WALL = 0.9f;
 
         /// <summary>
         /// The fraction of the track, from the far edge, behind the wall.

@@ -56,68 +56,179 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
                                               float lane0, float lane1, float depth0, float depth1, ColourInfo colour,
                                               RectangleF? textureRect = null, bool subdivide = true)
         {
-            // Anything nearer than the camera plane cannot be drawn.
-            float minDepth = projection.MinDepth;
-            if (depth1 <= minDepth || depth1 <= depth0)
+            var fullRect = textureRect ?? new RectangleF(0, 0, texture.DisplayWidth, texture.DisplayHeight);
+            var grid = new TrackGrid(projection, lane0, lane1, depth0, depth1, fullRect, subdivide);
+
+            for (int s = 0; s < grid.Strips; s++)
+            {
+                for (int c = 0; c < grid.Columns; c++)
+                {
+                    grid.GetCell(projection, s, c, out var quad, out var coords, out var cellRect);
+
+                    ColourInfo cellColour = colour.HasSingleColour
+                        ? colour
+                        : new ColourInfo
+                        {
+                            TopLeft = colour.Interpolate(cellRect.TopLeft),
+                            TopRight = colour.Interpolate(cellRect.TopRight),
+                            BottomLeft = colour.Interpolate(cellRect.BottomLeft),
+                            BottomRight = colour.Interpolate(cellRect.BottomRight),
+                        };
+
+                    renderer.DrawQuad(texture, quad * toScreenSpace, cellColour, textureRect: fullRect, textureCoords: coords);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Draws <paramref name="textureRect"/> of <paramref name="texture"/> across the whole track width, from the judgement
+        /// line down <paramref name="height"/> pixels, with the texture spread evenly over that height (no perspective).
+        /// The sides follow the lane edges' straight lines, so the track continues below the line without being magnified
+        /// the way the perspective would magnify it there.
+        /// </summary>
+        public static void DrawBelowLine(IRenderer renderer, Texture texture, in HighwayProjection projection, Matrix3 toScreenSpace,
+                                         float height, ColourInfo colour, RectangleF textureRect)
+        {
+            if (height <= 0)
                 return;
 
-            float fullDepth0 = depth0;
-            depth0 = Math.Max(depth0, minDepth);
+            float top = projection.YAt(0);
+            float bottom = top + height;
 
-            var fullRect = textureRect ?? new RectangleF(0, 0, texture.DisplayWidth, texture.DisplayHeight);
-
-            int strips = 1;
-            int columns = 1;
-
-            if (subdivide)
-            {
-                float screenHeight = projection.YAt(depth0) - projection.YAt(depth1);
-                strips = Math.Clamp((int)MathF.Ceiling(screenHeight / STRIP_HEIGHT), 1, MAX_STRIPS);
-
-                float widthChangePerStrip = (projection.WidthAt(depth0) - projection.WidthAt(depth1)) * Math.Abs(lane1 - lane0) / strips;
-                columns = Math.Clamp((int)MathF.Ceiling(widthChangePerStrip / MAX_WIDTH_CHANGE_PER_CELL), 1, MAX_COLUMNS);
-            }
-
-            float totalDepth = depth1 - fullDepth0;
+            int strips = Math.Clamp((int)MathF.Ceiling(height / STRIP_HEIGHT), 1, MAX_STRIPS);
+            float widthChangePerStrip = Math.Abs(projection.WidthAtY(bottom) - projection.WidthAtY(top)) / strips;
+            int columns = Math.Clamp((int)MathF.Ceiling(widthChangePerStrip / MAX_WIDTH_CHANGE_PER_CELL), 1, MAX_COLUMNS);
 
             for (int s = 0; s < strips; s++)
             {
-                float dNear = depth0 + (depth1 - depth0) * s / strips;
-                float dFar = depth0 + (depth1 - depth0) * (s + 1) / strips;
+                float tTop = (float)s / strips;
+                float tBottom = (float)(s + 1) / strips;
 
-                // Fractions along the full rectangle, 0 at the near edge.
-                float tNear = (dNear - fullDepth0) / totalDepth;
-                float tFar = (dFar - fullDepth0) / totalDepth;
+                float yTop = top + height * tTop;
+                float yBottom = top + height * tBottom;
 
                 for (int c = 0; c < columns; c++)
                 {
                     float uLeft = (float)c / columns;
                     float uRight = (float)(c + 1) / columns;
 
-                    float laneLeft = lane0 + (lane1 - lane0) * uLeft;
-                    float laneRight = lane0 + (lane1 - lane0) * uRight;
-
-                    var quad = projection.ToScreen(laneLeft, laneRight, dNear, dFar) * toScreenSpace;
+                    var quad = new Quad(
+                        new Vector2(projection.XAt(uLeft, yTop), yTop),
+                        new Vector2(projection.XAt(uRight, yTop), yTop),
+                        new Vector2(projection.XAt(uLeft, yBottom), yBottom),
+                        new Vector2(projection.XAt(uRight, yBottom), yBottom)) * toScreenSpace;
 
                     var coords = new RectangleF(
-                        fullRect.Left + fullRect.Width * uLeft,
-                        fullRect.Top + fullRect.Height * (1 - tFar),
-                        fullRect.Width * (uRight - uLeft),
-                        fullRect.Height * (tFar - tNear));
+                        textureRect.Left + textureRect.Width * uLeft,
+                        textureRect.Top + textureRect.Height * tTop,
+                        textureRect.Width * (uRight - uLeft),
+                        textureRect.Height * (tBottom - tTop));
 
                     ColourInfo cellColour = colour.HasSingleColour
                         ? colour
                         : new ColourInfo
                         {
-                            TopLeft = colour.Interpolate(new Vector2(uLeft, 1 - tFar)),
-                            TopRight = colour.Interpolate(new Vector2(uRight, 1 - tFar)),
-                            BottomLeft = colour.Interpolate(new Vector2(uLeft, 1 - tNear)),
-                            BottomRight = colour.Interpolate(new Vector2(uRight, 1 - tNear)),
+                            TopLeft = colour.Interpolate(new Vector2(uLeft, tTop)),
+                            TopRight = colour.Interpolate(new Vector2(uRight, tTop)),
+                            BottomLeft = colour.Interpolate(new Vector2(uLeft, tBottom)),
+                            BottomRight = colour.Interpolate(new Vector2(uRight, tBottom)),
                         };
 
-                    renderer.DrawQuad(texture, quad, cellColour, textureRect: fullRect, textureCoords: coords);
+                    renderer.DrawQuad(texture, quad, cellColour, textureRect: textureRect, textureCoords: coords);
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// How <see cref="TrackDrawing.DrawTrackRectangle"/> splits a track rectangle into cells, and where each cell goes on
+    /// screen and in the texture. Pure maths, so it can be tested without a renderer.
+    /// </summary>
+    public readonly struct TrackGrid
+    {
+        public readonly int Strips;
+        public readonly int Columns;
+
+        /// <summary>
+        /// False when nothing is in front of the camera (or the rectangle is empty): draw nothing.
+        /// </summary>
+        public readonly bool Visible;
+
+        private readonly float lane0;
+        private readonly float lane1;
+        private readonly float fullDepth0;
+        private readonly float depth0;
+        private readonly float depth1;
+        private readonly RectangleF textureRect;
+
+        public TrackGrid(in HighwayProjection projection, float lane0, float lane1, float depth0, float depth1, RectangleF textureRect, bool subdivide = true)
+        {
+            this.lane0 = lane0;
+            this.lane1 = lane1;
+            this.depth1 = depth1;
+            this.textureRect = textureRect;
+
+            fullDepth0 = depth0;
+
+            // Anything nearer than the camera plane cannot be drawn. The texture keeps its mapping over the full rectangle,
+            // so the part in front of the camera shows exactly the texels it would show unclamped.
+            float minDepth = projection.MinDepth;
+            this.depth0 = Math.Max(depth0, minDepth);
+
+            Visible = depth1 > minDepth && depth1 > depth0;
+            Strips = 0;
+            Columns = 0;
+
+            if (!Visible)
+                return;
+
+            Strips = 1;
+            Columns = 1;
+
+            if (subdivide)
+            {
+                float screenHeight = projection.YAt(this.depth0) - projection.YAt(depth1);
+                Strips = Math.Clamp((int)MathF.Ceiling(screenHeight / TrackDrawing.STRIP_HEIGHT), 1, TrackDrawing.MAX_STRIPS);
+
+                float widthChangePerStrip = (projection.WidthAt(this.depth0) - projection.WidthAt(depth1)) * Math.Abs(lane1 - lane0) / Strips;
+                Columns = Math.Clamp((int)MathF.Ceiling(widthChangePerStrip / TrackDrawing.MAX_WIDTH_CHANGE_PER_CELL), 1, TrackDrawing.MAX_COLUMNS);
+            }
+        }
+
+        /// <summary>
+        /// The cell in strip <paramref name="strip"/> (0 = nearest) and column <paramref name="column"/> (0 = left).
+        /// </summary>
+        /// <param name="projection">The projection the grid was made with.</param>
+        /// <param name="strip">The strip, counted from the near edge.</param>
+        /// <param name="column">The column, counted from the left.</param>
+        /// <param name="quad">The cell on screen, in the projection's space.</param>
+        /// <param name="textureCoords">The cell in the texture, in texture pixels. The texture's top is the far end.</param>
+        /// <param name="relative">The cell as a fraction of the whole rectangle, top-left origin (for colour gradients).</param>
+        public void GetCell(in HighwayProjection projection, int strip, int column, out Quad quad, out RectangleF textureCoords, out RectangleF relative)
+        {
+            float dNear = depth0 + (depth1 - depth0) * strip / Strips;
+            float dFar = depth0 + (depth1 - depth0) * (strip + 1) / Strips;
+
+            // Fractions along the full rectangle, 0 at the near edge.
+            float totalDepth = depth1 - fullDepth0;
+            float tNear = (dNear - fullDepth0) / totalDepth;
+            float tFar = (dFar - fullDepth0) / totalDepth;
+
+            float uLeft = (float)column / Columns;
+            float uRight = (float)(column + 1) / Columns;
+
+            float laneLeft = lane0 + (lane1 - lane0) * uLeft;
+            float laneRight = lane0 + (lane1 - lane0) * uRight;
+
+            quad = projection.ToScreen(laneLeft, laneRight, dNear, dFar);
+
+            textureCoords = new RectangleF(
+                textureRect.Left + textureRect.Width * uLeft,
+                textureRect.Top + textureRect.Height * (1 - tFar),
+                textureRect.Width * (uRight - uLeft),
+                textureRect.Height * (tFar - tNear));
+
+            relative = new RectangleF(uLeft, 1 - tFar, uRight - uLeft, tFar - tNear);
         }
     }
 }

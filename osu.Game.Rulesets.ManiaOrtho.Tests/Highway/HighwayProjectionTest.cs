@@ -157,6 +157,32 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             Assert.That(float.IsFinite(p.YAt(1)) && float.IsFinite(p.ScaleAt(1)));
         }
 
+        [TestCaseSource(nameof(farWidthRatios))]
+        public void TestLaneEdgesContinueStraightBelowTheLine(float ratio)
+        {
+            var p = create(ratio);
+
+            // On the track, the screen-y form agrees with the depth form.
+            for (float d = 0; d <= 1.0001f; d += 0.25f)
+            {
+                Assert.That(p.WidthAtY(p.YAt(d)), Is.EqualTo(p.WidthAt(d)).Within(tolerance));
+                Assert.That(p.XAt(0, p.YAt(d)), Is.EqualTo(p.ToScreen(0, d).X).Within(tolerance));
+            }
+
+            // Below the line, each lane edge stays on the straight line through its near and far corners.
+            Vector2 near = p.ToScreen(0, 0);
+            Vector2 far = p.ToScreen(0, 1);
+
+            foreach (float below in new[] { 10f, 60f, 120f })
+            {
+                float y = near.Y + below;
+                float expectedX = near.X + (far.X - near.X) * (y - near.Y) / (far.Y - near.Y);
+
+                Assert.That(p.XAt(0, y), Is.EqualTo(expectedX).Within(tolerance));
+                Assert.That(p.WidthAtY(y), Is.GreaterThanOrEqualTo(p.WidthAt(0) - tolerance), "the track does not narrow below the line");
+            }
+        }
+
         private static void assertNear(Vector2 actual, Vector2 expected)
         {
             Assert.That(actual.X, Is.EqualTo(expected.X).Within(0.01f), "x");

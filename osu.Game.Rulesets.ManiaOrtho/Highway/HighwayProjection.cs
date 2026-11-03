@@ -90,6 +90,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         }
 
         /// <summary>
+        /// The track's width in pixels at screen y <paramref name="y"/>. Lane edges are straight lines through the vanishing
+        /// point, so this also holds below the judgement line, where the track continues on screen.
+        /// </summary>
+        public float WidthAtY(float y) => WidthAt(DepthAtY(y));
+
+        /// <summary>
+        /// The screen x (pixels) of <paramref name="lane"/> at screen y <paramref name="y"/>.
+        /// </summary>
+        public float XAt(float lane, float y) => centreX + (lane - 0.5f) * WidthAtY(y);
+
+        /// <summary>
         /// The screen position (pixels) of the track point (<paramref name="lane"/>, <paramref name="depth"/>).
         /// </summary>
         public Vector2 ToScreen(float lane, float depth) => new Vector2(centreX + (lane - 0.5f) * WidthAt(depth), YAt(depth));

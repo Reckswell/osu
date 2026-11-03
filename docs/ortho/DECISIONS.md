@@ -106,3 +106,56 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Effect**: the time-to-depth mapping is the arcade's, so a note spends half its visible time in the top fifth of the
   track's screen height and accelerates near the line, as in the arcade. The stretch to the top edge only changes vertical scale.
 - **Reverse**: edit `HighwayPresets.Get(Chunithm)`; named presets re-apply their values on load.
+
+## 2026-11-03: Judgements are drawn upright, at mania's height above the line, shrunk by the perspective
+
+- **Decision**: each stage's judgements move to `HighwayJudgementLayer` in the highway's flat overlay. Mania's own
+  display is hidden (not disabled: `DisplayJudgements` also gates hit explosions). Judgements are mania's drawables in a
+  frame that copies the stage's flat layout, so skins place them as in mania; the frame is then placed so the judgement
+  keeps its screen height above the judgement line, sits over the stage's lanes at that height, and is scaled by the
+  track's width scale there (about 0.8 at the usual height with the Chunithm preset).
+- **Why**: SPEC 1/7 keep judgement text in screen space near the line; keeping mania's screen height (rather than its
+  depth) keeps it where the player's eyes are. Q5 (judgements per lane on the track, as in the arcade) stays open.
+- **Bug found by playtest**: a custom origin on the frame produced an infinite position after a rewind on Armageddon;
+  the frame now scales about its corner and placement skips non-finite values. `TestRewindWhileJudgementShown` covers it.
+
+## 2026-11-03: The area below the judgement line is drawn at its flat height
+
+- **Decision**: the warp draws the receptor/key area below the hit position with no perspective: its flat height, its
+  sides following the lane edges' straight lines (`TrackDrawing.DrawBelowLine`).
+- **Why**: perspective magnifies the near side; at the Chunithm preset a pixel just below the line would be drawn
+  about 4-5 times taller, pushing receptors off screen.
+
+## 2026-11-03: The field wall is a vertical panel, tilted cameras only
+
+- **Decision**: `HighwayWall` is an opaque dark rectangle as wide as the track at the wall's depth, from the top of the
+  screen down to that depth, with a teal lower edge where notes appear. Hidden with the Flat camera (mania's Cover mod
+  already covers that case).
+- **Why**: the arcade's wall is a vertical panel (`research/game-chunithm.md`); SPEC 4 allows either form. A rectangle
+  covers the whole track beyond it because the track only narrows with depth. Both wall semantics work without touching
+  mania's time range: the warp maps mania's scrolling area onto [0, scroll length].
+
+## 2026-11-03: Review fixes and known limitations of the warp
+
+- **Config type**: the ruleset config is also cached as `ManiaRulesetConfigManager` inside the drawable ruleset. Before,
+  mania's notes and columns resolved null and "timing-based note colouring" did nothing here.
+- **Scroll direction** is forced to Down and locked in this ruleset's config (SPEC 3: the camera defines direction).
+- **Known limitations, not fixed yet**:
+  - The warp reads the buffer as an axis-aligned, on-screen rectangle. Gameplay rotated (the fail animation tilts 1°)
+    or partly off screen samples slightly wrong texels at the edges.
+  - The buffer has no mipmaps; with the Chunithm preset the far end is minified up to about 4x, so thin bar lines and
+    hold edges may shimmer in motion. Check in motion captures and on device; fix with extra samples if visible.
+  - Dual-stage maps are warped as one highway spanning both stages and the gap between them (Q3 default is two).
+  - Flashlight is drawn flat over the highway, so its band is near the line but not time-exact; it needs a projected
+    version or removal from this ruleset's mod list (M2 visibility mods task).
+  - The Chunithm preset uses the same track width for every key count, as in the arcade, instead of SPEC 5's per-key
+    widths; per-key defaults stay an M2 task.
+
+## 2026-11-03: Wall is a fraction of track depth, up to 90%
+
+- **Decision**: the wall setting stays a fraction of the track's depth (not of its screen height), and its range grows
+  from 0-80% to 0-90%.
+- **Why**: the arcade's wall steps are depth steps (5.8% of the visible track each up to wall 11), which under its strong
+  perspective move the wall's base only a little on screen at first (wall 4 hides 23% of the depth but only 5% of the
+  screen). The 40% wall playtest shows the same. Players use up to wall 14 (88.5%), past SPEC's 80% (tune).
+
