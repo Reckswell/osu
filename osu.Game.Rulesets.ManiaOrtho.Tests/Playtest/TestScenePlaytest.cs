@@ -83,6 +83,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
                     ortho.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, !options.SpeedLock);
                     ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.NoteStyle);
+                    options.ApplyHighwayValues(ortho.Highway);
                 }
             });
 
@@ -233,6 +234,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 preset = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.Preset.ToString() : null,
                 wall = options.Wall,
                 speedLock = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.SpeedLock : (bool?)null,
+                // What the highway played with, after the preset, wall and --set values (out-of-range values are clamped).
+                highway = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Settings is HighwaySettings used
+                    ? new
+                    {
+                        camera = used.CameraMode.ToString(),
+                        used.FarWidthRatio,
+                        used.JudgementLineHeight,
+                        used.FarEdgeHeight,
+                        used.TrackWidth,
+                        used.Wall,
+                        used.WallKeepsVisibleTime,
+                        notes = used.NoteStyle.ToString(),
+                    }
+                    : null,
                 skin = options.Skin,
                 notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.NoteStyle.ToString() : null,
                 mods = Player.GameplayState.Mods.Select(m => m.Acronym).ToArray(),

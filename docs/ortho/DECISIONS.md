@@ -304,3 +304,24 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   for every built-in skin), or shrink the track (changes the camera presets research set).
 - **How to reverse**: return a `DefaultSkinComponentsContainer` for `MainHUDComponents` with `Ruleset` set from a
   maniaortho skin transformer that wraps mania's.
+
+## 2026-11-03: The bottom lift is the judgement line height setting, with no cover below the line
+
+- **Decision**: SPEC 4's bottom lift (IIDX's LIFT) is the existing "Judgement line height" setting (0-40% of the
+  screen, searchable as "lift"), not a second setting added on top of it. Raising it moves the judgement line,
+  mania's hit position, the receptors and key area (drawn at their flat height just below the line), lane lighting
+  and judgements up together. The visible time does not change: the track gets shorter on screen, so notes move
+  slower on it, as the wall does by default. Below the key area the screen shows the background; there is no lift
+  cover graphic.
+- **Why one setting**: two sliders that both raise the line would be confusing, and the line height is already part
+  of each camera preset like the wall. Chunithm has no lift (research/game-chunithm.md), so "off by default" means the
+  preset's own height. Alpha's baseline wants the line down to the bottom edge, which 0% gives.
+- **Why no cover**: IIDX shows a cover image below a lifted line (unverified; research/game-iidx.md is still todo).
+  Here that area is mostly the receptors and key area, which players read. A cover can come with the built-in highway
+  skin if playtests ask for it.
+- **Known effects**: like the other camera sliders, the lift does nothing under the flat camera (Classic), where
+  mania's own hit position applies, though the slider stays enabled. Changing it switches the preset to Custom, and
+  picking a preset resets it; IIDX keeps LIFT independent of anything else, so this goes into the M2 report. At 0% the
+  judgement line sits on the screen's bottom edge, so half its core and its lower glow are cut off (cosmetic).
+- **How to reverse**: add a `Lift` setting outside the presets and add it to `JudgementLineHeight` in
+  `HighwaySettings.ToLayout`.

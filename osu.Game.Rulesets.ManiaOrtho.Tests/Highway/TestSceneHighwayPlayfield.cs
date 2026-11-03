@@ -96,6 +96,38 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             });
         }
 
+        /// <summary>
+        /// SPEC 4: the bottom lift raises the judgement line, and the judgement shown above it goes up with it, keeping its
+        /// height above the line.
+        /// </summary>
+        [Test]
+        public void TestJudgementsFollowTheLift()
+        {
+            float gap = 0;
+
+            waitForJudgement();
+            AddStep("freeze with a judgement shown", () => Player.GameplayClockContainer.Stop());
+            AddWaitStep("let it settle", 2);
+            AddStep("measure its height above the line", () => gap = highway.Projection.YAt(0) - judgementCentre().Y);
+            AddAssert("it is above the line", () => gap, () => Is.GreaterThan(1));
+
+            AddStep("lift the line to 30%", () => highwayConfig.SetValue(HighwaySetting.JudgementLineHeight, 0.3f));
+            AddUntilStep("the line is raised", () => highway.Projection.YAt(0), () => Is.EqualTo(0.7f * highway.DrawHeight).Within(0.5f));
+            AddWaitStep("let the judgement follow", 2);
+
+            AddAssert("the judgement keeps its height above the raised line", () => highway.Projection.YAt(0) - judgementCentre().Y, () => Is.EqualTo(gap).Within(0.5f));
+            AddAssert("and stays over the track", () =>
+            {
+                var projection = highway.Projection;
+                Vector2 centre = judgementCentre();
+                float depth = projection.DepthAtY(centre.Y);
+
+                return centre.X > projection.ToScreen(0, depth).X && centre.X < projection.ToScreen(1, depth).X;
+            });
+        }
+
+        private Vector2 judgementCentre() => highway.ToLocalSpace(layer.CurrentJudgement.AsNonNull().Piece.AsNonNull().ScreenSpaceDrawQuad.Centre);
+
         [Test]
         public void TestFlatCameraPlacesJudgementsWhereManiaDoes()
         {

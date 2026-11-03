@@ -57,14 +57,42 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         [TestCase("synthetic-7k", 8, "FL")]
         public void TestJudgementParityWithVisibilityMods(string source, int seed, string mod) => testParity(source, seed, HighwayNoteStyle.Highway, mod);
 
+        /// <summary>
+        /// The bottom lift raises the judgement line and with it mania's hit position on screen; judging must not notice.
+        /// </summary>
+        [TestCase("synthetic-7k", 9)]
+        public void TestJudgementParityWithLift(string source, int seed)
+        {
+            AddStep("lift the line to 30%", () => orthoConfig.Highway.SetValue(HighwaySetting.JudgementLineHeight, 0.3f));
+
+            testParity(source, seed, HighwayNoteStyle.Highway);
+
+            AddAssert("ortho run played with the lift", () => ortho.LineHeight, () => Is.EqualTo(0.3f).Within(1e-4f));
+        }
+
+        [SetUpSteps]
+        public override void SetUpSteps()
+        {
+            base.SetUpSteps();
+
+            // A case that changes the camera must not leave it changed for the next one, even when it fails.
+            AddStep("default preset", () =>
+            {
+                orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
+                orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPresets.DEFAULT);
+            });
+        }
+
+        private ManiaOrthoRulesetConfigManager orthoConfig => (ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(new ManiaOrthoRuleset()).AsNonNull();
+
+        private PlayRecord ortho = null!;
+
         private void testParity(string source, int seed, HighwayNoteStyle noteStyle, params string[] mods)
         {
             PlayRecord mania = null!;
-            PlayRecord ortho = null!;
 
             AddAssert("game discovered the ruleset", () => rulesets.GetRuleset(ManiaOrthoRuleset.SHORT_NAME), () => Is.Not.Null);
-            AddStep($"notes: {noteStyle}", () => ((ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(new ManiaOrthoRuleset()).AsNonNull())
-                                               .Highway.SetValue(HighwaySetting.NoteStyle, noteStyle));
+            AddStep($"notes: {noteStyle}", () => orthoConfig.Highway.SetValue(HighwaySetting.NoteStyle, noteStyle));
 
             play(new ManiaRuleset(), source, seed, mods, r => mania = r);
             play(new ManiaOrthoRuleset(), source, seed, mods, r => ortho = r);
@@ -129,7 +157,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     processor.Accuracy.Value,
                     currentPlayer.ChildrenOfType<osu.Game.Rulesets.UI.DrawableRuleset>().Single().GetType().Name,
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NativeNotes == true,
-                    currentPlayer.GameplayState.Mods.Select(m => m.Acronym).ToArray()));
+                    currentPlayer.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.Settings.JudgementLineHeight));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -139,6 +168,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
-        private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods);
+        private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
+                                  float? LineHeight);
     }
 }

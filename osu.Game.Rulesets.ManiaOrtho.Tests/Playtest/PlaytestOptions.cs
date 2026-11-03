@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using osu.Game.Rulesets.Mania;
+using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Skinning;
@@ -26,6 +27,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_PRESET = "ORTHO_PLAYTEST_PRESET";
         public const string ENV_WALL = "ORTHO_PLAYTEST_WALL";
         public const string ENV_SPEED_LOCK = "ORTHO_PLAYTEST_SPEED_LOCK";
+        public const string ENV_SET = "ORTHO_PLAYTEST_SET";
         public const string ENV_SKIN = "ORTHO_PLAYTEST_SKIN";
         public const string ENV_NOTES = "ORTHO_PLAYTEST_NOTES";
         public const string ENV_MODS = "ORTHO_PLAYTEST_MODS";
@@ -78,6 +80,62 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// </summary>
         public string[] Mods { get; init; } = Array.Empty<string>();
 
+        /// <summary>
+        /// Highway settings to set after the preset and wall (maniaortho only), as <c>Name=value</c> with names from
+        /// <see cref="HighwaySetting"/>, e.g. <c>JudgementLineHeight=0.3</c>.
+        /// </summary>
+        public string[] HighwayValues { get; init; } = Array.Empty<string>();
+
+        public void ApplyHighwayValues(HighwayConfigManager config)
+        {
+            foreach (string assignment in HighwayValues)
+                applyHighwayValue(config, assignment);
+        }
+
+        /// <summary>
+        /// Parses <paramref name="assignment"/> and, given a <paramref name="config"/>, sets it. Without one it only checks it,
+        /// so a typo fails before any run starts.
+        /// </summary>
+        private static void applyHighwayValue(HighwayConfigManager? config, string assignment)
+        {
+            string[] parts = assignment.Split('=', 2, StringSplitOptions.TrimEntries);
+
+            if (parts.Length != 2 || !Enum.TryParse(parts[0], true, out HighwaySetting setting) || !Enum.IsDefined(setting))
+                throw new ArgumentException($"\"{assignment}\" is not Name=value with a name from {nameof(HighwaySetting)}.");
+
+            string value = parts[1];
+
+            switch (setting)
+            {
+                case HighwaySetting.Preset:
+                    var preset = Enum.Parse<HighwayPreset>(value, true);
+                    config?.SetValue(setting, preset);
+                    break;
+
+                case HighwaySetting.CameraMode:
+                    var mode = Enum.Parse<HighwayCameraMode>(value, true);
+                    config?.SetValue(setting, mode);
+                    break;
+
+                case HighwaySetting.NoteStyle:
+                    var style = Enum.Parse<HighwayNoteStyle>(value, true);
+                    config?.SetValue(setting, style);
+                    break;
+
+                case HighwaySetting.WallKeepsVisibleTime:
+                case HighwaySetting.LaneGuides:
+                case HighwaySetting.SkinHitTarget:
+                    bool flag = bool.Parse(value);
+                    config?.SetValue(setting, flag);
+                    break;
+
+                default:
+                    float number = float.Parse(value, CultureInfo.InvariantCulture);
+                    config?.SetValue(setting, number);
+                    break;
+            }
+        }
+
         public Mod[] CreateMods(Ruleset ruleset) => Mods.Select(acronym => ruleset.CreateModFromAcronym(acronym)
                                                                    ?? throw new ArgumentException($"{ruleset.Description} has no mod \"{acronym}\".")).ToArray();
 
@@ -103,7 +161,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
             var defaults = new PlaytestOptions();
 
-            return new PlaytestOptions
+            var options = new PlaytestOptions
             {
                 Beatmap = get(ENV_BEATMAP) ?? defaults.Beatmap,
                 Ruleset = get(ENV_RULESET) ?? defaults.Ruleset,
@@ -117,10 +175,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 Preset = get(ENV_PRESET) is string p ? Enum.Parse<HighwayPreset>(p, true) : defaults.Preset,
                 Wall = get(ENV_WALL) is string w ? float.Parse(w, CultureInfo.InvariantCulture) : null,
                 SpeedLock = get(ENV_SPEED_LOCK) == "1",
+                HighwayValues = get(ENV_SET)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.HighwayValues,
                 Skin = get(ENV_SKIN) ?? defaults.Skin,
                 NoteStyle = get(ENV_NOTES) is string n ? Enum.Parse<HighwayNoteStyle>(n, true) : defaults.NoteStyle,
                 Mods = get(ENV_MODS)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.Mods,
             };
+
+            // Fail on a bad --set in every run, including the mania baseline that comes first.
+            foreach (string assignment in options.HighwayValues)
+                applyHighwayValue(null, assignment);
+
+            return options;
         }
     }
 }

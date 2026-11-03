@@ -55,6 +55,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             setEnv(PlaytestOptions.ENV_PRESET, parsed.GetValueOrDefault("preset"));
             setEnv(PlaytestOptions.ENV_WALL, parsed.GetValueOrDefault("wall"));
             setEnv(PlaytestOptions.ENV_SPEED_LOCK, parsed.ContainsKey("speed-lock") ? "1" : null);
+            setEnv(PlaytestOptions.ENV_SET, parsed.GetValueOrDefault("set"));
             setEnv(PlaytestOptions.ENV_SKIN, parsed.GetValueOrDefault("skin"));
             setEnv(PlaytestOptions.ENV_NOTES, parsed.GetValueOrDefault("notes"));
             setEnv(PlaytestOptions.ENV_MODS, parsed.GetValueOrDefault("mods"));

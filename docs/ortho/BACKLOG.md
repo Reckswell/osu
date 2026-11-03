@@ -62,7 +62,10 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   (Same captures at walls 0, 40% and 70%: the same notes on screen as mania, entering at the wall. With the speed lock
   at 40% the visible time is 243.1 ms and they reach the wall at 33203 ms. Playtest `--speed-lock`; summaries record
   the time range and visible time.)
-- [ ] Bottom lift. Gate: screenshot; parity green.
+- [x] Bottom lift. Gate: screenshot; parity green. (The "Judgement line height" setting, keyword "lift"; see
+  DECISIONS. `TestJudgementsFollowTheLift`, `TestJudgementParityWithLift`. Captures at 30% on Armageddon 4K
+  (also with HD and FL) and synthetic 7K with the classic skin, and at 0%: the line, receptors, lane lighting and
+  judgements move up together; HD and FL cover and light the same notes as mania. Playtest `--set Name=value`.)
 - [ ] Presets (Voltex, Chunithm, Parallel, Classic) with values from research. Gate: compare sheet per preset.
 - [ ] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
 - [ ] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
