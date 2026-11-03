@@ -11,8 +11,9 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] Scaffold `maniaortho` as a separate ruleset delegating to `ManiaRuleset`; wire into solution and osu.Desktop.
 - [x] Playtest harness: screenshot runner, humanised replays, synthetic charts, side-by-side compare.
 - [x] Parity tests: judgements, score, accuracy (replays); playable beatmap, SR, pp (direct).
-- [ ] Harness polish: hide the menu cursor that appears in playtest captures; add a `--preset`/settings pass-through
-  once settings exist. Gate: captures show no cursor.
+- [x] Harness polish: hide the menu cursor that appears in playtest captures; add a `--preset`/settings pass-through
+  once settings exist. Gate: captures show no cursor. (Cursor and mouse disabled in the runner; `--screenshot` captures
+  any scene. Preset pass-through moves to the highway playfield task.)
 - [x] Core patch: `AllowGameplayWithRuleset` accepts mania beatmaps for `maniaortho` (and only for it).
   Gate: unit test in the ruleset tests; song select filter test shows mania maps under `maniaortho`;
   `check.sh --mania` green. (Done via `Ruleset.PlaysBeatmapsOfRuleset`; `PresentBeatmap` no longer switches to mania.)
@@ -20,14 +21,15 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   note approach, judgement line position, lane covers/walls, speed definition, hold rendering, key-count handling.
   SDVX, Chunithm, osu!mania first, then Project Sekai, IIDX, StepMania/Etterna, Quaver, YARG/Clone Hero, USC,
   Arcaea, DJMAX. Gate: each note has sources and a "what this means for us" section; `research/INDEX.md` updated.
-- [ ] Settings plumbing: `ManiaOrthoRulesetConfigManager` (camera mode, preset, tilt, FOV, wall position, lift,
+- [x] Settings plumbing: `ManiaOrthoRulesetConfigManager` (camera mode, preset, tilt, FOV, wall position, lift,
   wall-keeps-visible-time) and a settings subsection; mania scroll speed still applies.
   Gate: settings round-trip test; settings show in the ruleset settings panel (screenshot via a test scene).
+  (Tilt + FOV replaced by far-edge width; see DECISIONS.)
 
 ## M1: The highway (prototype)
 
-- [ ] `HighwayProjection`: pure maths for `TrackToScreen` in perspective, parallel and flat modes, with the
-  invariants in SPEC section 11 as unit tests. Gate: L0 tests green.
+- [x] `HighwayProjection`: pure maths for `TrackToScreen` in perspective, parallel and flat modes, with the
+  invariants in SPEC section 11 as unit tests. Gate: L0 tests green. (`HighwayProjectionTest`, `HighwayScrollTest`.)
 - [ ] `ProjectedQuad` drawable/DrawNode that draws an arbitrary quad with perspective-correct texture coordinates.
   Gate: a test scene showing a checkerboard on a strong trapezoid; screenshot shows straight checker lines.
 - [ ] Highway playfield: replace mania's column layout with projected lanes, lane dividers, judgement line, receptors.

@@ -63,3 +63,21 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   run: settings summarised in `research/baseline-alpha.md`; individual `.osu` files staged into the cloud container for
   playtests, never committed (copyright); skins only looked at, never copied. Nothing is ever written to that folder.
 - **Why**: Alpha offered it as the baseline. It is stable, so its mania settings are translated to lazer equivalents.
+
+## 2026-11-03: Camera is set in screen terms (far-edge width, heights, track width), not tilt + FOV
+
+- **Decision**: the highway is defined by where it lands on screen: judgement-line height, far-edge height, track width
+  at the line and far/near width ratio. Tilt and field of view are not settings.
+- **Why**: once the track's near and far edges are pinned to screen positions (SPEC 2: notes enter at a visible far
+  edge), a pinhole camera's tilt and FOV only matter through one number, `tan(tilt) / focal length`, which fixes the
+  far/near width ratio. Two sliders for one degree of freedom would confuse; the width ratio is also what research can
+  measure directly from Chunithm/SDVX frames. The maths is the plane homography (see `HighwayProjection`).
+- **Reverse**: a tilt/FOV pair can be added later as a derived input that sets the ratio.
+
+## 2026-11-03: Highway settings live in a second config manager under the same ruleset
+
+- **Decision**: `ManiaOrthoRulesetConfigManager` extends mania's (so `DrawableManiaRuleset` keeps working) and owns a
+  `HighwayConfigManager` with its own enum. Choosing a preset writes its values; editing a value makes it Custom; a named
+  preset re-applies its values on load so tuning a preset reaches everyone using it.
+- **Why**: a `RulesetConfigManager` has one enum, and mania's cannot be extended. Keys are stored by name and the two
+  enums share none.

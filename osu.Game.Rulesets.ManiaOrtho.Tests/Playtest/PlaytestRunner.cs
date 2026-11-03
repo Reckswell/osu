@@ -4,14 +4,17 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 using osu.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Configuration;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
+using osu.Framework.Input.Handlers.Mouse;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
 using osu.Game.Online.API;
@@ -25,6 +28,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
     /// </summary>
     /// <example>
     /// dotnet run --project osu.Game.Rulesets.ManiaOrtho.Tests -- playtest --beatmap synthetic-7k --ruleset maniaortho --out playtest-output
+    /// dotnet run --project osu.Game.Rulesets.ManiaOrtho.Tests -- playtest --scene TestSceneHighwaySettings --method TestSettingsPanel --screenshot out/settings.png
     /// </example>
     public static partial class PlaytestRunner
     {
@@ -53,7 +57,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
             using (var host = Host.GetSuitableDesktopHost(@"ortho-playtest", new HostOptions { FriendlyGameName = "ortho playtest" }))
             {
-                var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]));
+                var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]), parsed.GetValueOrDefault("screenshot"));
                 host.Run(game);
 
                 Console.WriteLine(game.Error == null ? "PLAYTEST PASSED" : $"PLAYTEST FAILED: {game.Error}");
@@ -89,14 +93,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             private readonly Type sceneType;
             private readonly string? methodName;
             private readonly Size windowSize;
+            private readonly string? screenshotPath;
 
             public string? Error { get; private set; } = "did not complete";
 
-            public PlaytestGame(Type sceneType, string? methodName, Size windowSize)
+            public PlaytestGame(Type sceneType, string? methodName, Size windowSize, string? screenshotPath)
             {
                 this.sceneType = sceneType;
                 this.methodName = methodName;
                 this.windowSize = windowSize;
+                this.screenshotPath = screenshotPath;
 
                 // Never talk to osu! servers from the harness.
                 API = new DummyAPIAccess();
@@ -118,6 +124,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             protected override void LoadComplete()
             {
                 base.LoadComplete();
+
+                // Captures should show the game, not the harness: no mouse (so no hover states or tooltips) and no cursor.
+                foreach (var mouse in Host.AvailableInputHandlers.OfType<MouseHandler>())
+                    mouse.Enabled.Value = false;
+
+                GlobalCursorDisplay.MenuCursor.Alpha = 0;
 
                 var scene = (TestScene)Activator.CreateInstance(sceneType)!;
 
@@ -143,6 +155,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
                     scene.RunAllSteps(() =>
                     {
+                        if (screenshotPath != null && Host.Window != null)
+                        {
+                            // Let a few frames draw the final state before capturing it.
+                            Scheduler.AddDelayed(captureAndExit, 500);
+                            return;
+                        }
+
                         Error = null;
                         Exit();
                     }, (step, e) =>
@@ -150,6 +169,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         Error = $"step \"{step}\" failed: {e}";
                         Exit();
                     });
+                });
+            }
+
+            private void captureAndExit()
+            {
+                Host.TakeScreenshotAsync().ContinueWith(task =>
+                {
+                    try
+                    {
+                        using (var image = task.GetResultSafely())
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(screenshotPath!))!);
+                            SixLabors.ImageSharp.ImageExtensions.SaveAsPng(image, screenshotPath!);
+                        }
+
+                        Error = null;
+                    }
+                    catch (Exception e)
+                    {
+                        Error = $"screenshot failed: {e}";
+                    }
+
+                    Schedule(Exit);
                 });
             }
 

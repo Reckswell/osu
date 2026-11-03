@@ -14,7 +14,7 @@ using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Filter;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Beatmaps;
-using osu.Game.Rulesets.Mania.Configuration;
+using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Replays.Types;
 using osu.Game.Rulesets.Scoring;
@@ -22,6 +22,7 @@ using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
 using osu.Game.Screens.Ranking.Statistics;
 using osu.Game.Skinning;
+using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 
 namespace osu.Game.Rulesets.ManiaOrtho
@@ -93,7 +94,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
         public override IConvertibleReplayFrame CreateConvertibleReplayFrame() => MANIA.CreateConvertibleReplayFrame();
 
         // Settings are stored under this ruleset's own RulesetInfo, so scroll speed etc. can differ from regular mania.
-        public override IRulesetConfigManager CreateConfig(SettingsStore? settings) => new ManiaRulesetConfigManager(settings, RulesetInfo);
+        public override IRulesetConfigManager CreateConfig(SettingsStore? settings) => new ManiaOrthoRulesetConfigManager(settings, RulesetInfo);
+
+        public override RulesetSettingsSubsection CreateSettings() => new ManiaOrthoSettingsSubsection(this);
 
         public override LocalisableString VariantDescription => MANIA.VariantDescription;
 
