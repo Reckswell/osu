@@ -13,11 +13,13 @@ using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
 using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.Objects;
+using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 using SixLabors.ImageSharp;
 
@@ -44,6 +46,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         [Resolved]
         private GameHost host { get; set; } = null!;
 
+        [Resolved]
+        private SkinManager skins { get; set; } = null!;
+
         protected override bool Autoplay => true;
 
         protected override Ruleset CreatePlayerRuleset() => options.CreateRuleset();
@@ -55,6 +60,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         {
             AddStep("apply ruleset settings", () =>
             {
+                skins.CurrentSkinInfo.Value = options.CreateSkinInfo().ToLiveUnmanaged();
+
                 var config = (ManiaRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull();
 
                 if (options.ScrollSpeed is double speed)
@@ -206,6 +213,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 scrollSpeed = options.ScrollSpeed,
                 preset = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.Preset.ToString() : null,
                 wall = options.Wall,
+                skin = options.Skin,
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),
                 clockAtCapture,

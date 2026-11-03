@@ -23,6 +23,7 @@ Add a case when you add a code path that touches input or judgement, or when Alp
 scripts/ortho/playtest.sh                                    # synthetic-7k and real-4k, mania vs maniaortho
 scripts/ortho/playtest.sh --beatmap synthetic-4k --times 9000,18000 --scroll-speed 20
 scripts/ortho/playtest.sh --beatmap "/path/to/Songs/123 Artist - Title/Artist - Title (Mapper) [Diff].osu"
+scripts/ortho/playtest.sh --preset Parallel --wall 0.3 --skin classic             # highway settings; built-in skins: argon, argon-pro, triangles, classic
 ```
 
 The runner (`dotnet <tests dll> playtest ...`) opens a real window, plays the chart with autoplay, and at each capture

@@ -54,6 +54,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             setEnv(PlaytestOptions.ENV_FULL, parsed.ContainsKey("play-to-end") ? "1" : null);
             setEnv(PlaytestOptions.ENV_PRESET, parsed.GetValueOrDefault("preset"));
             setEnv(PlaytestOptions.ENV_WALL, parsed.GetValueOrDefault("wall"));
+            setEnv(PlaytestOptions.ENV_SKIN, parsed.GetValueOrDefault("skin"));
 
             int[] size = parsed.GetValueOrDefault("size", "1280x720").Split('x').Select(int.Parse).ToArray();
 

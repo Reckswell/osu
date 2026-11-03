@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Linq;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Skinning;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 {
@@ -23,6 +24,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_FULL = "ORTHO_PLAYTEST_PLAY_TO_END";
         public const string ENV_PRESET = "ORTHO_PLAYTEST_PRESET";
         public const string ENV_WALL = "ORTHO_PLAYTEST_WALL";
+        public const string ENV_SKIN = "ORTHO_PLAYTEST_SKIN";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -52,6 +54,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// </summary>
         public float? Wall { get; init; }
 
+        /// <summary>
+        /// One of the built-in skins: argon (the default), argon-pro, triangles or classic (the legacy skin).
+        /// </summary>
+        public string Skin { get; init; } = "argon";
+
+        public SkinInfo CreateSkinInfo() => Skin switch
+        {
+            "argon" => ArgonSkin.CreateInfo(),
+            "argon-pro" => ArgonProSkin.CreateInfo(),
+            "triangles" => TrianglesSkin.CreateInfo(),
+            "classic" => DefaultLegacySkin.CreateInfo(),
+            _ => throw new ArgumentException($"Unknown skin \"{Skin}\" (expected argon, argon-pro, triangles or classic)."),
+        };
+
         public Ruleset CreateRuleset() => Ruleset switch
         {
             ManiaOrthoRuleset.SHORT_NAME => new ManiaOrthoRuleset(),
@@ -78,6 +94,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 PlayToEnd = get(ENV_FULL) == "1",
                 Preset = get(ENV_PRESET) is string p ? Enum.Parse<HighwayPreset>(p, true) : defaults.Preset,
                 Wall = get(ENV_WALL) is string w ? float.Parse(w, CultureInfo.InvariantCulture) : null,
+                Skin = get(ENV_SKIN) ?? defaults.Skin,
             };
         }
     }
