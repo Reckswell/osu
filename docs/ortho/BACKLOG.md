@@ -44,8 +44,9 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and
   1.75x sections. (Warped with the stage. Playtest found SV was dropped under maniaortho; fixed in
   `DrawableManiaOrthoRuleset`, `TestScrollSpeedChangesApply`; captures match mania in Chunithm and Parallel.)
-- [ ] **MG1**: report to Alpha with a compare sheet (mania vs perspective vs parallel, 4K and 7K, real-4k map) and
-  ask for an L3/L4 playtest on device.
+- [x] **MG1**: report to Alpha with a compare sheet (mania vs perspective vs parallel, 4K and 7K, real-4k map) and
+  ask for an L3/L4 playtest on device. (Reported 2026-11-03 with five sheets: Armageddon 4K, C18H27NO3 7K, 0.5x SV,
+  holds, classic skin. On-device playtest asked; waiting on Alpha.)
 
 ## M2: Gameplay settings and feel
 

@@ -41,7 +41,8 @@ SPEC 2 and Alpha's brief say notes come from the top of the screen.
 ### Q8. Wall behaviour in the Chunithm preset
 In the arcade the field wall is off by default, goes up to about 90% of the track, and keeps note speed (visible time
 shrinks; players lower their speed by hand). SPEC 4 asks for constant visible time by default and a 0-80% range.
-- **Default until answered**: SPEC (wall off, keeps visible time, 0-80%); "keep speed" stays a toggle.
+- **Default until answered**: wall off and keeps visible time (SPEC); "keep speed" stays a toggle. The range is already
+  0-90% like the arcade (DECISIONS, "Wall is a fraction of track depth, up to 90%").
 - **Answer**:
 
 ### Q9. Approve three more core files
