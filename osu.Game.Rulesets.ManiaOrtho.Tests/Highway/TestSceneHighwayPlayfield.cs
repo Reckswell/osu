@@ -16,6 +16,7 @@ using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.UI;
+using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Tests.Visual;
 using osuTK;
 
@@ -177,6 +178,32 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddAssert("scroll direction is forced down", () => probe.Config!.Get<ManiaScrollingDirection>(ManiaRulesetSetting.ScrollDirection) == ManiaScrollingDirection.Down);
         }
 
+        [Test]
+        public void TestScrollSpeedChangesApply()
+        {
+            ScrollingProbe probe = null!;
+
+            AddStep("add a probe inside the playfield", () => highway.Overlay.Add(probe = new ScrollingProbe()));
+            AddUntilStep("probe loaded", () => probe.IsLoaded);
+
+            // The synthetic chart has 0.5x and 1.75x SV sections (PlaytestBeatmaps.CreateSynthetic). Mania keeps SV for its own
+            // beatmaps; a note in those sections must travel the same distance as in mania, relative to a 1x section.
+            AddAssert("0.5x section scrolls at half speed", () => lengthRatio(probe, 24000), () => Is.EqualTo(0.5).Within(1e-3));
+            AddAssert("1.75x section scrolls faster", () => lengthRatio(probe, 30000), () => Is.EqualTo(1.75).Within(1e-3));
+            AddAssert("1x after the SV sections", () => lengthRatio(probe, 36000), () => Is.EqualTo(1).Within(1e-3));
+        }
+
+        /// <summary>
+        /// How far a note travels over 100ms starting at <paramref name="time"/>, relative to the same span in the 1x lead-in.
+        /// </summary>
+        private static double lengthRatio(ScrollingProbe probe, double time)
+        {
+            var algorithm = probe.ScrollingInfo.Algorithm.Value;
+            const double time_range = 1000;
+
+            return algorithm.GetLength(time, time + 100, time_range, 1) / algorithm.GetLength(2000, 2100, time_range, 1);
+        }
+
         private void waitForJudgement()
         {
             AddUntilStep("a judgement is shown", () => layer.CurrentJudgement?.Piece?.IsLoaded == true && layer.CurrentJudgement.Result?.IsHit == true);
@@ -186,6 +213,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         }
 
         private Drawable maniaJudgements() => drawableRuleset.Playfield.Stages.Single().ChildrenOfType<JudgementContainer<DrawableManiaJudgement>>().Single();
+
+        private partial class ScrollingProbe : Drawable
+        {
+            [Resolved]
+            public IScrollingInfo ScrollingInfo { get; private set; } = null!;
+        }
 
         private partial class ConfigProbe : Drawable
         {

@@ -38,6 +38,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         {
         }
 
+        [BackgroundDependencyLoader]
+        private void load()
+        {
+            // Mania keeps a beatmap's scroll speed changes (SV) only when the beatmap was made for the ruleset being played,
+            // which it checks against Ruleset.RulesetInfo: maniaortho here, so every mania beatmap would lose its SV. This
+            // runs after mania's loader and restores what mania keeps for its own beatmaps: at each control point, the
+            // effect point in force at that time, exactly as DrawableScrollingRuleset merged them. Converts stay stripped.
+            if (!Beatmap.BeatmapInfo.Ruleset.Equals(ManiaOrthoRuleset.MANIA.RulesetInfo))
+                return;
+
+            foreach (var p in ControlPoints)
+                p.EffectPoint = Beatmap.ControlPointInfo.EffectPointAt(p.Time);
+        }
+
         protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
         {
             var baseDependencies = base.CreateChildDependencies(parent);

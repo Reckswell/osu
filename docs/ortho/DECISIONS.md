@@ -159,3 +159,16 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   perspective move the wall's base only a little on screen at first (wall 4 hides 23% of the depth but only 5% of the
   screen). The 40% wall playtest shows the same. Players use up to wall 14 (88.5%), past SPEC's 80% (tune).
 
+
+## 2026-11-03: Restore mania's SV in the ortho drawable ruleset, not in core
+
+- **Decision**: `DrawableManiaOrthoRuleset` re-applies each control point's effect point (scroll speed) after mania's
+  loader, for beatmaps made for osu!mania. Converts stay stripped, as in mania.
+- **Why**: found by playtest. Mania drops SV unless `Beatmap.BeatmapInfo.Ruleset` equals the ruleset being played, which
+  is maniaortho here, so every mania map scrolled at 1x through its SV sections. Fixing it in the ruleset needs no core
+  patch: `ControlPoints` is protected, the derived loader runs after mania's and before the scroll algorithm first
+  computes positions, and `EffectPointAt(time)` gives the same effect point `DrawableScrollingRuleset` merged in.
+  `TestSceneHighwayPlayfield.TestScrollSpeedChangesApply` checks the 0.5x/1.75x sections (it failed with 1.0 before).
+- **Also checked, fine**: the hit-window "is convert" check (song-select display goes through `MANIA`, so it compares
+  with mania), `ManiaModClassic` (compares with a new `ManiaRuleset`), the converter and difficulty calculator (given
+  `MANIA`). Key bindings are stored under maniaortho's own ruleset, on purpose (separate from mania's, like the settings).
