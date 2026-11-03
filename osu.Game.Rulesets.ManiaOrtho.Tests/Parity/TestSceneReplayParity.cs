@@ -5,11 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Game.Rulesets.Judgements;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Scoring;
@@ -36,17 +39,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         [TestCase(PlaytestBeatmaps.REAL_4K, 1)]
         [TestCase("synthetic-4k", 2)]
         [TestCase("synthetic-7k", 3)]
-        public void TestJudgementParity(string source, int seed)
+        public void TestJudgementParity(string source, int seed) => testParity(source, seed, HighwayNoteStyle.Skin);
+
+        /// <summary>
+        /// Native notes take over drawing mania's notes (their containers are proxied away); judging must not notice.
+        /// </summary>
+        [TestCase("synthetic-7k", 4)]
+        public void TestJudgementParityWithNativeNotes(string source, int seed) => testParity(source, seed, HighwayNoteStyle.Highway);
+
+        private void testParity(string source, int seed, HighwayNoteStyle noteStyle)
         {
             PlayRecord mania = null!;
             PlayRecord ortho = null!;
 
             AddAssert("game discovered the ruleset", () => rulesets.GetRuleset(ManiaOrthoRuleset.SHORT_NAME), () => Is.Not.Null);
+            AddStep($"notes: {noteStyle}", () => ((ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(new ManiaOrthoRuleset()).AsNonNull())
+                                               .Highway.SetValue(HighwaySetting.NoteStyle, noteStyle));
 
             play(new ManiaRuleset(), source, seed, r => mania = r);
             play(new ManiaOrthoRuleset(), source, seed, r => ortho = r);
 
             AddAssert("ortho run used the ortho playfield", () => ortho.DrawableRulesetType, () => Is.EqualTo(nameof(DrawableManiaOrthoRuleset)));
+            AddAssert($"ortho run drew notes as {noteStyle}", () => ortho.NativeNotes, () => Is.EqualTo(noteStyle == HighwayNoteStyle.Highway));
             AddAssert("replay produced a realistic mix of judgements", () => mania.Judgements.Select(j => j.Type).Distinct().Count(), () => Is.GreaterThanOrEqualTo(3));
             AddAssert("same judgement count", () => ortho.Judgements.Count, () => Is.EqualTo(mania.Judgements.Count));
             AddAssert("same judgement sequence", () => ortho.Judgements, () => Is.EqualTo(mania.Judgements));
@@ -101,7 +115,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     results.Select(r => new JudgementRecord(r.HitObject.StartTime, r.HitObject.GetType().Name, r.Type, System.Math.Round(r.TimeOffset, 3))).ToList(),
                     processor.TotalScore.Value,
                     processor.Accuracy.Value,
-                    currentPlayer.ChildrenOfType<osu.Game.Rulesets.UI.DrawableRuleset>().Single().GetType().Name));
+                    currentPlayer.ChildrenOfType<osu.Game.Rulesets.UI.DrawableRuleset>().Single().GetType().Name,
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NativeNotes == true));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -111,6 +126,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
-        private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType);
+        private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes);
     }
 }

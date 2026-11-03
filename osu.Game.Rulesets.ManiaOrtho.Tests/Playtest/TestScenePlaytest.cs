@@ -75,6 +75,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
                     if (options.Wall is float wall)
                         ortho.Highway.SetValue(HighwaySetting.Wall, wall);
+
+                    ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.NoteStyle);
                 }
             });
 
@@ -214,6 +216,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 preset = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.Preset.ToString() : null,
                 wall = options.Wall,
                 skin = options.Skin,
+                notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.NoteStyle.ToString() : null,
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),
                 clockAtCapture,

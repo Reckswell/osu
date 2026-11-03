@@ -25,6 +25,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_PRESET = "ORTHO_PLAYTEST_PRESET";
         public const string ENV_WALL = "ORTHO_PLAYTEST_WALL";
         public const string ENV_SKIN = "ORTHO_PLAYTEST_SKIN";
+        public const string ENV_NOTES = "ORTHO_PLAYTEST_NOTES";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -58,6 +59,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// One of the built-in skins: argon (the default), argon-pro, triangles or classic (the legacy skin).
         /// </summary>
         public string Skin { get; init; } = "argon";
+
+        /// <summary>
+        /// How maniaortho draws notes (skin or highway).
+        /// </summary>
+        public HighwayNoteStyle NoteStyle { get; init; } = HighwayNoteStyle.Skin;
 
         public SkinInfo CreateSkinInfo() => Skin switch
         {
@@ -95,6 +101,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 Preset = get(ENV_PRESET) is string p ? Enum.Parse<HighwayPreset>(p, true) : defaults.Preset,
                 Wall = get(ENV_WALL) is string w ? float.Parse(w, CultureInfo.InvariantCulture) : null,
                 Skin = get(ENV_SKIN) ?? defaults.Skin,
+                NoteStyle = get(ENV_NOTES) is string n ? Enum.Parse<HighwayNoteStyle>(n, true) : defaults.NoteStyle,
             };
         }
     }

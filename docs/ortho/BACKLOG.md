@@ -39,8 +39,11 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   below the line drawn at flat height, upright judgements (`HighwayJudgementLayer`), field wall drawn (`HighwayWall`,
   M2 wall task's L0 test and screenshots still open), Chunithm judgement line and lane guides (`HighwayGuides`,
   skin hit target hidden when tilted, settings "Lane guides" and "Use skin hit target"). Open: flat-mode capture.)
-- [ ] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
+- [~] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
   Gate: replay parity still green; screenshots show holds aligned at all depths; flat mode matches mania's layout.
+  (`HighwayNoteLayer`, opt-in "Notes: Highway"; parity with native notes green; holds aligned in captures of
+  Armageddon 4K, C18H27NO3 7K and synthetic 7K, also with the classic skin; flat camera keeps cover mods. Open:
+  visibility mods on tilted native notes, then make it the default.)
 - [x] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and
   1.75x sections. (Warped with the stage. Playtest found SV was dropped under maniaortho; fixed in
   `DrawableManiaOrthoRuleset`, `TestScrollSpeedChangesApply`; captures match mania in Chunithm and Parallel.)

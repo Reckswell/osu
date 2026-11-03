@@ -90,6 +90,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
             SetDefault(HighwaySetting.LaneGuides, true);
             SetDefault(HighwaySetting.SkinHitTarget, false);
+            SetDefault(HighwaySetting.NoteStyle, HighwayNoteStyle.Skin);
         }
 
         /// <summary>
@@ -106,12 +107,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             WallKeepsVisibleTime = Get<bool>(HighwaySetting.WallKeepsVisibleTime),
             LaneGuides = Get<bool>(HighwaySetting.LaneGuides),
             SkinHitTarget = Get<bool>(HighwaySetting.SkinHitTarget),
+            NoteStyle = Get<HighwayNoteStyle>(HighwaySetting.NoteStyle),
         };
 
         /// <summary>
         /// Writes a preset's values into the individual settings. Leaves <see cref="HighwaySetting.WallKeepsVisibleTime"/>,
-        /// <see cref="HighwaySetting.LaneGuides"/> and <see cref="HighwaySetting.SkinHitTarget"/> alone (preferences, not
-        /// part of a camera).
+        /// <see cref="HighwaySetting.LaneGuides"/>, <see cref="HighwaySetting.SkinHitTarget"/> and
+        /// <see cref="HighwaySetting.NoteStyle"/> alone (preferences, not part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
         {
@@ -168,5 +170,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         WallKeepsVisibleTime,
         LaneGuides,
         SkinHitTarget,
+        NoteStyle,
     }
 }

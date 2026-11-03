@@ -7,6 +7,7 @@
 #   scripts/ortho/playtest.sh --times 5000,12000 --scroll-speed 24 --size 1920x1080 --play-to-end --no-baseline
 #   scripts/ortho/playtest.sh --preset Voltex --wall 0.3   (maniaortho highway settings; mania ignores them)
 #   scripts/ortho/playtest.sh --skin classic                (built-in skin: argon, argon-pro, triangles, classic)
+#   scripts/ortho/playtest.sh --notes highway               (maniaortho notes: skin or highway)
 #
 # On Linux without a display it runs under Xvfb with Mesa's software renderer: frames are real, frame rates are not.
 # Output: playtest-output/<timestamp>/ (git-ignored), with compare-*.png, the raw captures and summary-*.json.
@@ -22,7 +23,7 @@ size="1280x720"
 while [ $# -gt 0 ]; do
   case "$1" in
     --beatmap) beatmaps+=("$2"); shift ;;
-    --times|--scroll-speed|--preset|--wall|--skin) extra+=("$1" "$2"); shift ;;
+    --times|--scroll-speed|--preset|--wall|--skin|--notes) extra+=("$1" "$2"); shift ;;
     --size) size="$2"; shift ;;
     --play-to-end) extra+=("$1") ;;
     --no-baseline) baseline=0 ;;

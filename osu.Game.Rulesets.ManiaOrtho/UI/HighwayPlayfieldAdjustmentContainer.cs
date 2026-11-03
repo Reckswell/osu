@@ -4,15 +4,18 @@
 using System;
 using System.Collections.Generic;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Testing;
+using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Skinning.Legacy;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.UI;
+using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Skinning;
 using osuTK;
 
@@ -52,6 +55,42 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public HighwayGuides Guides { get; }
 
         /// <summary>
+        /// Notes drawn natively on the track, in <see cref="Overlay"/> over the guides and under the wall. Only used with
+        /// <see cref="HighwayNoteStyle.Highway"/>.
+        /// </summary>
+        public HighwayNoteLayer NoteLayer { get; }
+
+        /// <summary>
+        /// Whether this play draws notes natively (<see cref="HighwayNoteStyle.Highway"/>), fixed when gameplay loads.
+        /// </summary>
+        public bool NativeNotes { get; private set; }
+
+        /// <summary>
+        /// When notes are drawn natively: one holder per column with a proxy of its hit object container, so mania's own
+        /// notes are not drawn in the stage. Each holder sits right behind the container it proxies, in the same parent, so
+        /// under the flat camera (the only time holders are shown) the notes are drawn exactly where mania draws them: under
+        /// a cover mod's cover, inside the column's masking, under the key area and explosions.
+        /// </summary>
+        public IReadOnlyList<Drawable> NoteProxyHolders => noteProxyHolders;
+
+        private readonly List<Drawable> noteProxyHolders = new List<Drawable>();
+
+        /// <summary>
+        /// Holds proxies whose container is not in a <see cref="Container{T}"/> (none known; a later mod might do it).
+        /// </summary>
+        private readonly Container fallbackNoteProxies;
+
+        private bool noteProxiesCreated;
+
+        /// <summary>
+        /// Each column's left and right edge in lane space, in playfield column order.
+        /// </summary>
+        private Vector2[] columnLanes = Array.Empty<Vector2>();
+
+        [Resolved]
+        private IScrollingInfo scrollingInfo { get; set; } = null!;
+
+        /// <summary>
         /// The skin's hit targets: one wrapper per column, plus legacy skins' own (see <see cref="updateHitTargets"/>).
         /// </summary>
         public IReadOnlyList<Drawable> HitTargets => hitTargets;
@@ -87,6 +126,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         private HighwayConfigManager? config;
 
+        private readonly Bindable<bool> timingBasedColouring = new Bindable<bool>();
+
         public HighwayPlayfieldAdjustmentContainer(DrawableManiaOrthoRuleset drawableRuleset)
         {
             this.drawableRuleset = drawableRuleset;
@@ -96,10 +137,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 Warp = new HighwayWarpContainer
                 {
                     RelativeSizeAxes = Axes.Both,
-                    Child = mania = new ManiaPlayfieldAdjustmentContainer(drawableRuleset)
+                    Children = new Drawable[]
                     {
-                        Anchor = Anchor.Centre,
-                        Origin = Anchor.Centre,
+                        mania = new ManiaPlayfieldAdjustmentContainer(drawableRuleset)
+                        {
+                            Anchor = Anchor.Centre,
+                            Origin = Anchor.Centre,
+                        },
+                        fallbackNoteProxies = new Container
+                        {
+                            RelativeSizeAxes = Axes.Both,
+                        },
                     },
                 },
                 Overlay = new Container
@@ -108,6 +156,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     Children = new Drawable[]
                     {
                         Guides = new HighwayGuides(),
+                        NoteLayer = new HighwayNoteLayer { Alpha = 0 },
                         Wall = new HighwayWall(),
                     },
                 },
@@ -115,13 +164,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         [BackgroundDependencyLoader]
-        private void load(ISkinSource skinSource)
+        private void load(ISkinSource skinSource, ManiaRulesetConfigManager? maniaConfig)
         {
             // The drawable ruleset's dependencies (and so its config) are set up before its children load.
             config = drawableRuleset.HighwayConfig;
 
             this.skinSource = skinSource;
             skinSource.SourceChanged += onSkinSourceChanged;
+
+            NativeNotes = config?.Current.NoteStyle == HighwayNoteStyle.Highway;
+
+            maniaConfig?.BindWith(ManiaRulesetSetting.TimingBasedNoteColouring, timingBasedColouring);
 
             // The playfield (and so its stages) is created with this container, before it loads.
             foreach (var stage in drawableRuleset.Playfield.Stages)
@@ -158,6 +211,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             updateHitTargets(flat || Settings.SkinHitTarget);
 
+            if (NativeNotes && !noteProxiesCreated)
+            {
+                noteProxiesCreated = true;
+                createNoteProxies();
+            }
+
+            for (int i = 0; i < noteProxyHolders.Count; i++)
+                noteProxyHolders[i].Alpha = flat ? 1 : 0;
+
+            NoteLayer.Alpha = NativeNotes && !flat ? 1 : 0;
+
             RectangleF stage = stageBounds();
 
             // Render the stage in the buffer at about the width it will have at the judgement line, so the near end is
@@ -182,8 +246,50 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             updateGuideLines(stage);
 
+            if (NativeNotes && !flat)
+            {
+                NoteLayer.Layout = Projection.Layout;
+                NoteLayer.SnapColours = timingBasedColouring.Value;
+                NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll, Time.Current);
+            }
+
             for (int i = 0; i < judgementLayers.Count; i++)
                 judgementLayers[i].Place(Projection, flat, stage, mania.Scale.X);
+        }
+
+        /// <summary>
+        /// Mania's notes keep judging in the stage; proxying their containers away only stops them being drawn there. Runs
+        /// after mods have been applied, so a cover mod's wrapper is already in place.
+        /// </summary>
+        private void createNoteProxies()
+        {
+            var stages = drawableRuleset.Playfield.Stages;
+
+            for (int i = 0; i < stages.Count; i++)
+            {
+                foreach (var column in stages[i].Columns)
+                {
+                    var hitObjects = column.HitObjectContainer;
+                    var holder = new Container
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        Alpha = 0,
+                        Child = hitObjects.CreateProxy(),
+                    };
+
+                    if (hitObjects.Parent is Container<Drawable> parent)
+                    {
+                        // Drawn just before the container itself, which draws nothing now: before anything added after it,
+                        // such as a cover.
+                        holder.Depth = MathF.BitIncrement(hitObjects.Depth);
+                        parent.Add(holder);
+                    }
+                    else
+                        fallbackNoteProxies.Add(holder);
+
+                    noteProxyHolders.Add(holder);
+                }
+            }
         }
 
         protected override void Dispose(bool isDisposing)
@@ -251,10 +357,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             Guides.SetLineCount(count);
 
+            if (columnLanes.Length != count - stages.Count)
+                columnLanes = new Vector2[count - stages.Count];
+
             if (source.Width <= 0)
                 return;
 
             int index = 0;
+            int columnIndex = 0;
 
             for (int i = 0; i < stages.Count; i++)
             {
@@ -270,6 +380,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     // The left edge of the stage, then the middle of each gap between columns.
                     Guides.SetLine(index++, j == 0 ? left : (previousRight + left) / 2, j == 0);
                     previousRight = right;
+
+                    columnLanes[columnIndex++] = new Vector2(left, right);
                 }
 
                 Guides.SetLine(index++, previousRight, true);

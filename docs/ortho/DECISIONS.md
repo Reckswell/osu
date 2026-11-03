@@ -195,3 +195,35 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Known leftover**: the default skin's key area has a 7 px grey bar just above the hit position, which the warp also
   magnifies (about 20 px above the line at 720p). It is part of the key area, not the hit target, so it stays for now.
 - **Asked**: whether the default should be the Chunithm line or the skin's hit target goes to Alpha with the MG1 report.
+
+## 2026-11-03: Native notes, opt-in, by proxying mania's note containers away
+
+- **Decision**: a "Notes" setting, Skin (tilted, default for now) or Highway. With Highway, notes are drawn natively on
+  the track (`HighwayNoteLayer`): flat bars 0.0255 track depth thick (Chunithm's TAP, research P5), 98% of the lane,
+  a white rim on the leading edge; hold bodies 80% wide, brighter while held, grey once broken; tails half a note thick.
+  Heads stop at the line while held, as in mania, and follow the tail below it when held past the end. Notes are
+  clipped at the judgement line, as in Chunithm.
+- **Colours**: the skin's column colour when it is a note colour (opaque and not dark: argon and triangles colour notes
+  with it); otherwise built-in colours after Alpha's skin, white outer lanes and pink #FF8290 inner lanes counted in
+  from both edges, amber for mania's special centre column. That is legacy mania's own 4K/6K/7K pattern (1-2-2-1,
+  1-2-1-1-2-1, 1-2-1-S-1-2-1). Legacy skins' column colour is the lane background (black in classic and in Alpha's
+  skin), which made every native note black before review. With timing-based colouring on, a note takes its snap colour
+  instead of the column colour (replacing, not multiplying: mania multiplies it into the skin's piece, which for the
+  white note textures snap colouring is used with is the same thing, and multiplying into pink lanes would muddy it).
+- **How**: each column's `HitObjectContainer` gets a framework proxy, in a holder added to the container's own parent
+  just behind it (inside a cover mod's wrapper when there is one), shown only under the flat camera. A proxied drawable is not drawn in place, but it stays present: it updates, receives input and judges as
+  before (`TestJudgementParityWithNativeNotes`). Positions come from each hit object's time through mania's own scroll
+  algorithm (`HighwayScroll.DepthAt`), which matches the warped notes exactly (`TestNotesSitWhereTheWarpedNotesWould`).
+  Under the flat camera the proxies are drawn in the container's place, so the flat camera still looks like mania:
+  Hidden, Fade In and Cover still cover, the column still masks, and the key area and explosions still draw over notes
+  (the first version kept the proxies above the whole stage and lost all three; caught in review).
+- **Why**: the warp drew mania's notes about twice Chunithm's thickness near the line (5-6% of the track instead of
+  2.55%) and soft, because the skin's note height is a fixed number of pixels in a stage the perspective magnifies
+  about 4x there. Native notes are what the rendering card's recommended hybrid ("warp now, native later") planned.
+- **Why opt-in for now**: Hidden, Fade In and Cover wrap the note container and Flashlight draws over the stage; none of
+  them reach native notes yet (scoring is unaffected). Skin note textures are not used either. Highway becomes the
+  default once those are covered and Alpha has seen it.
+- **Bar lines** stay warped with the stage (they are in the stage's own container, not the columns').
+- **Left from research P5 for later**: hold bodies use normal blending, not additive; thickness is a constant, not the
+  0.015-0.06 setting P5 proposes. After a drop, mania freezes the hold's drawn length so the head slides past the line;
+  here the head goes back to its unclamped depth and is clipped at once. Only visible around the line.

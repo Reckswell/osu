@@ -25,6 +25,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         Flat,
     }
 
+    public enum HighwayNoteStyle
+    {
+        /// <summary>
+        /// The skin's notes, drawn on the track with the rest of mania's stage.
+        /// </summary>
+        [Description("Skin (tilted)")]
+        Skin,
+
+        /// <summary>
+        /// Notes drawn natively on the track with a fixed thickness (<see cref="UI.HighwayNoteLayer"/>).
+        /// </summary>
+        [Description("Highway (Chunithm thickness)")]
+        Highway,
+    }
+
     public enum HighwayPreset
     {
         Chunithm,
@@ -83,6 +98,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public bool SkinHitTarget { get; init; }
 
+        /// <summary>
+        /// How notes are drawn under a tilted camera. Read when gameplay starts.
+        /// </summary>
+        public HighwayNoteStyle NoteStyle { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -94,6 +114,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             WallKeepsVisibleTime = true;
             LaneGuides = true;
             SkinHitTarget = false;
+            NoteStyle = HighwayNoteStyle.Skin;
         }
 
         /// <summary>
