@@ -90,7 +90,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
             SetDefault(HighwaySetting.LaneGuides, true);
             SetDefault(HighwaySetting.SkinHitTarget, false);
-            SetDefault(HighwaySetting.NoteStyle, HighwayNoteStyle.Skin);
+            SetDefault(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
         }
 
         /// <summary>

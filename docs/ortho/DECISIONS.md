@@ -253,3 +253,15 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **How to reverse**: pass no covers to `HighwayNoteLayer.Gather` (drop `measureCovers`); the rest is unchanged.
 - **Tests**: `DepthCoverTest` (maths), `TestCoverHidesNativeNotes` (measured cover in depth for both directions, notes
   hidden, fading and clear), `TestJudgementParityWithVisibilityMods` (HD, FI, CO with native notes).
+
+## 2026-11-03: Native notes are the default
+
+- **Decision**: "Notes" defaults to Highway (native notes); Skin stays available and is listed second.
+- **Why**: SPEC 6 asks for notes with a fixed thickness in track units, which only native notes have (warped skin notes
+  are about twice Chunithm's thickness near the line and soft). The reason they were opt-in is gone: Hidden, Fade In and
+  Cover now fade them as mania does (entry above), and Flashlight behaves the same for both styles. Alpha was sent the
+  comparison sheets; this is reversible with one default.
+- **Cost**: a legacy skin's note textures are not used with native notes (M6 task); its look is approximated by the
+  white/pink lane colours from Alpha's skin. Players who want their textures pick Skin.
+- **How to reverse**: `SetDefault(HighwaySetting.NoteStyle, HighwayNoteStyle.Skin)` and `HighwaySettings` default;
+  `TestNotesDrawnOnTheHighwayByDefault` pins the current choice.

@@ -7,7 +7,7 @@
 #   scripts/ortho/playtest.sh --times 5000,12000 --scroll-speed 24 --size 1920x1080 --play-to-end --no-baseline
 #   scripts/ortho/playtest.sh --preset Voltex --wall 0.3   (maniaortho highway settings; mania ignores them)
 #   scripts/ortho/playtest.sh --skin classic                (built-in skin: argon, argon-pro, triangles, classic)
-#   scripts/ortho/playtest.sh --notes highway               (maniaortho notes: skin or highway)
+#   scripts/ortho/playtest.sh --notes skin                  (maniaortho notes: highway, the default, or skin)
 #   scripts/ortho/playtest.sh --mods HD                     (mod acronyms, comma separated, besides autoplay and no fail)
 #
 # On Linux without a display it runs under Xvfb with Mesa's software renderer: frames are real, frame rates are not.

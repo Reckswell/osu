@@ -69,9 +69,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         [TearDownSteps]
         public override void TearDownSteps()
         {
-            AddStep("skin notes, default skin", () =>
+            AddStep("default notes, default skin", () =>
             {
-                highwayConfig.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Skin);
+                highwayConfig.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).SetDefault();
                 rulesetConfig.SetValue(ManiaRulesetSetting.TimingBasedNoteColouring, false);
                 skins.CurrentSkinInfo.SetDefault();
             });

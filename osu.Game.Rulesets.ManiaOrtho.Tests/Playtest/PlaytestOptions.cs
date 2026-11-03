@@ -65,7 +65,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// <summary>
         /// How maniaortho draws notes (skin or highway).
         /// </summary>
-        public HighwayNoteStyle NoteStyle { get; init; } = HighwayNoteStyle.Skin;
+        public HighwayNoteStyle NoteStyle { get; init; } = HighwayNoteStyle.Highway;
 
         /// <summary>
         /// Mod acronyms to play with besides autoplay (and no fail), such as HD, FI or CO.

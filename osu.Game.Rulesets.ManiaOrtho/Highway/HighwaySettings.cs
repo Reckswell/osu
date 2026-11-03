@@ -28,16 +28,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
     public enum HighwayNoteStyle
     {
         /// <summary>
-        /// The skin's notes, drawn on the track with the rest of mania's stage.
-        /// </summary>
-        [Description("Skin (tilted)")]
-        Skin,
-
-        /// <summary>
-        /// Notes drawn natively on the track with a fixed thickness (<see cref="UI.HighwayNoteLayer"/>).
+        /// Notes drawn natively on the track with a fixed thickness (<see cref="UI.HighwayNoteLayer"/>), as SPEC 6 asks.
         /// </summary>
         [Description("Highway (Chunithm thickness)")]
         Highway,
+
+        /// <summary>
+        /// The skin's notes, drawn on the track with the rest of mania's stage (warped: thicker and softer near the line).
+        /// </summary>
+        [Description("Skin (tilted)")]
+        Skin,
     }
 
     public enum HighwayPreset
@@ -114,7 +114,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             WallKeepsVisibleTime = true;
             LaneGuides = true;
             SkinHitTarget = false;
-            NoteStyle = HighwayNoteStyle.Skin;
+            NoteStyle = HighwayNoteStyle.Highway;
         }
 
         /// <summary>

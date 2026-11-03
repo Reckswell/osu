@@ -71,6 +71,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
         }
 
         [Test]
+        public void TestNotesDrawnOnTheHighwayByDefault()
+        {
+            AddAssert("settings default", () => new HighwaySettings().NoteStyle, () => Is.EqualTo(HighwayNoteStyle.Highway));
+            AddAssert("config default", () =>
+            {
+                using (var config = create())
+                    return config.Highway.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).Default;
+            }, () => Is.EqualTo(HighwayNoteStyle.Highway));
+        }
+
+        [Test]
         public void TestPresets()
         {
             AddAssert("default is Chunithm", () =>
