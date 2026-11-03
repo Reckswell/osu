@@ -84,6 +84,27 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
         }
 
         [Test]
+        public void TestHighwayTrackByDefault()
+        {
+            AddAssert("settings default", () => new HighwaySettings().Track, () => Is.EqualTo(HighwayTrackStyle.Highway));
+            AddAssert("config default", () =>
+            {
+                using (var config = create())
+                    return config.Highway.GetBindable<HighwayTrackStyle>(HighwaySetting.Track).Default;
+            }, () => Is.EqualTo(HighwayTrackStyle.Highway));
+
+            AddAssert("a preset leaves it alone", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Skin);
+                    config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex);
+                    return config.Highway.Current.Track;
+                }
+            }, () => Is.EqualTo(HighwayTrackStyle.Skin));
+        }
+
+        [Test]
         public void TestPresets()
         {
             AddAssert("default is Chunithm", () =>

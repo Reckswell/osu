@@ -165,6 +165,16 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "hit lighting", "explosion", "burst", "glow" },
                 },
+                new SettingsItemV2(new FormEnumDropdown<HighwayTrackStyle>
+                {
+                    Caption = "Track",
+                    HintText = "Highway: a dark floor with teal side rails, and a beam rising from the judgement line in each lane you "
+                               + "press. Skin: your skin's stage, lane backgrounds, receptors and lane lighting, tilted with the track.",
+                    Current = highway.GetBindable<HighwayTrackStyle>(HighwaySetting.Track),
+                })
+                {
+                    Keywords = new[] { "stage", "lane background", "column", "receptor", "key area", "floor", "beam", "lane lighting" },
+                },
             };
         }
     }

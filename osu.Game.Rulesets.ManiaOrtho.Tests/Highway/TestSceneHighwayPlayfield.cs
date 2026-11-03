@@ -56,6 +56,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.LaneGuides, true);
                 highwayConfig.SetValue(HighwaySetting.SkinHitTarget, false);
+                highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                 skins.CurrentSkinInfo.SetDefault();
             });
 
@@ -249,6 +250,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         {
             AddStep("classic skin", () => skins.CurrentSkinInfo.Value = DefaultLegacySkin.CreateInfo().ToLiveUnmanaged());
 
+            // The highway's track hides the stage background this hit target is drawn in, but keeps it current.
+            AddAssert("on the highway's track", () => highway.TrackShown);
+
             // Legacy skins with key textures draw their hit target (stage hint and judgement line) in the stage background.
             AddUntilStep("legacy hit target found", () => highway.HitTargets.OfType<LegacyHitTarget>().Any());
             AddAssert("every legacy hit target is tracked", () => legacyHitTargets().All(highway.HitTargets.Contains));
@@ -256,6 +260,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddStep("use the skin's hit target", () => highwayConfig.SetValue(HighwaySetting.SkinHitTarget, true));
             AddUntilStep("legacy hit target shown", () => legacyHitTargets().All(t => t.Alpha == 1));
+
+            // The highway's track hides the stage background the legacy hit target is drawn in.
+            AddAssert("on the highway's track the highway's line stays", () => highway.TrackShown && highway.Guides.ShowJudgementLine);
+            AddStep("skin's track", () => highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Skin));
+            AddUntilStep("on the skin's track the skin's line replaces it", () => !highway.TrackShown && !highway.Guides.ShowJudgementLine);
+            AddStep("highway's track", () => highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway));
 
             AddStep("default skin", () => skins.CurrentSkinInfo.SetDefault());
             AddUntilStep("legacy hit target gone", () => !highway.HitTargets.OfType<LegacyHitTarget>().Any());

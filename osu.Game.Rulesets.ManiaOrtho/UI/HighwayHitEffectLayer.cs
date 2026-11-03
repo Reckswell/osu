@@ -187,7 +187,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             {
                 var glow = glows[i];
 
-                glow.SetHolding(active && isHolding(columns[i]), phase);
+                glow.SetHolding(active && IsHolding(columns[i]), phase);
 
                 if (i < columnLanes.Length)
                     place(glow, projection, columnLanes[i], trackWidth, HighwayHoldGlow.SIZE);
@@ -210,7 +210,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             effect.Scale = new Vector2(unit / HighwayHitBurst.UNIT);
         }
 
-        private static bool isHolding(Column column)
+        /// <summary>
+        /// Whether a hold note in <paramref name="column"/> is being held.
+        /// </summary>
+        public static bool IsHolding(Column column)
         {
             foreach (var entry in column.HitObjectContainer.AliveEntries)
             {

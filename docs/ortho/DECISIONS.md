@@ -393,3 +393,50 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   container, which the ruleset cannot reach without reflection, so with a legacy skin a held lane shows both glows.
   With "Notes: Skin", argon's own hold glow (`ArgonHoldBodyPiece`) is drawn too (warped).
 - **How to reverse**: set "Hit effects" to Skin; or remove the layer from `HighwayPlayfieldAdjustmentContainer`.
+
+## 2026-11-03: The highway draws its own track; the skin's stage is hidden on tilted cameras
+
+- **Decision** (recommended on Alpha's decision card, QUESTIONS Q11, still open; reversible by changing one default): a new
+  setting "Track: Highway / Skin (tilted)", a preference outside the presets like "Notes" and "Hit effects", default
+  Highway. Under Highway on a tilted camera, `HighwayTrack` draws, under mania's warped stage:
+  - a near-black floor (#060606 at 90%) under each stage, from the judgement line to the far edge and on down to the
+    bottom of the screen (research `game-chunithm.md` P4; `game-chunithm-feedback.md` P8 suggests 85% with a later
+    "track opacity" setting);
+  - a dark teal rail a sixteenth of the stage wide on each side (#0C2A2A at 80%, darker towards the far end),
+    Chunithm's side bands. Floor and rails end at the wall when there is one (the wall covers only the lanes). With dual
+    stages each stage gets its own, and a rail never takes more than half the gap to the other stage;
+  - a white beam in each pressed lane, 30% at the line fading linearly in track depth to nothing half way up, 45% while
+    the lane's hold is held, fading in over 30 ms and out over 150 ms easing out (feedback P5, P6), and below the line
+    a matching light where the receptor was (SPEC 5 asks for the receptor to light).
+  The skin's stage background, stage foreground, lane backgrounds and key areas are hidden (`Alpha = 0` on mania's
+  skinnable wrappers). Under Skin, or the flat camera, nothing changes from before.
+- **Why**: it is the Chunithm look Alpha asked for and SPEC 8's built-in skin; the warp magnifies skin art several
+  times near the line (receptors and stage bottoms looked smeared in every capture); and Alpha's own skin has no
+  receptors to lose (`baseline-alpha.md`). The lane beam is now ours, which the hit-lighting decision deferred to this
+  task: the skin's press lighting is hidden with its lane backgrounds, so there is no double beam.
+- **Input**: which lanes are pressed is read from the key binding container's pressed actions (what mania's columns and
+  notes receive, so replays and autoplay light the lanes too). Nothing new handles input. The hidden skin parts are
+  kept present (`AlwaysPresent`): hidden with alpha alone they would drop out of the input queue and stop updating,
+  so they would miss skin changes (a legacy skin's hit target was never built) and key releases (a stuck light when
+  shown again). Present, they stay in the input queue exactly as in mania; every one of them (default, argon, legacy
+  key areas and column backgrounds) only lights the skin and returns false, so nothing about who judges a press
+  changes. Every replay parity case now runs with the highway track
+  (the default) and one runs with the skin's (`TestJudgementParityWithSkinTrack`).
+- **Finding the skin parts**: mania builds them in fixed places, so they are told apart by position (stage background
+  and foreground in the stage's content container; a column's key area as its own child, its lane background in its
+  background container). `TestSceneHighwayTrack` checks that every argon stage background, column background and key
+  area in the playfield is inside a hidden part, and that the hit targets are not, so an upstream layout change fails
+  the test rather than showing the skin's stage again.
+- **Skin hit target**: legacy skins with key textures draw their hit target inside the stage background, which is
+  hidden; with "Use skin hit target" on, the highway keeps its own judgement line for them, so the track always has
+  one. Per-column hit targets (argon, triangles, other legacy skins) show as before.
+- **The warp's transparency** (found by review in the captures): the warp draws mania's stage into a buffer that
+  starts transparent, which stores colour already multiplied by its alpha; it was drawn back with normal blending,
+  multiplying again. The skin's opaque lane backgrounds used to hide this; on the highway's floor bar lines came out
+  about seven times too faint (pixel +3 over the floor against +23 over argon's lanes). The buffer is now drawn with
+  premultiplied blending, on every camera (the flat camera's see-through parts, such as argon's 80% lane
+  backgrounds, now match mania instead of coming out at 64%).
+- **Colour**: the floor is one colour: SPEC 8's "colours per lane type"
+  are carried by the notes (native notes use the skin's lane colours or white and pink), not the floor.
+- **How to reverse**: set "Track" to Skin, or change the default in `ManiaOrthoRulesetConfigManager` and
+  `HighwaySettings`.

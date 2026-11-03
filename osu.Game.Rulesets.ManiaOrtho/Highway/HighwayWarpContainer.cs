@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Framework.Graphics;
+using osu.Framework.Graphics.Colour;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
@@ -117,13 +118,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
 
             protected override long GetDrawVersion() => updateVersion;
 
+            /// <summary>
+            /// The buffer holds premultiplied colour: it starts transparent, and content blended into it normally is
+            /// multiplied by its alpha on the way in. Drawn back with normal blending it would be multiplied again, so
+            /// anything see-through (bar lines, a 50% hold body, soft edges) came out at its alpha squared wherever nothing
+            /// opaque lay under it in the stage. That used to be the skin's lane backgrounds; on the highway's own track,
+            /// which is drawn under this container, it is nothing, and bar lines were about seven times too faint.
+            /// </summary>
+            private static readonly BlendingParameters premultiplied = BlendingParameters.Mixture with { Source = BlendingType.One };
+
             protected override void DrawContents(IRenderer renderer)
             {
                 float scrollHeight = source.Bottom - source.Top;
 
+                renderer.SetBlend(premultiplied);
+                ColourInfo colour = premultiply(DrawColourInfo.Colour);
+
                 if (!warp || source.Width <= 0 || scrollHeight <= 0)
                 {
-                    base.DrawContents(renderer);
+                    renderer.DrawFrameBuffer(SharedData.CurrentEffectBuffer, Quad.FromRectangle(DrawRectangle), colour);
                     return;
                 }
 
@@ -135,14 +148,38 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
                 Vector2 lineRight = toBufferSpace(new Vector2(source.Right, source.Bottom));
                 var aboveRect = new RectangleF(topLeft.X, topLeft.Y, lineRight.X - topLeft.X, lineRight.Y - topLeft.Y);
 
-                TrackDrawing.DrawTrackRectangle(renderer, texture, projection, DrawInfo.Matrix, 0, 1, 0, scroll.ScrollLength, DrawColourInfo.Colour, aboveRect);
+                TrackDrawing.DrawTrackRectangle(renderer, texture, projection, DrawInfo.Matrix, 0, 1, 0, scroll.ScrollLength, colour, aboveRect);
 
                 // Below the line (receptors, key area): at its flat height. Perspective would magnify it several times.
                 float belowHeight = localSize.Y - source.Bottom;
                 Vector2 bottomRight = toBufferSpace(new Vector2(source.Right, localSize.Y));
                 var belowRect = new RectangleF(topLeft.X, lineRight.Y, lineRight.X - topLeft.X, bottomRight.Y - lineRight.Y);
 
-                TrackDrawing.DrawBelowLine(renderer, texture, projection, DrawInfo.Matrix, belowHeight, DrawColourInfo.Colour, belowRect);
+                TrackDrawing.DrawBelowLine(renderer, texture, projection, DrawInfo.Matrix, belowHeight, colour, belowRect);
+            }
+
+            /// <summary>
+            /// The draw colour for premultiplied blending: its colour scaled by its alpha, so fading this container fades
+            /// the stage instead of brightening it.
+            /// </summary>
+            private static ColourInfo premultiply(ColourInfo colour)
+            {
+                if (colour.HasSingleColour)
+                    return premultiply(colour.TopLeft);
+
+                return new ColourInfo
+                {
+                    TopLeft = premultiply(colour.TopLeft),
+                    TopRight = premultiply(colour.TopRight),
+                    BottomLeft = premultiply(colour.BottomLeft),
+                    BottomRight = premultiply(colour.BottomRight),
+                };
+            }
+
+            private static Color4 premultiply(SRGBColour colour)
+            {
+                Color4 c = colour.SRGB;
+                return new Color4(c.R * c.A, c.G * c.A, c.B * c.A, c.A);
             }
 
             private Vector2 toBufferSpace(Vector2 local)

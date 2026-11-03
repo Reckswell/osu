@@ -70,6 +70,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             AddAssert("ortho run played with the lift", () => ortho.LineHeight, () => Is.EqualTo(0.3f).Within(1e-4f));
         }
 
+        /// <summary>
+        /// The highway's track hides the skin's stage parts, which keep their key handlers; every case above runs with it (the
+        /// default). With the skin's track they are shown and light up on presses as in mania.
+        /// </summary>
+        [TestCase("synthetic-7k", 10)]
+        public void TestJudgementParityWithSkinTrack(string source, int seed)
+        {
+            AddStep("skin's track", () => orthoConfig.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Skin));
+
+            testParity(source, seed, HighwayNoteStyle.Highway);
+        }
+
         [SetUpSteps]
         public override void SetUpSteps()
         {
@@ -80,6 +92,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             {
                 orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPresets.DEFAULT);
+                orthoConfig.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
             });
         }
 
@@ -99,6 +112,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
             AddAssert("ortho run used the ortho playfield", () => ortho.DrawableRulesetType, () => Is.EqualTo(nameof(DrawableManiaOrthoRuleset)));
             AddAssert($"ortho run drew notes as {noteStyle}", () => ortho.NativeNotes, () => Is.EqualTo(noteStyle == HighwayNoteStyle.Highway));
+            AddAssert("ortho run drew the track as set", () => ortho.HighwayTrack,
+                () => Is.EqualTo(orthoConfig.Highway.Get<HighwayTrackStyle>(HighwaySetting.Track) == HighwayTrackStyle.Highway));
             AddAssert("both runs played with the mods", () => new[] { mania.Mods, ortho.Mods }, () => Has.All.EquivalentTo(mods));
             AddAssert("replay produced a realistic mix of judgements", () => mania.Judgements.Select(j => j.Type).Distinct().Count(), () => Is.GreaterThanOrEqualTo(3));
             AddAssert("same judgement count", () => ortho.Judgements.Count, () => Is.EqualTo(mania.Judgements.Count));
@@ -158,7 +173,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     currentPlayer.ChildrenOfType<osu.Game.Rulesets.UI.DrawableRuleset>().Single().GetType().Name,
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NativeNotes == true,
                     currentPlayer.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
-                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.Settings.JudgementLineHeight));
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.Settings.JudgementLineHeight,
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.TrackShown == true));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -169,6 +185,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
         private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
-                                  float? LineHeight);
+                                  float? LineHeight, bool HighwayTrack);
     }
 }

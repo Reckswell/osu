@@ -111,6 +111,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     ortho.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, !options.SpeedLock);
                     ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.NoteStyle);
                     ortho.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
+                    ortho.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                     options.ApplyHighwayValues(ortho.Highway);
                 }
             });
@@ -327,6 +328,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         used.NoteThickness,
                         notes = used.NoteStyle.ToString(),
                         hitEffects = used.HitEffects.ToString(),
+                        track = used.Track.ToString(),
                     }
                     : null,
                 skin = options.Skin,

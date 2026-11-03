@@ -11,6 +11,7 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Testing;
+using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Skinning.Legacy;
 using osu.Game.Rulesets.Mania.UI;
@@ -45,6 +46,47 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public Container Overlay { get; }
 
         public HighwayWarpContainer Warp { get; }
+
+        /// <summary>
+        /// The highway's own floor, rails and lane beams, under the warped stage. Shown under a tilted camera with
+        /// <see cref="HighwayTrackStyle.Highway"/>.
+        /// </summary>
+        public HighwayTrack Track { get; }
+
+        /// <summary>
+        /// Whether the highway's track is shown this frame, and the skin's stage parts (<see cref="SkinStageParts"/>) hidden.
+        /// </summary>
+        public bool TrackShown { get; private set; }
+
+        /// <summary>
+        /// The skin's stage background and foreground for each stage, and the lane background and key area (receptor) for
+        /// each column: hidden while <see cref="TrackShown"/>. Found once the playfield has loaded (see
+        /// <see cref="findSkinStageParts"/>).
+        /// </summary>
+        public IReadOnlyList<Drawable> SkinStageParts => skinStageParts;
+
+        private readonly List<Drawable> skinStageParts = new List<Drawable>();
+
+        private bool skinStagePartsFound;
+
+        /// <summary>
+        /// Whether <see cref="SkinStageParts"/> are hidden.
+        /// </summary>
+        private bool skinStagePartsHidden;
+
+        /// <summary>
+        /// Every column of every stage, in playfield column order.
+        /// </summary>
+        private Column[] playfieldColumns = Array.Empty<Column>();
+
+        private bool[] pressedColumns = Array.Empty<bool>();
+        private bool[] holdingColumns = Array.Empty<bool>();
+
+        /// <summary>
+        /// Whether one of the skin's hit targets is drawn inside one of its stage parts (legacy skins with key textures),
+        /// so that hiding the stage hides the skin's judgement line too.
+        /// </summary>
+        private bool hitTargetInSkinStage;
 
         /// <summary>
         /// The field wall, in <see cref="Overlay"/> under the judgements.
@@ -102,6 +144,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public ReadOnlySpan<Vector2> ColumnLanes => columnLanes;
 
         private Vector2[] columnLanes = Array.Empty<Vector2>();
+
+        /// <summary>
+        /// Each stage's left and right edge in lane space.
+        /// </summary>
+        private Vector2[] stageLanes = Array.Empty<Vector2>();
 
         [Resolved]
         private IScrollingInfo scrollingInfo { get; set; } = null!;
@@ -165,6 +212,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             InternalChildren = new Drawable[]
             {
+                // Under the warped stage: the stage draws its notes, bar lines and effects over the floor.
+                Track = new HighwayTrack(),
                 Warp = new HighwayWarpContainer
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -237,11 +286,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             Guides.Layout = Projection.Layout;
             Guides.Alpha = flat ? 0 : 1;
             Guides.ShowLaneLines = Settings.LaneGuides;
-            Guides.ShowJudgementLine = !Settings.SkinHitTarget;
+            // When the skin's own line went with its hidden stage, keep the highway's, so the track always has one.
+            Guides.ShowJudgementLine = !Settings.SkinHitTarget || (TrackShown && hitTargetInSkinStage);
+
+            Track.Layout = Projection.Layout;
 
             if (!drawableRuleset.IsLoaded || drawableRuleset.Playfield.Stages.Count == 0)
+            {
+                Track.Alpha = 0;
                 return;
+            }
 
+            updateTrack(!flat && Settings.Track == HighwayTrackStyle.Highway);
             updateHitTargets(flat || Settings.SkinHitTarget);
 
             if (NativeNotes && !noteProxiesCreated)
@@ -278,6 +334,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             Warp.Source = stage;
 
             updateGuideLines(stage);
+
+            Track.SetLanes(stageLanes, columnLanes);
+            Track.FarDepth = Warp.Scroll.AppearDepth;
+            updateBeams();
 
             if (NativeNotes && !flat)
             {
@@ -495,12 +555,154 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
                     hitTargets.AddRange(stages[i].ChildrenOfType<LegacyHitTarget>());
                 }
+
+                hitTargetInSkinStage = false;
+
+                for (int i = 0; i < hitTargets.Count; i++)
+                    hitTargetInSkinStage |= isInSkinStage(hitTargets[i]);
             }
 
             float alpha = show ? 1 : 0;
 
             for (int i = 0; i < hitTargets.Count; i++)
                 hitTargets[i].Alpha = alpha;
+        }
+
+        /// <summary>
+        /// Shows the highway's track and hides the skin's stage parts, or the other way round.
+        /// </summary>
+        /// <remarks>
+        /// Hidden parts stay present (<see cref="Drawable.AlwaysPresent"/>), so they keep updating and stay in the key binding
+        /// container's input queue exactly as in mania: they rebuild when the skin changes, their lighting follows the keys,
+        /// and showing them again shows them current. Every one of them in mania only lights the skin and never handles a
+        /// press (they return false). Replay parity runs with the track.
+        /// </remarks>
+        private void updateTrack(bool show)
+        {
+            if (!skinStagePartsFound)
+            {
+                skinStagePartsFound = true;
+                findSkinStageParts();
+            }
+
+            TrackShown = show;
+            Track.Alpha = show ? 1 : 0;
+
+            if (skinStagePartsHidden == show)
+                return;
+
+            skinStagePartsHidden = show;
+
+            for (int i = 0; i < skinStageParts.Count; i++)
+                skinStageParts[i].Alpha = show ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Finds the wrappers mania puts the skin's stage parts in. They stay the same drawables when the skin changes (only
+        /// their content is rebuilt), so this runs once. Mania builds them in fixed places, which is how they are told apart:
+        /// <list type="bullet">
+        /// <item>the stage background and foreground sit in the container that is the stage's only content (<c>Stage</c>);</item>
+        /// <item>a column's key area is the column's own child, and its lane background is the only skinnable drawable in its
+        /// background container, the column's other child holding one (<c>Column</c>). The hit object area's hit target is
+        /// left to <see cref="updateHitTargets"/>.</item>
+        /// </list>
+        /// </summary>
+        private void findSkinStageParts()
+        {
+            skinStageParts.Clear();
+
+            var stages = drawableRuleset.Playfield.Stages;
+            var allColumns = new List<Column>();
+
+            for (int i = 0; i < stages.Count; i++)
+            {
+                var stage = stages[i];
+
+                foreach (var skinnable in stage.ChildrenOfType<SkinnableDrawable>())
+                {
+                    if (skinnable.Parent?.Parent == stage)
+                        addSkinStagePart(skinnable);
+                }
+
+                foreach (var column in stage.Columns)
+                {
+                    allColumns.Add(column);
+
+                    foreach (var skinnable in column.ChildrenOfType<SkinnableDrawable>())
+                    {
+                        var parent = skinnable.Parent;
+
+                        if (parent == column || (parent != column.HitObjectArea && parent?.Parent == column))
+                            addSkinStagePart(skinnable);
+                    }
+                }
+            }
+
+            playfieldColumns = allColumns.ToArray();
+            pressedColumns = new bool[playfieldColumns.Length];
+            holdingColumns = new bool[playfieldColumns.Length];
+        }
+
+        private void addSkinStagePart(Drawable part)
+        {
+            // Hidden with alpha alone, a part would stop updating: it would miss skin changes and key releases (and so
+            // show a stale skin or a stuck light when shown again) and leave the input queue.
+            part.AlwaysPresent = true;
+            skinStageParts.Add(part);
+        }
+
+        private bool isInSkinStage(Drawable drawable)
+        {
+            for (var d = drawable.Parent; d != null; d = d.Parent)
+            {
+                if (skinStageParts.Contains(d))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Lights each pressed lane's beam, brighter while its hold note is held. Reads the keys mania's own columns are
+        /// pressed by, so a replay or autoplay lights the lanes as the player's keys do.
+        /// </summary>
+        private void updateBeams()
+        {
+            if (TrackShown)
+            {
+                var pressed = drawableRuleset.PressedActions;
+
+                for (int i = 0; i < playfieldColumns.Length; i++)
+                {
+                    pressedColumns[i] = pressed != null && isPressed(pressed, playfieldColumns[i].Action.Value);
+                    holdingColumns[i] = pressedColumns[i] && HighwayHitEffectLayer.IsHolding(playfieldColumns[i]);
+                }
+            }
+
+            Track.UpdateBeams(pressedColumns, holdingColumns, TrackShown);
+
+            static bool isPressed(IEnumerable<ManiaAction> pressed, ManiaAction action)
+            {
+                // The container keeps a list; indexing it avoids boxing an enumerator every frame.
+                if (pressed is IReadOnlyList<ManiaAction> list)
+                {
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        if (list[i] == action)
+                            return true;
+                    }
+
+                    return false;
+                }
+
+                foreach (var a in pressed)
+                {
+                    if (a == action)
+                        return true;
+                }
+
+                return false;
+            }
         }
 
         /// <summary>
@@ -519,6 +721,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             if (columnLanes.Length != count - stages.Count)
                 columnLanes = new Vector2[count - stages.Count];
+
+            if (stageLanes.Length != stages.Count)
+                stageLanes = new Vector2[stages.Count];
 
             if (source.Width <= 0)
                 return;
@@ -545,6 +750,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 }
 
                 Guides.SetLine(index++, previousRight, true);
+
+                if (columns.Length > 0)
+                    stageLanes[i] = new Vector2(columnLanes[columnIndex - columns.Length].X, previousRight);
             }
 
             float toLane(Vector2 screenSpace) => (Warp.ToLocalSpace(screenSpace).X - source.Left) / source.Width;

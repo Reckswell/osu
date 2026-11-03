@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using osu.Framework.Allocation;
 using osu.Game.Beatmaps;
+using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
@@ -32,6 +33,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// The highway settings, or null outside a game (no settings store).
         /// </summary>
         public HighwayConfigManager? HighwayConfig => (Config as ManiaOrthoRulesetConfigManager)?.Highway;
+
+        /// <summary>
+        /// The actions held down in the key binding container mania's columns and notes receive their presses from (the
+        /// player's keys, or a replay's), or null before it exists. Read only.
+        /// </summary>
+        public IEnumerable<ManiaAction>? PressedActions => (KeyBindingInputManager as RulesetInputManager<ManiaAction>)?.KeyBindingContainer.PressedActions;
 
         public DrawableManiaOrthoRuleset(Ruleset ruleset, IBeatmap beatmap, IReadOnlyList<Mod>? mods = null)
             : base(ruleset, beatmap, mods)

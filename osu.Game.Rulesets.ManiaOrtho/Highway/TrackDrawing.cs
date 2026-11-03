@@ -188,6 +188,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         }
 
         /// <summary>
+        /// The part of the track between lanes <paramref name="lane0"/> and <paramref name="lane1"/> from the judgement line down
+        /// <paramref name="height"/> pixels, its sides on the lane edges' straight lines (as <see cref="DrawBelowLine"/> draws
+        /// the stage there). A plain trapezoid: anything that varies only with screen height is drawn exactly on it.
+        /// </summary>
+        public static Quad GetBelowLine(in HighwayProjection projection, float lane0, float lane1, float height)
+        {
+            float top = projection.YAt(0);
+            float bottom = top + Math.Max(0, height);
+
+            return new Quad(
+                new Vector2(projection.XAt(lane0, top), top), new Vector2(projection.XAt(lane1, top), top),
+                new Vector2(projection.XAt(lane0, bottom), bottom), new Vector2(projection.XAt(lane1, bottom), bottom));
+        }
+
+        /// <summary>
         /// The band across the whole track between screen heights <paramref name="top"/> and <paramref name="bottom"/>, its
         /// sides on the track's edges (the judgement line and its glow).
         /// </summary>

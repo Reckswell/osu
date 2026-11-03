@@ -78,7 +78,13 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   `HighwayHitEffectLayer`, "Hit effects: Highway / Skin". Lane beams stay the skin's warped press lighting (DECISIONS).
   `TestSceneHighwayHitEffects`, `HitBurstStyleTest`, contact sheet `TestSceneHitBurst`; captures in
   `/mnt/project-files/ortho-agent/hit-effects/`.)
-- [ ] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.
+- [x] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.
+  ("Track: Highway / Skin", default Highway pending Q11: `HighwayTrack` draws a near-black floor, teal side rails and
+  white beams on pressed lanes under the warped stage, whose skin backgrounds and receptors are hidden. Notes were
+  already native. Review found the warp drew see-through content at alpha squared (bar lines ~7x too faint on the new
+  floor); it now blends premultiplied, and the flat camera matches mania pixel for pixel on lane backgrounds.
+  `TestSceneHighwayTrack` (incl. dual stages), `HighwayTrackTest`, replay parity with both tracks. Captures in
+  `/mnt/project-files/ortho-agent/track/`: straight edges and beams, no bends.)
 - [x] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
   (Hidden, Fade In, Cover on native notes: `DepthCover`, `TestCoverHidesNativeNotes`. Flashlight lights the track rows
   mania lights: `ManiaOrthoModFlashlight`, `TestSceneHighwayFlashlight`, `ModListTest`. Replay parity with HD, FI, CO

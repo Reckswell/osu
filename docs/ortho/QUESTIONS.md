@@ -58,6 +58,15 @@ condition, behaves identically for upstream rulesets, and is tested (`BeatmapCom
 - **Default until answered**: keep them (reversible).
 - **Answer**:
 
+### Q11. What the tilted track looks like by default
+The highway can draw its own track (near-black floor, teal side rails, beams on pressed lanes) and hide the skin's lane
+backgrounds, receptors and stage edges, or keep the skin's stage warped onto the track. Asked on a decision card in
+the thread; captures in `/mnt/project-files/ortho-agent/track/`.
+- **Options**: (a) the highway's track by default, the skin's as a setting; (b) the skin's by default, the highway's as a
+  setting.
+- **Default until answered**: (a), "Track: Highway". Switching is one default value (DECISIONS, 2026-11-03).
+- **Answer**:
+
 ## Answered
 
 ### Q10. Track width at 7K and 10K

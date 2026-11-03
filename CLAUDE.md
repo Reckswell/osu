@@ -96,7 +96,10 @@ note the licence in the research note).
   `DrawableManiaOrthoRuleset` subclasses `DrawableManiaRuleset` they work; once the playfield is replaced, each needs a
   projected equivalent or must be hidden from this ruleset's mod list (record which in `DECISIONS.md`).
 - A container hidden with `Alpha = 0` does not update its children. Pooled drawables added to it (mania's explosions,
-  our bursts) never prepare or expire and pile up: clear them, do not just hide them.
+  our bursts) never prepare or expire and pile up: clear them, do not just hide them. A hidden skinnable misses skin
+  changes and key releases and leaves the input queue; set `AlwaysPresent` on anything hidden that must stay current.
+- The warp's buffer holds premultiplied colour (it starts transparent). It is drawn back with premultiplied blending;
+  anything else drawn from a transparent buffer needs the same, or see-through content comes out at alpha squared.
 - Seeking back drops pooled effects and judgements that ended in between; they do not come back. Captures must reach
   their time from below (the playtest harness stops short and seeks forward; `overshoot` in the summary should be 0).
 - osu-framework transforms are affine. Perspective needs a custom `DrawNode` emitting arbitrary quads; textured

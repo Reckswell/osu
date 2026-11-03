@@ -127,6 +127,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, effects);
                     break;
 
+                case HighwaySetting.Track:
+                    var track = Enum.Parse<HighwayTrackStyle>(value, true);
+                    config?.SetValue(setting, track);
+                    break;
+
                 case HighwaySetting.WallKeepsVisibleTime:
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:

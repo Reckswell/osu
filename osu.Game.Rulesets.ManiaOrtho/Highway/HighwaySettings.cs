@@ -56,6 +56,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         Skin,
     }
 
+    public enum HighwayTrackStyle
+    {
+        /// <summary>
+        /// The highway's own track (<see cref="UI.HighwayTrack"/>): a near-black floor with dark teal side rails, continuing
+        /// below the judgement line, and a beam rising from the line in each pressed lane. The skin's stage background, lane
+        /// backgrounds, receptors and stage foreground are hidden.
+        /// </summary>
+        [Description("Highway")]
+        Highway,
+
+        /// <summary>
+        /// The skin's stage, lane backgrounds, receptors and lane lighting, drawn on the track with the rest of mania's stage
+        /// (warped: magnified near the line).
+        /// </summary>
+        [Description("Skin (tilted)")]
+        Skin,
+    }
+
     public enum HighwayPreset
     {
         Chunithm,
@@ -135,6 +153,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public HighwayHitEffectStyle HitEffects { get; init; }
 
+        /// <summary>
+        /// What the track itself looks like under a tilted camera: the highway's floor and lane beams, or the skin's stage.
+        /// </summary>
+        public HighwayTrackStyle Track { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -149,6 +172,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             SkinHitTarget = false;
             NoteStyle = HighwayNoteStyle.Highway;
             HitEffects = HighwayHitEffectStyle.Highway;
+            Track = HighwayTrackStyle.Highway;
         }
 
         /// <summary>
