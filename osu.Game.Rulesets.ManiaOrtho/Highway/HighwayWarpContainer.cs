@@ -1,0 +1,152 @@
+﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
+// See the LICENCE file in the repository root for full licence text.
+
+using System.Collections.Generic;
+using osu.Framework.Allocation;
+using osu.Framework.Graphics;
+using osu.Framework.Graphics.Containers;
+using osu.Framework.Graphics.Primitives;
+using osu.Framework.Graphics.Rendering;
+using osu.Framework.Graphics.Shaders;
+using osuTK;
+using osuTK.Graphics;
+
+namespace osu.Game.Rulesets.ManiaOrtho.Highway
+{
+    /// <summary>
+    /// Renders its children flat into an off-screen buffer, then draws the part of that buffer covering the stage onto the
+    /// highway (backlog M1, rendering option "warp"). Everything mania draws inside the stage (notes, holds, bar lines,
+    /// column lighting, visibility mods) follows the perspective without being reimplemented.
+    /// </summary>
+    /// <remarks>
+    /// The stage is mapped lane-for-lane: its left and right edges become lanes 0 and 1, its hit position becomes depth 0
+    /// and the top of its scrolling area becomes <see cref="HighwayScroll.ScrollLength"/>. Depth is linear in the source y
+    /// (mania moves notes linearly in y), so notes keep exactly the timing mania gives them.
+    /// </remarks>
+    public partial class HighwayWarpContainer : Container, IBufferedDrawable
+    {
+        /// <summary>
+        /// When false, the buffer is drawn back unchanged (the Flat camera).
+        /// </summary>
+        public bool Warp { get; set; } = true;
+
+        public HighwayLayout Layout { get; set; } = new HighwayLayout();
+
+        public HighwayScroll Scroll { get; set; } = new HighwayScroll(0, true);
+
+        /// <summary>
+        /// The stage's columns in this container's local space: left and right edges, the top of the scrolling area
+        /// (<see cref="RectangleF.Top"/>) and the judgement line (<see cref="RectangleF.Bottom"/>).
+        /// </summary>
+        public RectangleF Source { get; set; }
+
+        public Color4 BackgroundColour => new Color4(0, 0, 0, 0);
+
+        public DrawColourInfo? FrameBufferDrawColour => null;
+
+        public Vector2 FrameBufferScale { get; set; } = Vector2.One;
+
+        public IShader TextureShader { get; private set; } = null!;
+
+        private readonly BufferedDrawNodeSharedData sharedData = new BufferedDrawNodeSharedData(pixelSnapping: false, clipToRootNode: true);
+
+        private long updateVersion;
+
+        [BackgroundDependencyLoader]
+        private void load(ShaderManager shaders)
+        {
+            TextureShader = shaders.Load(VertexShaderDescriptor.TEXTURE_2, FragmentShaderDescriptor.TEXTURE);
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+
+            // Gameplay changes every frame, so redraw the buffer every frame.
+            updateVersion++;
+            Invalidate(Invalidation.DrawNode);
+        }
+
+        protected override DrawNode CreateDrawNode() => new WarpDrawNode(this, sharedData);
+
+        protected override void Dispose(bool isDisposing)
+        {
+            base.Dispose(isDisposing);
+            sharedData.Dispose();
+        }
+
+        private class WarpDrawNode : BufferedDrawNode, ICompositeDrawNode
+        {
+            protected new HighwayWarpContainer Source => (HighwayWarpContainer)base.Source;
+
+            protected new CompositeDrawableDrawNode Child => (CompositeDrawableDrawNode)base.Child;
+
+            private long updateVersion;
+            private bool warp;
+            private HighwayProjection projection;
+            private HighwayScroll scroll;
+            private RectangleF source;
+            private Vector2 localSize;
+            private Vector2 frameBufferScale;
+
+            public WarpDrawNode(HighwayWarpContainer source, BufferedDrawNodeSharedData sharedData)
+                : base(source, new CompositeDrawableDrawNode(source), sharedData)
+            {
+            }
+
+            public List<DrawNode>? Children
+            {
+                get => Child.Children;
+                set => Child.Children = value;
+            }
+
+            public bool AddChildDrawNodes => RequiresRedraw;
+
+            public override void ApplyState()
+            {
+                base.ApplyState();
+
+                updateVersion = Source.updateVersion;
+                warp = Source.Warp;
+                localSize = Source.DrawSize;
+                projection = new HighwayProjection(Source.Layout, localSize);
+                scroll = Source.Scroll;
+                source = Source.Source;
+                frameBufferScale = Source.FrameBufferScale;
+            }
+
+            protected override long GetDrawVersion() => updateVersion;
+
+            protected override void DrawContents(IRenderer renderer)
+            {
+                float scrollHeight = source.Bottom - source.Top;
+
+                if (!warp || source.Width <= 0 || scrollHeight <= 0)
+                {
+                    base.DrawContents(renderer);
+                    return;
+                }
+
+                var texture = SharedData.MainBuffer.Texture;
+
+                // The stage from the top of its scrolling area down to the bottom of this container, in buffer pixels.
+                Vector2 topLeft = toBufferSpace(new Vector2(source.Left, source.Top));
+                Vector2 bottomRight = toBufferSpace(new Vector2(source.Right, localSize.Y));
+                var textureRect = new RectangleF(topLeft.X, topLeft.Y, bottomRight.X - topLeft.X, bottomRight.Y - topLeft.Y);
+
+                // Depth is linear in source y: the hit position is depth 0, the top of the scrolling area is the scroll length.
+                float depthPerPixel = scroll.ScrollLength / scrollHeight;
+                float farDepth = scroll.ScrollLength;
+                float nearDepth = -(localSize.Y - source.Bottom) * depthPerPixel;
+
+                TrackDrawing.DrawTrackRectangle(renderer, texture, projection, DrawInfo.Matrix, 0, 1, nearDepth, farDepth, DrawColourInfo.Colour, textureRect);
+            }
+
+            private Vector2 toBufferSpace(Vector2 local)
+            {
+                Vector2 screen = Vector2Extensions.Transform(local, DrawInfo.Matrix);
+                return (screen - DrawRectangle.TopLeft) * frameBufferScale;
+            }
+        }
+    }
+}

@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using osu.Game.Rulesets.Mania;
+using osu.Game.Rulesets.ManiaOrtho.Highway;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 {
@@ -20,6 +21,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_OUT = "ORTHO_PLAYTEST_OUT";
         public const string ENV_SCROLL = "ORTHO_PLAYTEST_SCROLL_SPEED";
         public const string ENV_FULL = "ORTHO_PLAYTEST_PLAY_TO_END";
+        public const string ENV_PRESET = "ORTHO_PLAYTEST_PRESET";
+        public const string ENV_WALL = "ORTHO_PLAYTEST_WALL";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -38,6 +41,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
         /// <summary>Whether to keep playing to the end and record final statistics.</summary>
         public bool PlayToEnd { get; init; }
+
+        /// <summary>
+        /// The highway preset to play with (maniaortho only). Defaults to the ruleset's default preset.
+        /// </summary>
+        public HighwayPreset Preset { get; init; } = HighwayPresets.DEFAULT;
+
+        /// <summary>
+        /// The wall position, if overriding the preset's (maniaortho only).
+        /// </summary>
+        public float? Wall { get; init; }
 
         public Ruleset CreateRuleset() => Ruleset switch
         {
@@ -63,6 +76,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 OutputDirectory = get(ENV_OUT),
                 ScrollSpeed = get(ENV_SCROLL) is string s ? double.Parse(s, CultureInfo.InvariantCulture) : null,
                 PlayToEnd = get(ENV_FULL) == "1",
+                Preset = get(ENV_PRESET) is string p ? Enum.Parse<HighwayPreset>(p, true) : defaults.Preset,
+                Wall = get(ENV_WALL) is string w ? float.Parse(w, CultureInfo.InvariantCulture) : null,
             };
         }
     }

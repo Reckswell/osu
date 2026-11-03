@@ -81,3 +81,16 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   preset re-applies its values on load so tuning a preset reaches everyone using it.
 - **Why**: a `RulesetConfigManager` has one enum, and mania's cannot be extended. Keys are stored by name and the two
   enums share none.
+
+## 2026-11-03: First highway renders by warping mania's stage (hybrid option, pending Alpha's card)
+
+- **Decision**: `HighwayWarpContainer` renders mania's playfield flat into a frame buffer and draws the stage's part of
+  it onto the highway with `TrackDrawing` (grid-subdivided quads, perspective-correct to under a pixel). The stage is
+  stretched sideways inside the buffer to about its width at the judgement line so the near end is not magnified.
+- **Why**: Alpha has not yet picked between warp / native / hybrid; the hybrid (warp first, flat judgements and combo,
+  native notes later) was recommended and is reversible. Warping keeps every mania feature working on day one (skins,
+  hold bodies, bar lines, SV, Hidden/Fade In/Cover), and replay parity stays green because nothing in input or judgement
+  changed.
+- **Known costs**: one full-playfield buffer redraw per frame (measure on device); the area below the judgement line is
+  magnified by perspective (receptors look large); judgements inside the stage tilt until moved to the overlay.
+- **Reverse**: switch `CreatePlayfieldAdjustmentContainer` back to mania's, or replace the warp with native drawing.

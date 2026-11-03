@@ -16,6 +16,19 @@ Maps with two stages (e.g. 7K+7K): two highways side by side, or one wide highwa
 - **Default until answered**: two highways side by side.
 - **Answer**:
 
+### Q5. Judgement text and combo: on the track (Chunithm) or flat on screen?
+Chunithm shows judgement text per note in that note's lane, on the field, and the combo in the field centre under the
+notes (`research/game-chunithm-feedback.md`). SPEC 1 and 7 currently keep both flat in screen space for readability.
+- **Default until answered**: screen space (current SPEC). A "Judgement placement: Screen / Track" setting is planned
+  either way; the question is which one the Chunithm preset uses.
+- **Answer**:
+
+### Q6. Chunithm's judgement names
+Should judgement text use Chunithm's names (JUSTICE CRITICAL, JUSTICE, ATTACK, MISS)? They are SEGA's terms, so this
+is a branding call.
+- **Default until answered**: osu!mania's names in a Chunithm-like style.
+- **Answer**:
+
 ## Answered
 
 ### Q1. Default camera

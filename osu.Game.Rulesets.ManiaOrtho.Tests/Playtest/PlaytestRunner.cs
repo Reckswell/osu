@@ -52,12 +52,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             setEnv(PlaytestOptions.ENV_OUT, parsed.GetValueOrDefault("out"));
             setEnv(PlaytestOptions.ENV_SCROLL, parsed.GetValueOrDefault("scroll-speed"));
             setEnv(PlaytestOptions.ENV_FULL, parsed.ContainsKey("play-to-end") ? "1" : null);
+            setEnv(PlaytestOptions.ENV_PRESET, parsed.GetValueOrDefault("preset"));
+            setEnv(PlaytestOptions.ENV_WALL, parsed.GetValueOrDefault("wall"));
 
             int[] size = parsed.GetValueOrDefault("size", "1280x720").Split('x').Select(int.Parse).ToArray();
 
             using (var host = Host.GetSuitableDesktopHost(@"ortho-playtest", new HostOptions { FriendlyGameName = "ortho playtest" }))
             {
-                var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]), parsed.GetValueOrDefault("screenshot"));
+                var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]), parsed.GetValueOrDefault("screenshot"),
+                    int.Parse(parsed.GetValueOrDefault("case", "0")));
                 host.Run(game);
 
                 Console.WriteLine(game.Error == null ? "PLAYTEST PASSED" : $"PLAYTEST FAILED: {game.Error}");
@@ -94,11 +97,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             private readonly string? methodName;
             private readonly Size windowSize;
             private readonly string? screenshotPath;
+            private readonly int caseIndex;
 
             public string? Error { get; private set; } = "did not complete";
 
-            public PlaytestGame(Type sceneType, string? methodName, Size windowSize, string? screenshotPath)
+            public PlaytestGame(Type sceneType, string? methodName, Size windowSize, string? screenshotPath, int caseIndex)
             {
+                this.caseIndex = caseIndex;
                 this.sceneType = sceneType;
                 this.methodName = methodName;
                 this.windowSize = windowSize;
@@ -147,11 +152,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     foreach (var setUpSteps in methodsWith<SetUpStepsAttribute>())
                         setUpSteps.Invoke(scene, null);
 
-                    var tests = methodsWith<TestAttribute>().Where(m => methodName == null || m.Name == methodName).ToArray();
+                    // Tests declared by the scene itself come first, so the inherited TestConstructor is never picked by default.
+                    var tests = methodsWith<TestAttribute>().Concat(methodsWith<TestCaseAttribute>())
+                                                            .Distinct()
+                                                            .Where(m => methodName == null || m.Name == methodName)
+                                                            .OrderBy(m => m.DeclaringType == sceneType ? 0 : 1)
+                                                            .ToArray();
                     if (tests.Length == 0)
                         throw new ArgumentException($"No [Test] method {methodName} on {sceneType.Name}.");
 
-                    tests[0].Invoke(scene, null);
+                    // Parameterised tests run with the [TestCase] chosen by --case (default: the first).
+                    var testCases = tests[0].GetCustomAttributes<TestCaseAttribute>(true).ToArray();
+                    tests[0].Invoke(scene, testCases.Length == 0 ? null : testCases[caseIndex].Arguments);
 
                     scene.RunAllSteps(() =>
                     {
@@ -196,7 +208,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             }
 
             private IEnumerable<MethodInfo> methodsWith<T>() where T : Attribute
-                => sceneType.GetMethods(BindingFlags.Instance | BindingFlags.Public).Where(m => m.GetCustomAttribute<T>(true) != null);
+                => sceneType.GetMethods(BindingFlags.Instance | BindingFlags.Public).Where(m => m.GetCustomAttributes<T>(true).Any());
 
             private partial class SceneWrapper : Container
             {

@@ -1,10 +1,13 @@
 # Windows version of playtest.sh: runs the playtest harness on the real GPU.
 #   pwsh scripts/ortho/playtest.ps1
 #   pwsh scripts/ortho/playtest.ps1 -Beatmap "C:\path\to\map.osu" -Times "5000,20000" -ScrollSpeed 24 -PlayToEnd
+#   pwsh scripts/ortho/playtest.ps1 -Preset Voltex -Wall 0.3
 param(
     [string[]]$Beatmap = @("synthetic-7k", "real-4k"),
     [string]$Times,
     [string]$ScrollSpeed,
+    [string]$Preset,
+    [string]$Wall,
     [string]$Size = "1920x1080",
     [switch]$PlayToEnd,
     [switch]$NoBaseline,
@@ -35,6 +38,8 @@ foreach ($map in $Beatmap) {
         $runArgs = @($dll, "playtest", "--beatmap", $map, "--ruleset", $ruleset, "--out", $dir, "--size", $Size)
         if ($Times) { $runArgs += @("--times", $Times) }
         if ($ScrollSpeed) { $runArgs += @("--scroll-speed", $ScrollSpeed) }
+        if ($Preset) { $runArgs += @("--preset", $Preset) }
+        if ($Wall) { $runArgs += @("--wall", $Wall) }
         if ($PlayToEnd) { $runArgs += "--play-to-end" }
         $log = "$dir-$ruleset.log"
         & dotnet @runArgs *> $log

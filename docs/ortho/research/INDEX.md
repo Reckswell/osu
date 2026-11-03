@@ -8,6 +8,7 @@ Status: `todo`, `draft` (some claims unverified), `done` (every claim sourced).
 | Sound Voltex | Primary visual reference: fixed button lanes on a tilted highway | No | `game-sdvx.md` | todo |
 | Unnamed SDVX Clone (USC) | Open-source SDVX-style track rendering and camera | Yes: https://github.com/Drewol/unnamed-sdvx-clone (licence to check) | `game-usc.md` | todo |
 | Chunithm | Field wall (where notes appear), gentler perspective | No | `game-chunithm.md` | todo |
+| Chunithm: animations and feedback | Alpha's main reference: hit effects, per-note judgement text and combo on the field, lane lighting, end-of-chart banners | No (fan reimplementations read: Seaurchin, MIT; UMIGURI screenshot, MIT repo) | `game-chunithm-feedback.md` | draft |
 | Project Sekai | Note art, hit effects, steep perspective lane | No | `game-sekai.md` | todo |
 | beatmania IIDX | SUDDEN+ / HIDDEN+ / LIFT, "green number" visible-time speed | No | `game-iidx.md` | todo |
 | StepMania / Etterna | Perspective mods (Distant, Hallway, Overhead, Space, Incoming, Tilt) on keyboard charts | Yes: stepmania/stepmania, etternagame/etterna (licences to check) | `game-stepmania-etterna.md` | todo |

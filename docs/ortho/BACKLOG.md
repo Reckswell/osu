@@ -30,10 +30,13 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 
 - [x] `HighwayProjection`: pure maths for `TrackToScreen` in perspective, parallel and flat modes, with the
   invariants in SPEC section 11 as unit tests. Gate: L0 tests green. (`HighwayProjectionTest`, `HighwayScrollTest`.)
-- [ ] `ProjectedQuad` drawable/DrawNode that draws an arbitrary quad with perspective-correct texture coordinates.
+- [x] `ProjectedQuad` drawable/DrawNode that draws an arbitrary quad with perspective-correct texture coordinates.
   Gate: a test scene showing a checkerboard on a strong trapezoid; screenshot shows straight checker lines.
-- [ ] Highway playfield: replace mania's column layout with projected lanes, lane dividers, judgement line, receptors.
+  (`TrackDrawing` grid subdivision + `TrackSprite`; `TestSceneTrackSprite` shows subdivided vs one-quad bend.)
+- [~] Highway playfield: replace mania's column layout with projected lanes, lane dividers, judgement line, receptors.
   Notes still drawn by mania for now if that is simpler. Gate: screenshots for 4K/7K in perspective and flat.
+  (First version: `HighwayWarpContainer` warps mania's whole stage; replay parity green. Open: below-line area,
+  screen-space judgements, wall, flat-mode capture.)
 - [ ] Projected notes and hold notes (heads, bodies, tails) using the scrolling positions mania computes.
   Gate: replay parity still green; screenshots show holds aligned at all depths; flat mode matches mania's layout.
 - [ ] Bar lines and SV: bar lines projected; SV sections of `synthetic-7k` look right. Gate: screenshots at SV 0.5x and

@@ -15,6 +15,8 @@ using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Tests.Visual;
 using SixLabors.ImageSharp;
@@ -53,10 +55,19 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         {
             AddStep("apply ruleset settings", () =>
             {
+                var config = (ManiaRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull();
+
                 if (options.ScrollSpeed is double speed)
-                {
-                    var config = (ManiaRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull();
                     config.SetValue(ManiaRulesetSetting.ScrollSpeed, speed);
+
+                if (config is ManiaOrthoRulesetConfigManager ortho)
+                {
+                    // Set the preset twice so its values are re-applied even if it is already selected.
+                    ortho.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
+                    ortho.Highway.SetValue(HighwaySetting.Preset, options.Preset);
+
+                    if (options.Wall is float wall)
+                        ortho.Highway.SetValue(HighwaySetting.Wall, wall);
                 }
             });
 
@@ -193,6 +204,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 window = host.Window == null ? "headless" : $"{host.Window.ClientSize.Width}x{host.Window.ClientSize.Height}",
                 renderer = host.ResolvedRenderer.ToString(),
                 scrollSpeed = options.ScrollSpeed,
+                preset = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.Preset.ToString() : null,
+                wall = options.Wall,
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),
                 clockAtCapture,
