@@ -744,12 +744,14 @@ namespace osu.Game
 
                 // Prefer recommended beatmap if recommendations are available, else fallback to a sane selection.
                 var selection = difficultyRecommender.GetRecommendedBeatmap(beatmaps)
-                                ?? beatmaps.FirstOrDefault(b => b.Ruleset.Equals(Ruleset.Value))
+                                ?? beatmaps.FirstOrDefault(b => b.AllowGameplayWithRuleset(Ruleset.Value, allowConversion: false))
                                 ?? beatmaps.First();
 
                 if (screen is IHandlePresentBeatmap presentableScreen)
                 {
-                    presentableScreen.PresentBeatmap(BeatmapManager.GetWorkingBeatmap(selection), selection.Ruleset);
+                    // A ruleset that plays this beatmap natively (see Ruleset.PlaysBeatmapsOfRuleset) stays selected.
+                    var presentRuleset = selection.AllowGameplayWithRuleset(Ruleset.Value, allowConversion: false) ? Ruleset.Value : selection.Ruleset;
+                    presentableScreen.PresentBeatmap(BeatmapManager.GetWorkingBeatmap(selection), presentRuleset);
                 }
                 else
                 {

@@ -9,12 +9,14 @@ using osu.Framework.Localisation;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.Legacy;
 using osu.Game.Configuration;
+using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Configuration;
 using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Filter;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Beatmaps;
-using osu.Game.Overlays.Settings;
+using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Replays.Types;
 using osu.Game.Rulesets.Scoring;
@@ -22,8 +24,6 @@ using osu.Game.Rulesets.UI;
 using osu.Game.Scoring;
 using osu.Game.Screens.Ranking.Statistics;
 using osu.Game.Skinning;
-using osu.Game.Rulesets.ManiaOrtho.Configuration;
-using osu.Game.Rulesets.ManiaOrtho.UI;
 
 namespace osu.Game.Rulesets.ManiaOrtho
 {

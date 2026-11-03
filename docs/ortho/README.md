@@ -71,7 +71,7 @@ Changes outside the two ruleset projects. Keep this list short; each needs a rea
 | `osu.Desktop/osu.Desktop.csproj` | Reference `osu.Game.Rulesets.ManiaOrtho` | Ship the ruleset with the game | Done |
 | `osu.Game/Rulesets/Ruleset.cs` | New virtual `PlaysBeatmapsOfRuleset` (null by default) | Lets a ruleset declare another ruleset's beatmaps as its own | Done, `BeatmapCompatibilityTest` |
 | `osu.Game/Beatmaps/BeatmapInfoExtensions.cs` | `AllowGameplayWithRuleset` also accepts beatmaps of the ruleset named by `PlaysBeatmapsOfRuleset` (looked up once per ruleset and cached) | Song select must offer every mania map under `maniaortho` without "show converts" | Done, `BeatmapCompatibilityTest` |
-| `osu.Game/Screens/Select/SongSelect.cs`, `osu.Game/OsuGame.cs` | `PresentBeatmap` keeps the current ruleset when it plays the beatmap natively (`AllowGameplayWithRuleset(..., false)` instead of ruleset equality; identical for upstream rulesets) | Importing or opening a mania map must not switch the player back to mania | Done |
+| `osu.Game/Screens/Select/SongSelect.cs`, `osu.Game/OsuGame.cs` | `PresentBeatmap` keeps the current ruleset when it plays the beatmap natively (`AllowGameplayWithRuleset(..., false)` instead of ruleset equality, in song select, in the ruleset handed to the main menu, and in the fallback difficulty pick; identical for upstream rulesets) | Importing or opening a mania map must not switch the player back to mania | Done, `TestScenePresentBeatmapUnderOrtho`; pending Alpha (QUESTIONS Q9) |
 | API endpoints, app name, data folder | Point away from official services | Never share login or database with the official client | Backlog M3 |
 
 ## Branches

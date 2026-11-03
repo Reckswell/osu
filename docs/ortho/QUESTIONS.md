@@ -44,6 +44,15 @@ shrinks; players lower their speed by hand). SPEC 4 asks for constant visible ti
 - **Default until answered**: SPEC (wall off, keeps visible time, 0-80%); "keep speed" stays a toggle.
 - **Answer**:
 
+### Q9. Approve three more core files
+Listing mania maps under maniaortho needed small edits outside the ruleset that the backlog did not name: a new
+virtual property in `osu.Game/Rulesets/Ruleset.cs`, and `PresentBeatmap` in `SongSelect.cs` and `OsuGame.cs` (so
+opening or importing a mania map keeps maniaortho selected instead of switching to mania). Each is a one-line
+condition, behaves identically for upstream rulesets, and is tested (`BeatmapCompatibilityTest`,
+`TestScenePresentBeatmapUnderOrtho`, osu!mania and song select suites). Listed in `README.md#core-patches`.
+- **Default until answered**: keep them (reversible).
+- **Answer**:
+
 ## Answered
 
 ### Q1. Default camera

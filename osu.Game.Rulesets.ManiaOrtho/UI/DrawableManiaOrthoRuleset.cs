@@ -2,7 +2,9 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Collections.Generic;
+using osu.Framework.Allocation;
 using osu.Game.Beatmaps;
+using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.Mods;
@@ -34,6 +36,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public DrawableManiaOrthoRuleset(Ruleset ruleset, IBeatmap beatmap, IReadOnlyList<Mod>? mods = null)
             : base(ruleset, beatmap, mods)
         {
+        }
+
+        protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
+        {
+            var baseDependencies = base.CreateChildDependencies(parent);
+
+            // The config is cached under its own type only, but mania's drawables (notes, columns) resolve it as
+            // ManiaRulesetConfigManager. Without this, settings such as timing-based note colouring do nothing here.
+            if (Config is not ManiaOrthoRulesetConfigManager config)
+                return baseDependencies;
+
+            var dependencies = new DependencyContainer(baseDependencies);
+            dependencies.CacheAs<ManiaRulesetConfigManager>(config);
+            return dependencies;
         }
 
         public override PlayfieldAdjustmentContainer CreatePlayfieldAdjustmentContainer()

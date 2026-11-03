@@ -13,6 +13,8 @@
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\osu.Game\osu.Game.csproj"/>
     <ProjectReference Include="..\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj"/>
+    <!-- Only for tests that switch away from maniaortho (present beatmap). -->
+    <ProjectReference Include="..\osu.Game.Rulesets.Osu\osu.Game.Rulesets.Osu.csproj"/>
     <ProjectReference Include="..\osu.Game.Rulesets.ManiaOrtho\osu.Game.Rulesets.ManiaOrtho.csproj"/>
   </ItemGroup>
 </Project>

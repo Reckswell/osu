@@ -5,6 +5,7 @@ using System;
 using osu.Game.Configuration;
 using osu.Game.Rulesets.Configuration;
 using osu.Game.Rulesets.Mania.Configuration;
+using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Configuration
@@ -26,6 +27,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             : base(settings, ruleset, variant)
         {
             Highway = new HighwayConfigManager(settings, ruleset, variant);
+
+            // The camera defines the direction (SPEC 3): notes always come down the track, whatever was stored.
+            SetValue(ManiaRulesetSetting.ScrollDirection, ManiaScrollingDirection.Down);
+            GetOriginalBindable<ManiaScrollingDirection>(ManiaRulesetSetting.ScrollDirection).Disabled = true;
         }
 
         protected override void Dispose(bool isDisposing)
@@ -81,7 +86,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.JudgementLineHeight, defaults.JudgementLineHeight, 0f, 0.4f, precision);
             SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, precision);
             SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
-            SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, 0.8f, 0.01f);
+            SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.01f);
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
         }
 

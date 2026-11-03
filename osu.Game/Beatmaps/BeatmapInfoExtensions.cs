@@ -102,8 +102,8 @@ namespace osu.Game.Beatmaps
             }
             catch (Exception)
             {
-                // A ruleset that cannot be loaded plays nothing.
-                return null;
+                // A ruleset that cannot be loaded plays nothing. Remember that too, so it is not retried for every beatmap.
+                playedRuleset = null;
             }
 
             return plays_beatmaps_of_ruleset_cache[ruleset.InstantiationInfo] = playedRuleset;
