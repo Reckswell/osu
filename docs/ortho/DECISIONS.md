@@ -265,3 +265,30 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   white/pink lane colours from Alpha's skin. Players who want their textures pick Skin.
 - **How to reverse**: `SetDefault(HighwaySetting.NoteStyle, HighwayNoteStyle.Skin)` and `HighwaySettings` default;
   `TestNotesDrawnOnTheHighwayByDefault` pins the current choice.
+
+## 2026-11-03: Flashlight lights the track rows mania lights (projected, not removed)
+
+- **Decision**: the ruleset lists `ManiaOrthoModFlashlight` in place of mania's Flashlight. It inherits
+  `ManiaModFlashlight` (same acronym, settings, rank adjustment, incompatibilities) and only replaces the drawable:
+  mania's lit band (a full-width band at the playfield's vertical centre, soft over 10% of its half height) is drawn
+  with each of its rows moved to where the highway draws that row of the flat stage: on the track at the row's depth
+  above the line, at flat height below it, unchanged under the flat camera
+  (`HighwayPlayfieldAdjustmentContainer.DrawnYOfFlatY`). Notes are lit for exactly the same part of their approach as
+  in mania. The soft edge is drawn in 6 strips per side approximating mania's smoothstep; the band's size still eases
+  with combo and breaks as in mania (the base class drives it), and is measured in playfield units as mania's draw node
+  does (the stage is scaled up in portrait; caught in review, `TestBandIsManiasSize(portrait)`).
+- **Why projected**: SPEC 9 asks for projected equivalents first. Mania's screen-space band over the tilted track
+  lit a different, nearer part of each note's approach, so the mod showed notes for a different time than mania.
+  With the Chunithm camera the lit band sits far up the track and is thin on screen: that is the same window of time
+  mania lights, compressed by the perspective. Alternatives: keep the screen band (wrong time window), or remove FL
+  from the mod list (loses a mod for no reason).
+- **Why a subclass, not hiding mania's drawable**: the flashlight needs the mod's combo binding and an internal tracker
+  only the base mod can set up; a subclass gets both and reads the eased band size, which is protected.
+- **Risk**: score multipliers are looked up by exact mod type. Mania gives Flashlight none today; if it adds one, ours
+  would miss it. `ModListTest.TestFlashlightMultiplierIsMania` (alone and with HR, DT, EZ, NF) and
+  `TestJudgementParityWithVisibilityMods("FL")` fail in that case.
+- **How to reverse**: drop the replacement in `ManiaOrthoRuleset.withHighwayVisuals`.
+- **Tests**: `ModListTest` (same mods as mania by acronym and type, FL replaced, multipliers equal),
+  `TestSceneHighwayFlashlight` (notes lit in mania are drawn inside the drawn lit band, dark ones outside it; the band is
+  mania's under the flat camera), replay parity with FL. Playtest: Armageddon 4K at speed 29 and synthetic 7K, the same
+  notes lit as in mania's capture.

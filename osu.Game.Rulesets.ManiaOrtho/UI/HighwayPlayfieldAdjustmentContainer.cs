@@ -145,6 +145,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// </summary>
         private const float cover_edge_tolerance = 1e-3f;
 
+        /// <summary>
+        /// Rows far above the stage map towards the vanishing point; past this depth they are all drawn there.
+        /// </summary>
+        private const float max_mapped_depth = 1000;
+
         private readonly Bindable<bool> timingBasedColouring = new Bindable<bool>();
 
         public HighwayPlayfieldAdjustmentContainer(DrawableManiaOrthoRuleset drawableRuleset)
@@ -355,6 +360,35 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
+        /// The track depth the warp gives the flat stage's row at <paramref name="flatY"/> (this container's space; mania's
+        /// stage is laid out flat in it before the warp): 0 at the hit position, the scroll length at the top of the
+        /// scrolling area, linearly in between, so notes keep mania's timing. Negative below the line.
+        /// </summary>
+        public float DepthAtFlatY(float flatY)
+        {
+            var source = Warp.Source;
+            return source.Height > 0 ? (source.Bottom - flatY) / source.Height * Warp.Scroll.ScrollLength : 0;
+        }
+
+        /// <summary>
+        /// Where the flat stage's row at <paramref name="flatY"/> is drawn, in this container's space: on the track at its
+        /// depth above the judgement line, at its flat height below it (as the warp draws the receptor area), unchanged under
+        /// the flat camera. Never decreases as <paramref name="flatY"/> grows.
+        /// </summary>
+        public float DrawnYOfFlatY(float flatY)
+        {
+            var source = Warp.Source;
+
+            if (!Warp.Warp || source.Height <= 0)
+                return flatY;
+
+            if (flatY > source.Bottom)
+                return Projection.YAt(0) + (flatY - source.Bottom);
+
+            return Projection.YAt(Math.Min(DepthAtFlatY(flatY), max_mapped_depth));
+        }
+
+        /// <summary>
         /// Converts each column's cover, as mania draws it in the flat stage, to track depth through the warp's mapping (the
         /// stage's rows map linearly to depth 0 at the hit position up to the scroll length at the top).
         /// </summary>
@@ -378,8 +412,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 if (boxes.Filled.IsPresent && boxes.Filled.DrawHeight > 0)
                 {
                     var quad = boxes.Filled.ScreenSpaceDrawQuad;
-                    float a = depthAt(Warp.ToLocalSpace(quad.TopLeft).Y);
-                    float b = depthAt(Warp.ToLocalSpace(quad.BottomLeft).Y);
+                    float a = DepthAtFlatY(Warp.ToLocalSpace(quad.TopLeft).Y);
+                    float b = DepthAtFlatY(Warp.ToLocalSpace(quad.BottomLeft).Y);
 
                     coveredFrom = Math.Min(a, b);
                     coveredTo = Math.Max(a, b);
@@ -397,15 +431,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 {
                     var gradient = boxes.Gradient;
 
-                    fadeFrom = depthAt(Warp.ToLocalSpace(gradient.ToScreenSpace(new Vector2(0, gradient.DrawHeight))).Y);
-                    fadeTo = depthAt(Warp.ToLocalSpace(gradient.ToScreenSpace(Vector2.Zero)).Y);
+                    fadeFrom = DepthAtFlatY(Warp.ToLocalSpace(gradient.ToScreenSpace(new Vector2(0, gradient.DrawHeight))).Y);
+                    fadeTo = DepthAtFlatY(Warp.ToLocalSpace(gradient.ToScreenSpace(Vector2.Zero)).Y);
                     fadeAlpha = gradient.Alpha;
                 }
 
                 columnCovers[i] = new DepthCover(coveredFrom, coveredTo, fadeFrom, fadeTo, fadeAlpha);
             }
-
-            float depthAt(float y) => (source.Bottom - y) / source.Height * scrollLength;
         }
 
         protected override void Dispose(bool isDisposing)

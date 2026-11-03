@@ -61,9 +61,10 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [ ] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
 - [ ] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
 - [ ] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.
-- [~] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
-  (Hidden, Fade In, Cover done on native notes: `DepthCover`, `TestCoverHidesNativeNotes`, replay parity with each.
-  Open: Flashlight, still a flat band over the screen.)
+- [x] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
+  (Hidden, Fade In, Cover on native notes: `DepthCover`, `TestCoverHidesNativeNotes`. Flashlight lights the track rows
+  mania lights: `ManiaOrthoModFlashlight`, `TestSceneHighwayFlashlight`, `ModListTest`. Replay parity with HD, FI, CO
+  and FL.)
 - [ ] Gameplay hotkeys for wall and speed (like mania's F3/F4). Gate: input test scene.
 - [ ] **MG2**: device playtest (L3) with frame times on Alpha's PC; ask Alpha for an L4 session and replays.
 

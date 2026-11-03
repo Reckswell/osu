@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System.Collections.Generic;
+using System.Linq;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Sprites;
 using osu.Framework.Input.Bindings;
@@ -15,7 +16,9 @@ using osu.Game.Rulesets.Difficulty;
 using osu.Game.Rulesets.Filter;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Beatmaps;
+using osu.Game.Rulesets.Mania.Mods;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Mods;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Replays.Types;
@@ -83,9 +86,29 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         public override ScoreMultiplierCalculator CreateScoreMultiplierCalculator(ScoreMultiplierContext context) => MANIA.CreateScoreMultiplierCalculator(context);
 
-        public override IEnumerable<Mod> GetModsFor(ModType type) => MANIA.GetModsFor(type);
+        public override IEnumerable<Mod> GetModsFor(ModType type) => MANIA.GetModsFor(type).Select(withHighwayVisuals);
 
-        public override IEnumerable<Mod> ConvertFromLegacyMods(LegacyMods mods) => MANIA.ConvertFromLegacyMods(mods);
+        public override IEnumerable<Mod> ConvertFromLegacyMods(LegacyMods mods) => MANIA.ConvertFromLegacyMods(mods).Select(withHighwayVisuals);
+
+        /// <summary>
+        /// Mania's mods, except those whose drawing needs the highway: Flashlight lights the band of the track mania lights in
+        /// its flat stage (<see cref="ManiaOrthoModFlashlight"/>). Each replacement inherits the mania mod, so it scores the
+        /// same and carries the same acronym.
+        /// </summary>
+        private static Mod withHighwayVisuals(Mod mod)
+        {
+            switch (mod)
+            {
+                case ManiaModFlashlight and not ManiaOrthoModFlashlight:
+                    return new ManiaOrthoModFlashlight();
+
+                case MultiMod multi:
+                    return new MultiMod(multi.Mods.Select(withHighwayVisuals).ToArray());
+
+                default:
+                    return mod;
+            }
+        }
 
         public override LegacyMods ConvertToLegacyMods(Mod[] mods) => MANIA.ConvertToLegacyMods(mods);
 

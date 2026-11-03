@@ -48,11 +48,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         public void TestJudgementParityWithNativeNotes(string source, int seed) => testParity(source, seed, HighwayNoteStyle.Highway);
 
         /// <summary>
-        /// Hidden, Fade In and Cover wrap mania's note containers, which native notes read to fade the same way.
+        /// Hidden, Fade In and Cover wrap mania's note containers, which native notes read to fade the same way. Flashlight is
+        /// replaced by one that draws on the highway.
         /// </summary>
         [TestCase("synthetic-7k", 5, "HD")]
         [TestCase("synthetic-7k", 6, "FI")]
         [TestCase("synthetic-7k", 7, "CO")]
+        [TestCase("synthetic-7k", 8, "FL")]
         public void TestJudgementParityWithVisibilityMods(string source, int seed, string mod) => testParity(source, seed, HighwayNoteStyle.Highway, mod);
 
         private void testParity(string source, int seed, HighwayNoteStyle noteStyle, params string[] mods)
