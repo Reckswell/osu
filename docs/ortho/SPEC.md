@@ -74,9 +74,8 @@ Requirements:
 ## 5. Lanes and key modes
 
 - 1K-10K single stage are required. Dual stage (mania's 2x stages) is drawn as two highways side by side *(tune)*.
-- Lane width at the judgement line: keep the whole track within about 45% (4K) to 70% (10K) of screen width *(tune)*.
-- At 7K and above outer lanes slant strongly under perspective. Reduce tilt automatically as key count rises
-  (per-key-count camera defaults), and keep the outermost lane's slant under a limit chosen from playtests.
+- The track keeps one width for every key count, as Chunithm's field does: more keys means narrower lanes, and the
+  outermost lanes lean the same at 4K and 10K (Alpha, QUESTIONS Q10). Each preset sets the width.
 - Fixed lanes, one key per lane, same default bindings as mania. Key presses light the lane (SDVX-style beam rising
   from the judgement line) and the receptor at the line.
 

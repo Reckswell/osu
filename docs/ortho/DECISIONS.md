@@ -351,3 +351,11 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   disabled there: disabling a config bindable from the panel would make applying a preset throw.
 - **How to reverse**: restore the placeholder values in `HighwayPresets.Get(Voltex)`; drop `HighwaySetting.NoteThickness`
   and use `HighwayNoteLayer.NOTE_THICKNESS` again.
+
+## 2026-11-03: One track width for every key count (Alpha)
+
+- **Decision** (Alpha, Q10 on a decision card): every key count uses the preset's track width, as Chunithm's field
+  does. SPEC 5 is updated to match; its earlier plan (45% at 4K to 70% at 10K, less tilt at 7K+) is dropped.
+- **Why it covers the slant concern**: with one width, the outer lanes' lean depends only on the camera, not the key
+  count; captures of 4K, 7K and 10K with both plans are in
+  `/mnt/project-files/ortho-agent/presets/key-counts-same-vs-spec-width.png`.

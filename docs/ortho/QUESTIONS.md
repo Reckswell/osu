@@ -60,6 +60,16 @@ condition, behaves identically for upstream rulesets, and is tested (`BeatmapCom
 
 ## Answered
 
+### Q10. Track width at 7K and 10K
+SPEC 5 planned a track that widens with key count (about 45% of the screen at 4K to 70% at 10K) and less tilt at 7K+.
+Chunithm's field keeps one width for everything, and the Chunithm and Voltex presets do the same; with one width the
+outer lanes lean the same at every key count. Asked on a decision card in the thread, with captures of 4K/7K/10K both
+ways (`/mnt/project-files/ortho-agent/presets/key-counts-same-vs-spec-width.png`).
+- **Options**: (a) one width for all key counts; (b) wider for more keys (SPEC 5); (c) one width, far end opened out
+  from 7K up.
+- **Default until answered**: (a). No code change needed for it.
+- **Answer** (2026-11-03, decision card): (a) one width for all key counts, as in the arcade.
+
 ### Q1. Default camera
 Which camera should the gameplay default to: SDVX-style perspective, parallel tilt, or flat?
 - **Answer** (2026-11-03, in the project thread): Chunithm is the game to mirror most, so the default is perspective

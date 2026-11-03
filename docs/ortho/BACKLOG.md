@@ -70,7 +70,9 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   (Voltex from USC's camera, `research/game-sdvx.md`; note thickness per preset. Sheets: Armageddon 4K and
   C18H27NO3 7K at speed 29 with mania, Chunithm, Voltex, Parallel, Classic, and Voltex with its faithful far edge;
   Armageddon at speed 18 for mania, Chunithm, Voltex. Classic matches mania.)
-- [ ] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
+- [x] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
+  (Alpha chose one width for every key count, as in the arcade (Q10): the outer lanes lean the same at 4K, 7K and
+  10K, so there is nothing to reduce. Captures in `presets/key-counts-same-vs-spec-width.png`. No code change.)
 - [ ] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
 - [ ] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.
 - [x] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
