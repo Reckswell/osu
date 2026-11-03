@@ -72,12 +72,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
 
             var defaults = HighwayPresets.Get(HighwayPresets.DEFAULT);
 
+            // Fine enough for measured preset values such as a 7.4% judgement line.
+            const float precision = 0.001f;
+
             SetDefault(HighwaySetting.Preset, HighwayPresets.DEFAULT);
             SetDefault(HighwaySetting.CameraMode, defaults.CameraMode);
-            SetDefault(HighwaySetting.FarWidthRatio, defaults.FarWidthRatio, HighwayLayout.MIN_FAR_WIDTH_RATIO, 1f, 0.01f);
-            SetDefault(HighwaySetting.JudgementLineHeight, defaults.JudgementLineHeight, 0f, 0.4f, 0.01f);
-            SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, 0.01f);
-            SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, 0.01f);
+            SetDefault(HighwaySetting.FarWidthRatio, defaults.FarWidthRatio, HighwayLayout.MIN_FAR_WIDTH_RATIO, 1f, precision);
+            SetDefault(HighwaySetting.JudgementLineHeight, defaults.JudgementLineHeight, 0f, 0.4f, precision);
+            SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, precision);
+            SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
             SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, 0.8f, 0.01f);
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
         }

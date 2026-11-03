@@ -114,14 +114,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             switch (preset)
             {
                 case HighwayPreset.Chunithm:
-                    // (tune) Gentler perspective than SDVX with a wide far edge (SPEC 2).
+                    // Measured from the arcade (research/game-chunithm.md): judgement line 7.4% above the bottom, track
+                    // 0.61 of the screen wide there, far/near width 0.24. The arcade's far edge sits 16% below the top,
+                    // under its HUD frame; here it is stretched to the top edge so notes enter from the top (SPEC 2,
+                    // QUESTIONS Q7). Same width for every key count, as in the arcade.
                     return new HighwaySettings
                     {
                         CameraMode = HighwayCameraMode.Perspective,
-                        FarWidthRatio = 0.45f,
-                        JudgementLineHeight = 0.12f,
-                        FarEdgeHeight = 0.05f,
-                        TrackWidth = 0.6f,
+                        FarWidthRatio = 0.24f,
+                        JudgementLineHeight = 0.074f,
+                        FarEdgeHeight = 0,
+                        TrackWidth = 0.61f,
                     };
 
                 case HighwayPreset.Voltex:

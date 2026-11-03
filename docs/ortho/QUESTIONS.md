@@ -29,6 +29,21 @@ is a branding call.
 - **Default until answered**: osu!mania's names in a Chunithm-like style.
 - **Answer**:
 
+### Q7. Where do notes appear with the Chunithm preset?
+The arcade's track ends 16% below the top of the screen, hidden under its HUD frame (`research/game-chunithm.md`).
+SPEC 2 and Alpha's brief say notes come from the top of the screen.
+- **Options**: (a) keep the arcade's line height, width and far/near ratio but stretch the track to the top edge;
+  (b) exact arcade geometry, far edge visible 16% below the top; (c) exact geometry with a dark frame over the top 16%
+  hiding the far edge, as in the arcade.
+- **Default until answered**: (a). Asked on a decision card in the thread.
+- **Answer**:
+
+### Q8. Wall behaviour in the Chunithm preset
+In the arcade the field wall is off by default, goes up to about 90% of the track, and keeps note speed (visible time
+shrinks; players lower their speed by hand). SPEC 4 asks for constant visible time by default and a 0-80% range.
+- **Default until answered**: SPEC (wall off, keeps visible time, 0-80%); "keep speed" stays a toggle.
+- **Answer**:
+
 ## Answered
 
 ### Q1. Default camera

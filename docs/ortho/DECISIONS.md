@@ -94,3 +94,15 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Known costs**: one full-playfield buffer redraw per frame (measure on device); the area below the judgement line is
   magnified by perspective (receptors look large); judgements inside the stage tilt until moved to the overlay.
 - **Reverse**: switch `CreatePlayfieldAdjustmentContainer` back to mania's, or replace the warp with native drawing.
+
+## 2026-11-03: Chunithm preset uses the measured arcade geometry
+
+- **Decision**: far/near width ratio 0.24, judgement line 7.4% of screen height above the bottom, track 0.61 of screen
+  width at the line for every key count (`research/game-chunithm.md`: three sources agree to about 0.3% of screen
+  height). The far edge is put at the top of the screen instead of the arcade's 16% (pending Q7).
+- **Why**: Alpha named Chunithm as the game to mirror. The old values (0.45 / 12% / 0.6) were placeholders. SPEC's
+  description of Chunithm ("gentler tilt, wider far end, wall on") is contradicted by the measurements, so the preset
+  follows the measurements and the conflicting points are asked in Q7 and Q8 rather than changed in SPEC alone.
+- **Effect**: the time-to-depth mapping is the arcade's, so a note spends half its visible time in the top fifth of the
+  track's screen height and accelerates near the line, as in the arcade. The stretch to the top edge only changes vertical scale.
+- **Reverse**: edit `HighwayPresets.Get(Chunithm)`; named presets re-apply their values on load.

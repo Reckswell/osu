@@ -7,7 +7,7 @@ Status: `todo`, `draft` (some claims unverified), `done` (every claim sourced).
 | osu!mania (lazer) | The base: scrolling algorithms, scroll speed to time range, hit position, skins | Yes, this repo (MIT) | `game-osu-mania.md` | todo |
 | Sound Voltex | Primary visual reference: fixed button lanes on a tilted highway | No | `game-sdvx.md` | todo |
 | Unnamed SDVX Clone (USC) | Open-source SDVX-style track rendering and camera | Yes: https://github.com/Drewol/unnamed-sdvx-clone (licence to check) | `game-usc.md` | todo |
-| Chunithm | Field wall (where notes appear), gentler perspective | No | `game-chunithm.md` | todo |
+| Chunithm | Alpha's primary reference: track geometry (judgement 0.926H, far edge 0.163H, far/near 0.24), field wall, speed to visible time, guide lines, note thickness | No (read: Seaurchin, MIT; Chunithm-Studio decodes, no licence, numbers only) | `game-chunithm.md` | draft |
 | Chunithm: animations and feedback | Alpha's main reference: hit effects, per-note judgement text and combo on the field, lane lighting, end-of-chart banners | No (fan reimplementations read: Seaurchin, MIT; UMIGURI screenshot, MIT repo) | `game-chunithm-feedback.md` | draft |
 | Project Sekai | Note art, hit effects, steep perspective lane | No | `game-sekai.md` | todo |
 | beatmania IIDX | SUDDEN+ / HIDDEN+ / LIFT, "green number" visible-time speed | No | `game-iidx.md` | todo |
