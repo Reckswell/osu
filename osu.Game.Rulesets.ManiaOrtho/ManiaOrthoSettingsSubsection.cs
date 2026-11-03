@@ -155,6 +155,16 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "note size", "note height" },
                 },
+                new SettingsItemV2(new FormEnumDropdown<HighwayHitEffectStyle>
+                {
+                    Caption = "Hit effects",
+                    HintText = "Highway: bursts on the track at the judgement line, gold for Perfect and orange for Great, and a glow "
+                               + "while you hold a note. Skin: your skin's hit explosions, tilted with the track.",
+                    Current = highway.GetBindable<HighwayHitEffectStyle>(HighwaySetting.HitEffects),
+                })
+                {
+                    Keywords = new[] { "hit lighting", "explosion", "burst", "glow" },
+                },
             };
         }
     }

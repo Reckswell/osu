@@ -1,4 +1,4 @@
-# Backlog
+﻿# Backlog
 
 Work top to bottom. A task is done when its **Gate** passes and its commit is in. Tick it (`[x]`), add the commit
 hash, and log the iteration in `LOG.md`. Split a task if it will not fit in one iteration; add new tasks where they
@@ -73,7 +73,11 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] Per-key-count camera defaults (reduce tilt at 7K+). Gate: 4K/7K/10K screenshots within the slant limit.
   (Alpha chose one width for every key count, as in the arcade (Q10): the outer lanes lean the same at 4K, 7K and
   10K, so there is nothing to reduce. Captures in `presets/key-counts-same-vs-spec-width.png`. No code change.)
-- [ ] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
+- [x] Lane beams and hit lighting at the judgement line. Gate: screenshots during dense sections.
+  (Bursts lie on the track at each lane's line point, coloured by result, with a glow while a hold is held:
+  `HighwayHitEffectLayer`, "Hit effects: Highway / Skin". Lane beams stay the skin's warped press lighting (DECISIONS).
+  `TestSceneHighwayHitEffects`, `HitBurstStyleTest`, contact sheet `TestSceneHitBurst`; captures in
+  `/mnt/project-files/ortho-agent/hit-effects/`.)
 - [ ] Built-in highway skin. Gate: rubric pass in screenshots; no texture bends.
 - [x] Visibility mods: projected Hidden / Fade In / Cover, or removal. Gate: parity with each mod; decisions logged.
   (Hidden, Fade In, Cover on native notes: `DepthCover`, `TestCoverHidesNativeNotes`. Flashlight lights the track rows

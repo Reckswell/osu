@@ -1,4 +1,4 @@
-# CLAUDE.md: orthographic osu!mania fork
+﻿# CLAUDE.md: orthographic osu!mania fork
 
 This is a fork of osu! (lazer). The goal is a new ruleset, **maniaortho**, that plays any osu!mania beatmap on a
 tilted SDVX/Chunithm-style highway while keeping mania's judgements, scoring, star rating and pp exactly. Everything
@@ -95,6 +95,10 @@ note the licence in the research note).
 - Mods like Hidden, FadeIn, Cover and Flashlight cast to `DrawableManiaRuleset` / `ManiaPlayfield`. While
   `DrawableManiaOrthoRuleset` subclasses `DrawableManiaRuleset` they work; once the playfield is replaced, each needs a
   projected equivalent or must be hidden from this ruleset's mod list (record which in `DECISIONS.md`).
+- A container hidden with `Alpha = 0` does not update its children. Pooled drawables added to it (mania's explosions,
+  our bursts) never prepare or expire and pile up: clear them, do not just hide them.
+- Seeking back drops pooled effects and judgements that ended in between; they do not come back. Captures must reach
+  their time from below (the playtest harness stops short and seeks forward; `overshoot` in the summary should be 0).
 - osu-framework transforms are affine. Perspective needs a custom `DrawNode` emitting arbitrary quads; textured
   trapezoids need perspective-correct UVs (a plain two-triangle quad shows a visible bend).
 

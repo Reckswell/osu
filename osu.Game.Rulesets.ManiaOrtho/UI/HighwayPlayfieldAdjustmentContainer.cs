@@ -99,6 +99,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// <summary>
         /// Each column's left and right edge in lane space, in playfield column order.
         /// </summary>
+        public ReadOnlySpan<Vector2> ColumnLanes => columnLanes;
+
         private Vector2[] columnLanes = Array.Empty<Vector2>();
 
         [Resolved]
@@ -124,6 +126,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public IReadOnlyList<HighwayJudgementLayer> JudgementLayers => judgementLayers;
 
         private readonly List<HighwayJudgementLayer> judgementLayers = new List<HighwayJudgementLayer>();
+
+        /// <summary>
+        /// Hit bursts and hold glows at the judgement line, in <see cref="Overlay"/> over the notes and under the judgements.
+        /// </summary>
+        public HighwayHitEffectLayer HitEffects { get; private set; } = null!;
 
         /// <summary>
         /// The current highway settings, refreshed every frame.
@@ -201,6 +208,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             maniaConfig?.BindWith(ManiaRulesetSetting.TimingBasedNoteColouring, timingBasedColouring);
 
             // The playfield (and so its stages) is created with this container, before it loads.
+            Overlay.Add(HitEffects = new HighwayHitEffectLayer(drawableRuleset.Playfield, drawableRuleset.Beatmap.ControlPointInfo));
+
             foreach (var stage in drawableRuleset.Playfield.Stages)
             {
                 var layer = new HighwayJudgementLayer(stage);
@@ -279,6 +288,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
                     Time.Current);
             }
+
+            HitEffects.Place(Projection, columnLanes, !flat && Settings.HitEffects == HighwayHitEffectStyle.Highway);
 
             for (int i = 0; i < judgementLayers.Count; i++)
                 judgementLayers[i].Place(Projection, flat, stage, mania.Scale.X);

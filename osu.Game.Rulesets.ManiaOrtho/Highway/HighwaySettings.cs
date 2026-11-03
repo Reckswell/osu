@@ -40,6 +40,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         Skin,
     }
 
+    public enum HighwayHitEffectStyle
+    {
+        /// <summary>
+        /// Bursts lying on the track at the judgement line, coloured by result, and a glow while a hold is held
+        /// (<see cref="UI.HighwayHitEffectLayer"/>). The skin's hit explosions are hidden.
+        /// </summary>
+        [Description("Highway")]
+        Highway,
+
+        /// <summary>
+        /// The skin's hit explosions, drawn on the track with the rest of mania's stage (warped: stretched near the line).
+        /// </summary>
+        [Description("Skin (tilted)")]
+        Skin,
+    }
+
     public enum HighwayPreset
     {
         Chunithm,
@@ -114,6 +130,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public HighwayNoteStyle NoteStyle { get; init; }
 
+        /// <summary>
+        /// How hits light up the judgement line under a tilted camera.
+        /// </summary>
+        public HighwayHitEffectStyle HitEffects { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -127,6 +148,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             LaneGuides = true;
             SkinHitTarget = false;
             NoteStyle = HighwayNoteStyle.Highway;
+            HitEffects = HighwayHitEffectStyle.Highway;
         }
 
         /// <summary>

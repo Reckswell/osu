@@ -1,4 +1,4 @@
-# Playtesting
+﻿# Playtesting
 
 What the agent can check by itself, what it cannot, and how to do each level. Run the cheapest level that can catch
 the problem, and always run L0 + L1 (`scripts/ortho/check.sh`) before committing.
@@ -34,8 +34,18 @@ fps samples and, with `--play-to-end`, final statistics.
 In a cloud container this runs under Xvfb with Mesa's software OpenGL. The frames are real renders of the game. Frame
 rates there (about 10-15 fps) mean nothing.
 
+Short-lived effects (hit bursts, explosions, judgements) only show in a capture if the clock never runs past the
+capture time: stopping late and seeking back drops every pooled effect that ended in between, in both rulesets, and a
+software-rendered frame moves the clock 100 ms or more. So the runner stops the clock when the next frame would pass the
+capture point and seeks forward onto it, and reaches a capture point up to 500 ms after the previous one by seeking
+forward without playing. `clockAtCapture[]` in the summary records `jumped` (the forward seek, up to about one frame) and
+`overshoot` (should be 0; anything larger means effects that ended in that window are missing). Elements on the
+game-wide clock (the skin's press lighting and key area) keep real time, so a forward jump of one frame can leave a
+press beam slightly behind; this is the same for both rulesets.
+
 To capture a custom scene (for example a projection test pattern), write a `TestScene` in the tests project with a
-`[Test]` method, and run `dotnet <tests dll> playtest --scene TestSceneYourScene --out dir`. Copy the capture step
+`[Test]` method, and run `dotnet <tests dll> playtest --scene TestSceneYourScene --method TestName --screenshot out.png`
+(for example `TestSceneHitBurst`, a contact sheet of hit bursts at several ages). Copy the capture step
 pattern from `TestScenePlaytest`.
 
 ### Screenshot rubric

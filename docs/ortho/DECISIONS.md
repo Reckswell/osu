@@ -1,4 +1,4 @@
-# Decisions
+﻿# Decisions
 
 Append-only log of decisions made without asking Alpha. Newest at the bottom. Each entry: date, decision, why,
 alternatives considered, how to reverse. If a later decision overrides one, add a new entry that says so.
@@ -359,3 +359,37 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Why it covers the slant concern**: with one width, the outer lanes' lean depends only on the camera, not the key
   count; captures of 4K, 7K and 10K with both plans are in
   `/mnt/project-files/ortho-agent/presets/key-counts-same-vs-spec-width.png`.
+
+## 2026-11-03: Hit lighting is drawn by the highway; lane beams stay with the skin
+
+- **Decision**: hits light the judgement line with our own bursts (`HighwayHitEffectLayer`), drawn in screen space at
+  each lane's projected point on the line and squashed to 40% height so they read as lying on the track
+  (`research/game-chunithm-feedback.md` P1, P2, P6): a ring growing from 0.6 to 1.3 lane widths over 350 ms (`OutQuint`)
+  and fading, a centre flash for 120 ms, and rising upright sparkles. Flash and sparkles are additive; the ring is drawn
+  normally, because a just-hit lane is lit by the skin's press beam and an additive ring washed out to white there
+  (seen in dense captures). Perfect is gold with 8 sparkles,
+  Great orange-red with 4, Good/Ok a smaller white-green ring, Meh the same at 60%, a miss nothing. A ring never grows
+  past 30% of the track's width, so 4K bursts stay about one lane wide. Bursts appear on exactly the results that make
+  mania add an explosion (same event, same conditions as `Column.OnNewResult`).
+- **Holds**: while a lane's hold is held, a soft light sits on its line point and a ring pulses outwards at Chunithm's
+  hold tick cadence from the beatmap's timing (1/16 notes below 120 BPM, 1/8 up to 240, 1/4 above; research P6 reads
+  "1/16 beat", taken as 1/16 notes, which keeps the pulse at 4-8 per second). Needed because native notes hide the hold
+  drawable, and with it argon's hold "hitting" glow.
+- **Setting, not mod**: "Hit effects: Highway / Skin (tilted)", a preference outside the presets like "Notes", default
+  Highway. Under Highway the skin's explosions are hidden (`Column.HitObjectArea.Explosions.Alpha = 0`) and handed back
+  to mania's pool as they arrive (hidden, they are never updated, so they would never expire and would pile up); under
+  Skin or the flat camera they are shown and no bursts are made.
+- **Pool**: 6 bursts per column are made ready when gameplay loads (research P2 suggested 8 per lane; mania readies 5
+  explosions per column). Notes 75 ms apart in one lane keep up to 7 alive; the pool grows if needed.
+- **Pulse rate**: the hold tick interval is folded by halves or doubles into 100-300 ms, so gimmick timing points
+  (6 ms or 60 s beats) neither flicker nor stop the pulse.
+- **Why not projected quads**: a disc lying on the track needs the track's real length-to-width ratio, which a 2D
+  trapezoid does not fix (the camera's focal length is unknown), and the presets do not describe one consistent world.
+  A fixed squash looks the same for an effect this small and costs nothing. *(tune `FLATTEN` by eye)*
+- **Lane beams**: not drawn by us. Every skin already lights a pressed lane inside the stage (argon's column
+  background gradient over half the column, legacy stage lights), and the warp lays that on the track rising from the
+  line, which is research P5's beam. Drawing our own would double it. Revisit with the built-in highway skin.
+- **Known overlap**: legacy skins' hold lighting (`LegacyBodyPiece`) is added to the column's internal top-level
+  container, which the ruleset cannot reach without reflection, so with a legacy skin a held lane shows both glows.
+  With "Notes: Skin", argon's own hold glow (`ArgonHoldBodyPiece`) is drawn too (warped).
+- **How to reverse**: set "Hit effects" to Skin; or remove the layer from `HighwayPlayfieldAdjustmentContainer`.

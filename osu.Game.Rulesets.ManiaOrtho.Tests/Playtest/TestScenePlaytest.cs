@@ -43,6 +43,33 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         private readonly List<object> clockAtCapture = new List<object>();
         private readonly List<double> fpsSamples = new List<double>();
         private Task? captureTask;
+
+        /// <summary>
+        /// How far the clock ran past the current capture point before it was stopped and sought back (0 when it was
+        /// stopped short and moved forward onto it).
+        /// </summary>
+        private double overshoot;
+
+        /// <summary>
+        /// How far the clock was moved forward onto the current capture point.
+        /// </summary>
+        private double jumped;
+
+        /// <summary>
+        /// The gameplay clock's time on the previous frame while approaching a capture point, to measure how far a frame moves it.
+        /// </summary>
+        private double? lastClockTime;
+
+        /// <summary>
+        /// How far a frame is assumed to move the clock before one has been measured (a slow renderer's frame).
+        /// </summary>
+        private const double default_frame_step = 100;
+
+        /// <summary>
+        /// A capture point at most this far after the previous one is reached by seeking forward from it, without playing.
+        /// </summary>
+        private const double close_capture = 500;
+
         private double[] times = Array.Empty<double>();
 
         [Resolved]
@@ -83,6 +110,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
                     ortho.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, !options.SpeedLock);
                     ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.NoteStyle);
+                    ortho.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
                     options.ApplyHighwayValues(ortho.Highway);
                 }
             });
@@ -119,17 +147,50 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     // Skip ahead when far away, leaving 1.5s of real play so judgements and hit effects are on screen.
                     if (clock.CurrentTime < target - 1500)
                         clock.Seek(target - 1500);
+
+                    lastClockTime = null;
+
+                    // Unless the previous capture already moved the clock onto this one.
+                    if (Math.Abs(clock.CurrentTime - target) > 1)
+                        jumped = 0;
                 });
                 // Wait on the frame-stable clock, which is what the playfield draws from. After a long seek it catches up
                 // a limited number of frames per update, so it can lag the gameplay clock by tens of seconds on slow renderers.
-                AddUntilStep($"reach capture point {index}", () => index >= times.Length || Player.DrawableRuleset.FrameStableClock.CurrentTime >= times[index]);
+                AddUntilStep($"reach capture point {index}", () =>
+                {
+                    if (index >= times.Length)
+                        return true;
+
+                    var clock = Player.GameplayClockContainer;
+                    double target = times[index];
+
+                    if (clock.IsRunning)
+                    {
+                        double current = clock.CurrentTime;
+                        double step = lastClockTime is double last && current > last ? current - last : default_frame_step;
+                        lastClockTime = current;
+
+                        // Stop short of the target when the next frame would pass it, and move forward onto it. A forward
+                        // seek keeps every hit effect and judgement; running past and seeking back drops the pooled ones
+                        // that ended in between (they do not come back), and a slow renderer's frame is 100 ms or more.
+                        if (current + step >= target)
+                        {
+                            clock.Stop();
+                            jumped = Math.Max(0, target - current);
+                            clock.Seek(target);
+                        }
+                    }
+
+                    return Player.DrawableRuleset.FrameStableClock.CurrentTime >= target;
+                });
                 AddStep($"freeze for capture {index}", () =>
                 {
                     if (index >= times.Length)
                         return;
 
-                    // Stop, then seek back the few ms overshot so every ruleset is captured at exactly the same time.
+                    // Stop, then seek back any overshoot so every ruleset is captured at exactly the same time.
                     Player.GameplayClockContainer.Stop();
+                    overshoot = Player.DrawableRuleset.FrameStableClock.CurrentTime - times[index];
                     Player.GameplayClockContainer.Seek(times[index]);
                 });
                 AddUntilStep($"frame-stable clock at capture point {index}",
@@ -150,6 +211,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         target = times[index],
                         gameplay = Math.Round(Player.GameplayClockContainer.CurrentTime, 1),
                         frameStable = Math.Round(Player.DrawableRuleset.FrameStableClock.CurrentTime, 1),
+                        // How far past the target the clock ran (rewound before the capture: effects that ended in
+                        // between are missing), and how far it was moved forward onto it.
+                        overshoot = Math.Round(overshoot, 1),
+                        jumped = Math.Round(jumped, 1),
                         combo = Player.ScoreProcessor.Combo.Value,
                         judged = Player.ScoreProcessor.JudgedHits,
                         // How long a note takes from the top of mania's stage to the line, and (maniaortho) from the far edge or
@@ -167,8 +232,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     if (captureTask?.IsFaulted == true)
                         throw captureTask.Exception!;
 
-                    if (index < times.Length)
-                        Player.GameplayClockContainer.Start();
+                    if (index >= times.Length)
+                        return;
+
+                    var clock = Player.GameplayClockContainer;
+
+                    // A capture point close behind this one: move forward onto it instead of playing, which would run past
+                    // it before the next step could stop the clock.
+                    if (index + 1 < times.Length && times[index + 1] - clock.CurrentTime <= close_capture)
+                    {
+                        jumped = times[index + 1] - clock.CurrentTime;
+                        clock.Seek(times[index + 1]);
+                        return;
+                    }
+
+                    lastClockTime = null;
+                    clock.Start();
                 });
             }
 
@@ -247,6 +326,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         used.WallKeepsVisibleTime,
                         used.NoteThickness,
                         notes = used.NoteStyle.ToString(),
+                        hitEffects = used.HitEffects.ToString(),
                     }
                     : null,
                 skin = options.Skin,
