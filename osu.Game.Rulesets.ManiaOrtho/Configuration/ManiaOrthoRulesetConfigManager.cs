@@ -89,7 +89,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, precision);
             SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
             SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.01f);
-            SetDefault(HighwaySetting.NoteThickness, defaults.NoteThickness, 0.005f, 0.06f, 0.0005f);
+            SetDefault(HighwaySetting.NoteThickness, defaults.NoteThickness, 0.005f, 0.08f, 0.0005f);
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
             SetDefault(HighwaySetting.LaneGuides, true);
             SetDefault(HighwaySetting.SkinHitTarget, false);

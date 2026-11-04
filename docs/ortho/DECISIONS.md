@@ -540,3 +540,9 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   `OSU_DISABLE_ERROR_REPORTING`. Known effect outside the folder, as with release lazer: the NVIDIA "threaded
   optimisation" setting for `osu!.exe` is reset to Auto on start.
 - **How to reverse**: delete the two ini files next to the build; the game then uses `%APPDATA%\osu-development`.
+
+## 2026-11-04: Note thickness up to 8%
+
+- Alpha's 4K note bars are 6.4% of the scroll length (`research/game-osu-mania.md`, finding 7); under the Parallel
+  camera the setting is the same measure, so its range now goes to 8% (was 6%). Default and presets unchanged.
+  Test: `TestNoteThicknessReachesBarsOfAlphasSkin`.

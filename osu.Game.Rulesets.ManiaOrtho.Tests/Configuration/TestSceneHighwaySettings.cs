@@ -3,6 +3,7 @@
 
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Configuration.Tracking;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
@@ -71,6 +72,30 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                            && config.Get<double>(ManiaRulesetSetting.ScrollSpeed) == 29.0;
                 }
             });
+        }
+
+        [Test]
+        public void TestNoteThicknessReachesBarsOfAlphasSkin()
+        {
+            // Alpha's 4K note bars are 6.4% of the scroll length (research/game-osu-mania.md, finding 7); under the Parallel
+            // camera the setting is the same measure, so the range must reach it.
+            AddAssert("8% is the most", () =>
+            {
+                using (var config = create())
+                    return ((BindableFloat)config.Highway.GetBindable<float>(HighwaySetting.NoteThickness)).MaxValue;
+            }, () => Is.EqualTo(0.08f));
+
+            AddStep("set 6.4%", () =>
+            {
+                using (var config = create())
+                    config.Highway.SetValue(HighwaySetting.NoteThickness, 0.064f);
+            });
+
+            AddAssert("kept, not clamped", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Get<float>(HighwaySetting.NoteThickness);
+            }, () => Is.EqualTo(0.064f).Within(1e-6f));
         }
 
         [Test]

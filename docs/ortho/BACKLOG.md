@@ -127,7 +127,7 @@ From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md`
   edge or wall to the line, within 1 ms.
 - [ ] Held Shift+F3/F4 repeats on its own 100 ms timer, not the OS key repeat (covers C4). Gate: input test, a key held
   for 1 s moves the wall 10 steps.
-- [ ] Note thickness up to 8%, so Alpha's 6.4% bars can be matched under Parallel (osu!mania P7). Gate: settings test.
+- [x] Note thickness up to 8%, so Alpha's 6.4% bars can be matched under Parallel (osu!mania P7). Gate: settings test.
 - [ ] Constant Speed on the highway: a test that pins it (osu!mania P2). Gate: notes equally spaced through an SV
   section with the mod on.
 - [ ] Group dividers at 6K and up (3|3, 3|1|3, 4|4, 4|1|4, 5|5) and a 1 px on-screen floor on the gap between notes
