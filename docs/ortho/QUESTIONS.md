@@ -6,6 +6,16 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q19. An "Arcaea" camera preset, with notes that grow with distance
+Arcaea's ground track (fan reimplementations' camera, `research/game-arcaea.md` R2, R3): judgement line 14% up, far
+edge 7% below the top, track 85% of the screen wide, far lanes 12% of the near width, notes approaching linearly as
+ours do. Its notes get about 5× thicker towards the far end, so far notes stay visible (96 px near, 7 px far at
+1080p). SPEC 6 asks for one fixed thickness in track units; with it, this camera draws far notes about 2 px tall.
+- **Options**: (a) the preset, with a "Far note size" setting (1-6, default 1 everywhere else) that it sets to 5;
+  (b) the preset with fixed thickness; (c) no Arcaea preset.
+- **Default until answered**: (c). Nothing is built; the other presets and SPEC 6 are unchanged.
+- **Answer**:
+
 ### Q16. Where a ported skin's key area goes by default
 Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a
 tall key panel there. The camera's judgement line is lower (Chunithm 7.4%). Five placements are built ("Skin key
@@ -29,7 +39,8 @@ Maps with two stages (e.g. 7K+7K): two highways side by side, or one wide highwa
 Chunithm shows judgement text per note in that note's lane, on the field, and the combo in the field centre under the
 notes (`research/game-chunithm-feedback.md`). SPEC 1 and 7 currently keep both flat in screen space for readability.
 - **Default until answered**: screen space (current SPEC). A "Judgement placement: Screen / Track" setting is planned
-  either way; the question is which one the Chunithm preset uses.
+  either way; the question is which one the Chunithm preset uses. Arcaea adds a third way: upright text per lane,
+  rising over 0.5 s (`research/game-arcaea.md` R5), which the setting could offer as "Lane (upright)".
 - **Answer**:
 
 ### Q6. Chunithm's judgement names

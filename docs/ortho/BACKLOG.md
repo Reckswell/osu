@@ -17,11 +17,11 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] Core patch: `AllowGameplayWithRuleset` accepts mania beatmaps for `maniaortho` (and only for it).
   Gate: unit test in the ruleset tests; song select filter test shows mania maps under `maniaortho`;
   `check.sh --mania` green. (Done via `Ruleset.PlaysBeatmapsOfRuleset`; `PresentBeatmap` no longer switches to mania.)
-- [ ] Research baseline (delegate to `vsrg-researcher`): one note per reference game in `research/`, covering camera,
+- [x] Research baseline (delegate to `vsrg-researcher`): one note per reference game in `research/`, covering camera,
   note approach, judgement line position, lane covers/walls, speed definition, hold rendering, key-count handling.
   SDVX, Chunithm, osu!mania first, then Project Sekai, IIDX, StepMania/Etterna, Quaver, YARG/Clone Hero, USC,
   Arcaea, DJMAX. Gate: each note has sources and a "what this means for us" section; `research/INDEX.md` updated.
-  (Remaining: Quaver, Arcaea, DJMAX.)
+  (Quaver, Arcaea and DJMAX finished 2026-11-04; their proposals are in M6 below and Q19.)
 - [x] Settings plumbing: `ManiaOrthoRulesetConfigManager` (camera mode, preset, tilt, FOV, wall position, lift,
   wall-keeps-visible-time) and a settings subsection; mania scroll speed still applies.
   Gate: settings round-trip test; settings show in the ruleset settings panel (screenshot via a test scene).
@@ -184,4 +184,9 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
   in the result's colour (`game-sekai.md` K6, K7, K9). Multipliers, default 100%; slot lights retuned after the
   playtest (DECISIONS 2026-11-04). Open: Great and Meh slot colours seen only in tests (autoplay hits Perfects).
 - [ ] Optional cosmetic camera motion (kiai sway), off by default.
-- [ ] More presets from research.
+- [ ] More presets from research. (An Arcaea preset waits on Q19: `game-arcaea.md` R2, R3.)
+- [ ] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long
+  (`game-djmax.md` R2); with it, the beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9) if a
+  playtest shows today's 150 ms ease-out lingering.
+- [ ] Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
+  R3, extends `topic-wide-keys.md` W1).

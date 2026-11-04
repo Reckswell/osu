@@ -73,8 +73,10 @@ unverified; they look derived from its layout (1176-px lane art).
 | Project Sekai (Sonolus) | note speed 1-12, engine default 6 (the official game's is 5.0 [`game-sekai.md` K5]), 0.01 steps (official since 2024-04) | approach duration | T = lerp(350, 4000, ((12 − s)/11)^1.31) ms | none (scaled time only) | **exponential in screen scale** | [P1] |
 | YARG | note speed (units/s, code default 6; new profiles 5) and highway length (default 1) | track units per second | T = 5 × length / speed s: 833 ms or 1000 ms; slower on lower difficulties by default | none | **track** | `game-yarg-clonehero.md`, [Y1][Y2] |
 | ArcCreate (Arcaea editor/player, GPL-3.0) | drop rate (default 150) | z = time × rate / 1000 at the base BPM | 100 track units forward, so T = 100,000 / rate ms; default 667 ms | relative to the chart's base BPM | **track** | [A1] |
+| Arcaea (official) | speed 1.0-6.5 in 0.1 steps | ArcCreate shows drop rate / 30 | T = 3333 / s ms by ArcCreate's scale (4.0 = 833 ms); the official mapping is unverified | relative to the chart's base BPM | **track**, linear in depth | `game-arcaea.md` |
 | StepMania / Etterna | x-mod, C-mod, M-mod | field pixels: 64 px per beat × x; C: 64 px × C/60 per s | visible field px / speed: Overhead 360/C s, Hallway 38% longer | x: BPM; C: none; M: max BPM | flat field, then rotated (**track**) | `game-stepmania-etterna.md`, [SM1] |
-| Quaver | scroll speed 5.0-100.0 (default 15.0), F3/F4 ±1.0, small ±0.1 | px per ms = (S/10) / (20 × rate) × scaling | lane px / speed | none | flat | [Q1] |
+| Quaver | scroll speed 5.0-100.0 (default 15.0), F3/F4 ±1.0, small ±0.1 | px per ms = (S/10) / (20 × rate) × scaling | lane px / speed | its own charts: none; osu! maps: BPM changes become SV relative to the most common BPM, as in lazer mania (`game-quaver.md`) | flat | [Q1] |
+| DJMAX RESPECT V | speed 1.00-9.00 in 0.10 steps (default 2.00), changeable in play | BPM × speed | T ≈ 323,143 / (speed × BPM) ms by an MIT fan calculator (units unverified): 2.00 at 120 BPM = 1346 ms | multiplies BPM | flat | `game-djmax.md` |
 
 Sekai durations, from the Sonolus formula:
 
@@ -224,7 +226,8 @@ Covers are in `topic-covers.md`; the rest does not concern speed.
 
 - Lazer mania scales relative to the most common beat length. That is the same as beatoraja's default (main BPM) and
   close to IIDX FHS (start BPM).
-- Chunithm, Sekai, YARG and Quaver ignore BPM. Mania's Constant Speed mod already offers that.
+- Chunithm, Sekai and YARG ignore BPM, and Quaver does for its own charts (osu! maps keep their BPM changes as SV, as in
+  mania: `game-quaver.md`). Mania's Constant Speed mod already offers that.
 - SPEC 3 requires mania's SV algorithms. **No change.**
 
 **S6. Wall and lift (SPEC 4).**
@@ -240,7 +243,9 @@ Covers are in `topic-covers.md`; the rest does not concern speed.
 - Sekai: whether the official game uses the Sonolus engine's layout. (The curve and formula now fit a player's
   captures of the official game at speeds 9-12 within 0.1-1.5%, and typical speeds are 10-11.6: `game-sekai.md`.)
 - SDVX EG: how lane speed maps to visible time.
-- Arcaea: the official speed to drop-rate mapping (ArcCreate's default 150 = 667 ms is the clone's).
+- Arcaea: whether the official 1.0-6.5 maps to drop rate as ArcCreate's × 30 (ArcCreate's default 150 = 667 ms is the
+  clone's; its scale gives notes 8-13 screen heights per second at the line, against 4-5 for Chunithm and Sekai players,
+  so `game-arcaea.md` doubts it).
 - Clone Hero: closed source; not checked.
 - YARG's `CurveFactor` bend is ignored in the r = 0.448 used here (`game-yarg-clonehero.md` measures it).
 
