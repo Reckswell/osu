@@ -1250,3 +1250,16 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   lifting that is another core patch, not asked; backlog M5).
 - **Reverse**: leave the address empty (the game is exactly upstream's again); delete the core patches listed in README,
   `ortho-server/OrthoServer/Accounts` and `Lazer`, and `ScoreServerSignIn`.
+
+## 2026-11-04: osu!'s own fix for an intermittent skin editor test, taken early
+
+- **Why**: GitHub's Linux test jobs failed on this branch and on its base the same way:
+  `TestSceneSoloResultsScreenV2.TestDisplay` (osu.Game.Tests) hides the skin editor before it has loaded, and
+  `SkinEditor.Save` dereferences a bindable that loading sets. osu.Game.Tests failing also stops osu!mania's and
+  osu!taiko's suites from running in CI (MSB4181: their projects reference osu.Game.Tests).
+- **What**: upstream commit `0e39a5eecf` ("Fix intermittent test", ppy/osu master, 2026-11-03), cherry-picked as is
+  with `-x`. It is osu!'s code, not a fork patch: the next upstream merge brings the identical change, so it adds
+  nothing to the core diff and is not listed under core patches. Nothing in gameplay, scoring or the ruleset changes.
+- **Not taken**: `BeatmapImporterTests.TestImportFailsWithFilenamesDifferingOnlyInCase` also failed once on CI (SharpCompress
+  "duplicate key" while the test builds its archive, then the test host crashed); it passed on the base branch's run and
+  locally, upstream has no fix, and no code it runs was changed here. Left to upstream.
