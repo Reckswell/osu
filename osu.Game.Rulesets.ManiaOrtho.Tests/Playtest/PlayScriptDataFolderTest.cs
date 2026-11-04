@@ -42,8 +42,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         {
             host.Dispose();
 
-            if (Directory.Exists(root))
-                Directory.Delete(root, true);
+            TemporaryFolder.Delete(root);
         }
 
         [Test]

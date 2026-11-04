@@ -32,10 +32,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         [TearDown]
         public void TearDown()
         {
-            string top = Path.GetDirectoryName(root)!;
-
-            if (Directory.Exists(top))
-                Directory.Delete(top, true);
+            TemporaryFolder.Delete(Path.GetDirectoryName(root)!);
         }
 
         [Test]
