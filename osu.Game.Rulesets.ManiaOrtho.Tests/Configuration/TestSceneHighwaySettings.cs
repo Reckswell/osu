@@ -98,26 +98,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
             }, () => Is.EqualTo(0.064f).Within(1e-6f));
         }
 
+        /// <summary>
+        /// Alpha's skin port request: pick a skin and play. Skins without legacy mania images fall back to the highway's look.
+        /// </summary>
         [Test]
-        public void TestNotesDrawnOnTheHighwayByDefault()
+        public void TestNotesDrawnFromThePortedSkinByDefault()
         {
-            AddAssert("settings default", () => new HighwaySettings().NoteStyle, () => Is.EqualTo(HighwayNoteStyle.Highway));
+            AddAssert("settings default", () => new HighwaySettings().NoteStyle, () => Is.EqualTo(HighwayNoteStyle.Ported));
             AddAssert("config default", () =>
             {
                 using (var config = create())
                     return config.Highway.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).Default;
-            }, () => Is.EqualTo(HighwayNoteStyle.Highway));
+            }, () => Is.EqualTo(HighwayNoteStyle.Ported));
         }
 
         [Test]
-        public void TestHighwayTrackByDefault()
+        public void TestPortedTrackByDefault()
         {
-            AddAssert("settings default", () => new HighwaySettings().Track, () => Is.EqualTo(HighwayTrackStyle.Highway));
+            AddAssert("settings default", () => new HighwaySettings().Track, () => Is.EqualTo(HighwayTrackStyle.Ported));
             AddAssert("config default", () =>
             {
                 using (var config = create())
                     return config.Highway.GetBindable<HighwayTrackStyle>(HighwaySetting.Track).Default;
-            }, () => Is.EqualTo(HighwayTrackStyle.Highway));
+            }, () => Is.EqualTo(HighwayTrackStyle.Ported));
 
             AddAssert("a preset leaves it alone", () =>
             {
@@ -128,6 +131,49 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     return config.Highway.Current.Track;
                 }
             }, () => Is.EqualTo(HighwayTrackStyle.Skin));
+        }
+
+        /// <summary>
+        /// An install from before the skin porter stored "Highway" for the three styles the first time it ran; they move to
+        /// the porter once, a style chosen otherwise is kept, and choosing "Highway" again afterwards sticks.
+        /// </summary>
+        [Test]
+        public void TestOldDefaultsMoveToThePorterOnce()
+        {
+            AddStep("store the old defaults", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
+                    config.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
+                    config.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Skin);
+                    config.Highway.SetValue(HighwaySetting.SkinPortDefaultsApplied, false);
+                }
+            });
+
+            AddAssert("old defaults moved, a chosen style kept", () =>
+            {
+                using (var config = create())
+                {
+                    var current = config.Highway.Current;
+                    return current.NoteStyle == HighwayNoteStyle.Ported
+                           && current.HitEffects == HighwayHitEffectStyle.Ported
+                           && current.Track == HighwayTrackStyle.Skin
+                           && config.Highway.Get<bool>(HighwaySetting.SkinPortDefaultsApplied);
+                }
+            });
+
+            AddStep("choose the highway's notes again", () =>
+            {
+                using (var config = create())
+                    config.Highway.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
+            });
+
+            AddAssert("kept", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Get<HighwayNoteStyle>(HighwaySetting.NoteStyle);
+            }, () => Is.EqualTo(HighwayNoteStyle.Highway));
         }
 
         [Test]

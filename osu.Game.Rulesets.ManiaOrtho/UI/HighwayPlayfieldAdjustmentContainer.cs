@@ -10,6 +10,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Logging;
 using osu.Framework.Testing;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Configuration;
@@ -17,6 +18,7 @@ using osu.Game.Rulesets.Mania.Skinning.Legacy;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.SkinPort;
 using osu.Game.Rulesets.UI;
 using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Skinning;
@@ -57,6 +59,77 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// Whether the highway's track is shown this frame, and the skin's stage parts (<see cref="SkinStageParts"/>) hidden.
         /// </summary>
         public bool TrackShown { get; private set; }
+
+        /// <summary>
+        /// The skin's stage rebuilt from its images (<see cref="HighwayTrackStyle.Ported"/>), under the warped stage.
+        /// </summary>
+        public PortedTrack PortedTrack { get; }
+
+        /// <summary>
+        /// The ported skin's keys and stage bottom, in <see cref="Overlay"/> over the notes (or under them, as the skin asks).
+        /// </summary>
+        public PortedKeyArea PortedKeys { get; }
+
+        /// <summary>
+        /// The ported skin's hit and hold lighting, in <see cref="Overlay"/> over the notes.
+        /// </summary>
+        public PortedLighting PortedLighting { get; private set; } = null!;
+
+        /// <summary>
+        /// The skin's mania images and layout, read by the skin porter, or null when the skin is not a stable (legacy) skin
+        /// osu!mania draws with its legacy pieces. Rebuilt when the skin changes.
+        /// </summary>
+        public PortedSkin? Port { get; private set; }
+
+        /// <summary>
+        /// Whether the ported stage is shown this frame (<see cref="HighwayTrackStyle.Ported"/> with a legacy skin).
+        /// </summary>
+        public bool PortedTrackShown { get; private set; }
+
+        /// <summary>
+        /// Whether ported notes are drawn this frame (<see cref="HighwayNoteStyle.Ported"/> with a legacy skin).
+        /// </summary>
+        public bool PortedNotesShown { get; private set; }
+
+        /// <summary>
+        /// Whether the ported hit lighting is shown this frame (<see cref="HighwayHitEffectStyle.Ported"/> with a legacy skin).
+        /// </summary>
+        public bool PortedLightingShown { get; private set; }
+
+        /// <summary>
+        /// The skin's stage as osu!mania lays it out flat, measured last frame.
+        /// </summary>
+        public FlatStage FlatStage { get; private set; }
+
+        /// <summary>
+        /// Where the porter put the skin's stage this frame.
+        /// </summary>
+        public PortPlacement PortPlacement { get; private set; }
+
+        private PortedNoteShapes? portedNotes;
+
+        /// <summary>
+        /// Frames left in which to look at the skin again. A skin change rebuilds mania's pieces, and so the port.
+        /// </summary>
+        private int portSearches = 1;
+
+        /// <summary>
+        /// Whether the port has a hit target of its own (a stage hint or judgement line) to mark the line with.
+        /// </summary>
+        private bool portHasHitTarget;
+
+        /// <summary>
+        /// Whether the port draws a judgement line of its own (<c>JudgementLine: 1</c>), not only a stage hint.
+        /// </summary>
+        private bool portHasJudgementLine;
+
+        /// <summary>
+        /// Each column's top-level container (mania's legacy hold lighting and the explosion proxy), hidden while the ported
+        /// lighting replaces them.
+        /// </summary>
+        private readonly List<Drawable> columnTopLevels = new List<Drawable>();
+
+        private bool columnTopLevelsHidden;
 
         /// <summary>
         /// The skin's stage background and foreground for each stage, and the lane background and key area (receptor) for
@@ -214,6 +287,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             {
                 // Under the warped stage: the stage draws its notes, bar lines and effects over the floor.
                 Track = new HighwayTrack(),
+                PortedTrack = new PortedTrack { Alpha = 0 },
                 Warp = new HighwayWarpContainer
                 {
                     RelativeSizeAxes = Axes.Both,
@@ -237,6 +311,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     {
                         Guides = new HighwayGuides(),
                         NoteLayer = new HighwayNoteLayer { Alpha = 0 },
+                        PortedKeys = new PortedKeyArea { Alpha = 0 },
                         Wall = new HighwayWall(),
                     },
                 },
@@ -252,12 +327,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             this.skinSource = skinSource;
             skinSource.SourceChanged += onSkinSourceChanged;
 
-            NativeNotes = config?.Current.NoteStyle == HighwayNoteStyle.Highway;
+            // Highway and ported notes are both drawn by the note layer; a non-legacy skin's ported notes are highway notes.
+            NativeNotes = config?.Current.NoteStyle != HighwayNoteStyle.Skin;
 
             maniaConfig?.BindWith(ManiaRulesetSetting.TimingBasedNoteColouring, timingBasedColouring);
 
             // The playfield (and so its stages) is created with this container, before it loads.
             Overlay.Add(HitEffects = new HighwayHitEffectLayer(drawableRuleset.Playfield, drawableRuleset.Beatmap.ControlPointInfo));
+            Overlay.Add(PortedLighting = new PortedLighting(drawableRuleset.Playfield) { Alpha = 0 });
 
             foreach (var stage in drawableRuleset.Playfield.Stages)
             {
@@ -275,8 +352,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 Settings = config.Current;
 
             bool flat = Settings.CameraMode == HighwayCameraMode.Flat;
+            bool loaded = drawableRuleset.IsLoaded && drawableRuleset.Playfield.Stages.Count > 0;
 
-            Projection = new HighwayProjection(Settings.ToLayout(), DrawSize);
+            if (loaded)
+                updatePort();
+
+            PortedTrackShown = !flat && Port != null && Settings.Track == HighwayTrackStyle.Ported;
+            PortedNotesShown = !flat && Port != null && NativeNotes && Settings.NoteStyle == HighwayNoteStyle.Ported;
+            PortedLightingShown = !flat && Port != null && Settings.HitEffects == HighwayHitEffectStyle.Ported;
+
+            var layout = Settings.ToLayout();
+
+            // The skin's layout moves the camera's track: its line lifted for the key area, its stage's position and width.
+            if (PortedTrackShown && Port != null)
+                layout = SkinPortLayout.Adjust(layout, Settings.KeyArea, Settings.StageFit, FlatStage, Port.Stages.Length > 0 ? Port.Stages[0].ColumnStart : null);
+
+            Projection = new HighwayProjection(layout, DrawSize);
 
             Warp.Warp = !flat;
             Warp.Layout = Projection.Layout;
@@ -285,20 +376,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             Guides.Layout = Projection.Layout;
             Guides.Alpha = flat ? 0 : 1;
-            Guides.ShowLaneLines = Settings.LaneGuides;
-            // When the skin's own line went with its hidden stage, keep the highway's, so the track always has one.
-            Guides.ShowJudgementLine = !Settings.SkinHitTarget || (TrackShown && hitTargetInSkinStage);
+            // A ported skin draws its own column lines and hit target.
+            Guides.ShowLaneLines = Settings.LaneGuides && !PortedTrackShown;
+            // When the skin's own line went with its hidden stage, keep the highway's, so the track always has one. Skins
+            // often draw their receptor line in the key images (Minty: a blank stage hint, no judgement line), so a hidden
+            // key area keeps the highway's line unless the skin draws a judgement line of its own.
+            Guides.ShowJudgementLine = PortedTrackShown
+                ? Settings.KeyArea == SkinKeyArea.Hidden ? !portHasJudgementLine : !portHasHitTarget
+                : !Settings.SkinHitTarget || (TrackShown && hitTargetInSkinStage);
 
             Track.Layout = Projection.Layout;
 
-            if (!drawableRuleset.IsLoaded || drawableRuleset.Playfield.Stages.Count == 0)
+            if (!loaded)
             {
                 Track.Alpha = 0;
                 return;
             }
 
-            updateTrack(!flat && Settings.Track == HighwayTrackStyle.Highway);
-            updateHitTargets(flat || Settings.SkinHitTarget);
+            // Ported styles with a skin the porter cannot read fall back to the highway's own.
+            bool highwayTrack = !flat && (Settings.Track == HighwayTrackStyle.Highway || (Settings.Track == HighwayTrackStyle.Ported && Port == null));
+            bool highwayEffects = !flat && (Settings.HitEffects == HighwayHitEffectStyle.Highway || (Settings.HitEffects == HighwayHitEffectStyle.Ported && Port == null));
+
+            updateTrack(highwayTrack, highwayTrack || PortedTrackShown);
+            updateHitTargets(flat || (Settings.SkinHitTarget && !PortedTrackShown));
 
             if (NativeNotes && !noteProxiesCreated)
             {
@@ -339,17 +439,49 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             Track.FarDepth = Warp.Scroll.AppearDepth;
             updateBeams();
 
+            FlatStage = measureFlatStage(stage);
+            PortPlacement = new PortPlacement(Projection, FlatStage, Settings.KeyArea, Warp.Scroll.ScrollLength, Warp.Scroll.AppearDepth);
+
+            PortedTrack.Alpha = PortedTrackShown ? 1 : 0;
+            PortedKeys.Alpha = PortedTrackShown ? 1 : 0;
+
+            if (PortedTrackShown)
+            {
+                PortedTrack.Place(PortPlacement, stageLanes, columnLanes, pressedColumns);
+                PortedKeys.Place(PortPlacement, stageLanes, columnLanes, pressedColumns);
+            }
+            else
+            {
+                // Presses and releases while hidden are not seen: start clean when shown again.
+                PortedTrack.ForgetPresses();
+                PortedKeys.ForgetPresses();
+            }
+
+            if (portedNotes != null && PortedNotesShown)
+                portedNotes.Update(Projection, columnLanes, FlatStage, Settings.SkinNoteProportions, Settings.NoteThickness);
+
             if (NativeNotes && !flat)
             {
                 NoteLayer.Layout = Projection.Layout;
                 NoteLayer.NoteThickness = Settings.NoteThickness;
                 NoteLayer.SnapColours = timingBasedColouring.Value;
+                NoteLayer.Ported = PortedNotesShown ? portedNotes : null;
                 measureCovers(stage);
                 NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
                     Time.Current);
             }
 
-            HitEffects.Place(Projection, columnLanes, !flat && Settings.HitEffects == HighwayHitEffectStyle.Highway);
+            HitEffects.Place(Projection, columnLanes, highwayEffects, highwayEffects || PortedLightingShown);
+
+            PortedLighting.Active = PortedLightingShown;
+            PortedLighting.Alpha = PortedLightingShown ? 1 : 0;
+
+            if (PortedLightingShown)
+                PortedLighting.Place(PortPlacement, columnLanes);
+            else
+                PortedLighting.ForgetHits();
+
+            hideColumnTopLevels(PortedLightingShown);
 
             for (int i = 0; i < judgementLayers.Count; i++)
                 judgementLayers[i].Place(Projection, flat, stage, mania.Scale.X);
@@ -522,7 +654,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         // Skinnable drawables rebuild in a scheduled call on the same event; look again after they have (this frame and the
         // next, in case the rebuild lands a frame later).
-        private void onSkinSourceChanged() => Schedule(() => hitTargetSearches = 2);
+        private void onSkinSourceChanged() => Schedule(() =>
+        {
+            hitTargetSearches = 2;
+            portSearches = 2;
+        });
 
         /// <summary>
         /// Shows or hides the skin's hit targets. Under a tilted camera the warp magnifies them several times near the line
@@ -577,7 +713,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// and showing them again shows them current. Every one of them in mania only lights the skin and never handles a
         /// press (they return false). Replay parity runs with the track.
         /// </remarks>
-        private void updateTrack(bool show)
+        private void updateTrack(bool show, bool hideSkinStage)
         {
             if (!skinStagePartsFound)
             {
@@ -588,13 +724,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             TrackShown = show;
             Track.Alpha = show ? 1 : 0;
 
-            if (skinStagePartsHidden == show)
+            if (skinStagePartsHidden == hideSkinStage)
                 return;
 
-            skinStagePartsHidden = show;
+            skinStagePartsHidden = hideSkinStage;
 
             for (int i = 0; i < skinStageParts.Count; i++)
-                skinStageParts[i].Alpha = show ? 0 : 1;
+                skinStageParts[i].Alpha = hideSkinStage ? 0 : 1;
         }
 
         /// <summary>
@@ -627,6 +763,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 foreach (var column in stage.Columns)
                 {
                     allColumns.Add(column);
+
+                    // The column's top-level container: a plain container that is the column's own child and holds no skinnable
+                    // drawable (unlike its background container). Mania's legacy hold lighting is added to it while held.
+                    foreach (var container in column.ChildrenOfType<Container>())
+                    {
+                        if (container.Parent == column && container.GetType() == typeof(Container) && !container.Children.Any(c => c is SkinnableDrawable))
+                        {
+                            container.AlwaysPresent = true;
+                            columnTopLevels.Add(container);
+                        }
+                    }
 
                     foreach (var skinnable in column.ChildrenOfType<SkinnableDrawable>())
                     {
@@ -663,12 +810,88 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
+        /// Reads the skin with the porter when it has changed: a skin osu!mania draws with its legacy pieces (a stable skin with
+        /// mania images) is ported, any other is not (<see cref="Port"/> null, and ported styles fall back to the highway's).
+        /// </summary>
+        private void updatePort()
+        {
+            if (portSearches <= 0 || skinSource == null)
+                return;
+
+            portSearches--;
+
+            var playfield = drawableRuleset.Playfield;
+            PortedSkin? port = null;
+
+            try
+            {
+                if (playfield.Stages[0].ChildrenOfType<LegacyStageBackground>().Any())
+                    port = PortedSkin.Create(skinSource, playfield);
+            }
+            catch (Exception e)
+            {
+                // Never break gameplay over a skin: fall back to the highway's own look.
+                Logger.Error(e, "The skin porter could not read this skin; using the highway's own track and notes.");
+            }
+
+            Port = port;
+            portedNotes = port != null ? new PortedNoteShapes(port) : null;
+            portHasHitTarget = port != null && port.Stages.Any(st => st.Hint != null || st.ShowJudgementLine);
+            portHasJudgementLine = port != null && port.Stages.Any(st => st.ShowJudgementLine);
+
+            PortedTrack.Skin = port;
+            PortedKeys.Skin = port;
+            PortedLighting.Skin = port;
+
+            // Keys over the notes, unless the skin draws them under (KeysUnderNotes): then behind everything in the overlay,
+            // which is still over the track.
+            bool keysUnderNotes = port != null && port.Columns.Length > 0 && port.Columns[0].KeysUnderNotes;
+            Overlay.ChangeChildDepth(PortedKeys, keysUnderNotes ? 1 : 0);
+        }
+
+        /// <summary>
+        /// The skin's stage as mania lays it out flat this frame: its hit position, scrolling area, width before the highway
+        /// stretched it, and mania's unit size.
+        /// </summary>
+        private FlatStage measureFlatStage(RectangleF stage)
+        {
+            if (playfieldColumns.Length == 0 || stage.Width <= 0)
+                return default;
+
+            var column = playfieldColumns[0];
+
+            if (column.DrawHeight <= 0)
+                return default;
+
+            float top = Warp.ToLocalSpace(column.ToScreenSpace(Vector2.Zero)).Y;
+            float bottom = Warp.ToLocalSpace(column.ToScreenSpace(new Vector2(0, column.DrawHeight))).Y;
+            float unitSize = (bottom - top) / column.DrawHeight;
+
+            return new FlatStage(stage.Bottom, stage.Top, stage.Width / Math.Max(mania.Scale.X, 1e-3f), unitSize, DrawSize);
+        }
+
+        /// <summary>
+        /// Hides mania's legacy hold lighting while the ported lighting replaces it. Hidden containers stay present, so the
+        /// lighting it holds still fades out and is removed on time.
+        /// </summary>
+        private void hideColumnTopLevels(bool hide)
+        {
+            if (columnTopLevelsHidden == hide)
+                return;
+
+            columnTopLevelsHidden = hide;
+
+            for (int i = 0; i < columnTopLevels.Count; i++)
+                columnTopLevels[i].Alpha = hide ? 0 : 1;
+        }
+
+        /// <summary>
         /// Lights each pressed lane's beam, brighter while its hold note is held. Reads the keys mania's own columns are
         /// pressed by, so a replay or autoplay lights the lanes as the player's keys do.
         /// </summary>
         private void updateBeams()
         {
-            if (TrackShown)
+            if (TrackShown || PortedTrackShown)
             {
                 var pressed = drawableRuleset.PressedActions;
 

@@ -8,6 +8,7 @@ using osu.Framework.Allocation;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
+using osu.Game.Database;
 using osu.Game.Rulesets.Judgements;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Objects;
@@ -19,6 +20,7 @@ using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osu.Game.Screens.Play;
 using osu.Game.Screens.Play.HUD;
+using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
@@ -36,6 +38,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
         [Resolved]
         private RulesetStore rulesets { get; set; } = null!;
+
+        [Resolved]
+        private SkinManager skins { get; set; } = null!;
 
         [TestCase(PlaytestBeatmaps.REAL_4K, 1)]
         [TestCase("synthetic-4k", 2)]
@@ -83,9 +88,39 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             testParity(source, seed, HighwayNoteStyle.Highway);
         }
 
+        /// <summary>
+        /// The skin porter draws a legacy skin's own images, lifts the judgement line to the skin's hit position (panel key
+        /// area), hides mania's legacy hit lighting and listens to each column's results for its own.
+        /// </summary>
+        [TestCase("synthetic-7k", 11)]
+        public void TestJudgementParityWithPortedSkin(string source, int seed)
+        {
+            // The classic skin's HUD has no pp counter (stable skins add it in the skin editor); the other cases compare it.
+            hudHasPerformanceCounter = false;
+
+            AddStep("classic skin, ported", () =>
+            {
+                skins.CurrentSkinInfo.Value = DefaultLegacySkin.CreateInfo().ToLiveUnmanaged();
+                orthoConfig.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Ported);
+                orthoConfig.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Ported);
+                orthoConfig.Highway.SetValue(HighwaySetting.KeyArea, SkinKeyArea.Panel);
+            });
+
+            testParity(source, seed, HighwayNoteStyle.Ported);
+
+            AddAssert("ortho run drew the ported skin", () => ortho.Ported);
+        }
+
+        /// <summary>
+        /// Whether the case's skin shows a pp counter to compare. Read while the steps are built, before any runs.
+        /// </summary>
+        private bool hudHasPerformanceCounter;
+
         [SetUpSteps]
         public override void SetUpSteps()
         {
+            hudHasPerformanceCounter = true;
+
             base.SetUpSteps();
 
             // A case that changes the camera must not leave it changed for the next one, even when it fails.
@@ -94,6 +129,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                 orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPresets.DEFAULT);
                 orthoConfig.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
+                orthoConfig.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
+                skins.CurrentSkinInfo.SetDefault();
             });
         }
 
@@ -112,7 +149,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             play(new ManiaOrthoRuleset(), source, seed, mods, r => ortho = r);
 
             AddAssert("ortho run used the ortho playfield", () => ortho.DrawableRulesetType, () => Is.EqualTo(nameof(DrawableManiaOrthoRuleset)));
-            AddAssert($"ortho run drew notes as {noteStyle}", () => ortho.NativeNotes, () => Is.EqualTo(noteStyle == HighwayNoteStyle.Highway));
+            // Ported notes are drawn by the highway's note layer too.
+            AddAssert($"ortho run drew notes as {noteStyle}", () => ortho.NativeNotes, () => Is.EqualTo(noteStyle != HighwayNoteStyle.Skin));
             AddAssert("ortho run drew the track as set", () => ortho.HighwayTrack,
                 () => Is.EqualTo(orthoConfig.Highway.Get<HighwayTrackStyle>(HighwaySetting.Track) == HighwayTrackStyle.Highway));
             AddAssert("both runs played with the mods", () => new[] { mania.Mods, ortho.Mods }, () => Has.All.EquivalentTo(mods));
@@ -121,8 +159,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             AddAssert("same judgement sequence", () => ortho.Judgements, () => Is.EqualTo(mania.Judgements));
             AddAssert("same total score", () => ortho.TotalScore, () => Is.EqualTo(mania.TotalScore));
             AddAssert("same accuracy", () => ortho.Accuracy, () => Is.EqualTo(mania.Accuracy));
-            AddAssert("mania showed live pp", () => mania.LivePerformance, () => Is.GreaterThan(0));
-            AddAssert("same live pp", () => ortho.LivePerformance, () => Is.EqualTo(mania.LivePerformance));
+            if (hudHasPerformanceCounter)
+            {
+                AddAssert("mania showed live pp", () => mania.LivePerformance, () => Is.GreaterThan(0));
+                AddAssert("same live pp", () => ortho.LivePerformance, () => Is.EqualTo(mania.LivePerformance));
+            }
         }
 
         private void play(Ruleset ruleset, string source, int seed, string[] mods, System.Action<PlayRecord> store)
@@ -166,7 +207,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             AddUntilStep($"[{ruleset.ShortName}] play to completion", () => currentPlayer.GameplayState.HasCompleted);
 
             // The HUD's pp counter (in the default skin's layout) rates the play through the score's ruleset as it goes.
-            AddUntilStep($"[{ruleset.ShortName}] live pp counted", () => currentPlayer.ChildrenOfType<PerformancePointsCounter>().Any(c => c.IsValid));
+            if (hudHasPerformanceCounter)
+                AddUntilStep($"[{ruleset.ShortName}] live pp counted", () => currentPlayer.ChildrenOfType<PerformancePointsCounter>().Any(c => c.IsValid));
 
             AddStep($"[{ruleset.ShortName}] record", () =>
             {
@@ -181,7 +223,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     currentPlayer.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.Settings.JudgementLineHeight,
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.TrackShown == true,
-                    currentPlayer.ChildrenOfType<PerformancePointsCounter>().First(c => c.IsValid).Current.Value));
+                    currentPlayer.ChildrenOfType<PerformancePointsCounter>().FirstOrDefault(c => c.IsValid)?.Current.Value ?? 0,
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault() is HighwayPlayfieldAdjustmentContainer h
+                    && h.Port != null && h.PortedNotesShown && h.PortedTrackShown && h.PortedLightingShown));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -192,6 +236,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
         private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
-                                  float? LineHeight, bool HighwayTrack, int LivePerformance);
+                                  float? LineHeight, bool HighwayTrack, int LivePerformance, bool Ported);
     }
 }

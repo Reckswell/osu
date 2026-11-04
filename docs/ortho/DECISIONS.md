@@ -599,3 +599,57 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   `CreateDifficultyAdjustmentModCombinations` and list the key mods too. Found by a mutation check for the live pp
   tests and the review. The decision stands (both get `MANIA`); `TestDifficultyModCombinationsMatchMania` now pins the
   calculator's half.
+
+## 2026-11-04: Runtime skin porter (Alpha)
+
+- **Alpha asked** for a porter that turns the flat osu!mania skins in the Skins folder into tilted ones "using the
+  skin's base assets to render angled textures", inside the game, with no external software and no texture editing,
+  gameplay field only, and several variants for skins whose notes stop above the bottom of the screen (IIDX-style).
+- **Read through osu!'s own lookups**: images and per-column values come from `ISkinSource` with mania's legacy lookup
+  names and fallbacks (`ManiaSkinConfigurationLookup`, `mania-note1H` → `mania-note1`, tail → head, default classic
+  images), so every skin lazer draws flat is drawn tilted. Nothing is written to the skin. The port is built when the
+  skin changes (never per frame) and only when mania itself uses its legacy pieces (a legacy stage background is in
+  the stage); otherwise, or if reading throws, the highway's own look is used and the error is logged.
+- **Measure, do not recompute, the flat layout**: hit position, unit size and stage width come from mania's laid-out
+  stage (`FlatStage`), so the port always agrees with the flat game, including lazer's own clamping and scaling.
+- **Defaults**: notes, hit effects and track default to "Skin (ported)" (Alpha wants to pick a skin and play); "Skin
+  (warped)" keeps the old picture-warp, "Highway" the built-in look.
+- **Key area** (`SkinKeyArea`, the IIDX question): five placements, screenshots in the report. Panel (default until
+  Alpha picks on the card): the judgement line is lifted to the skin's hit position and the key area stands upright
+  under it with vertical sides, as a cabinet panel. Floor: the same line, the key area lies on the floor and widens
+  towards the player. Squeezed: the camera's line is kept and the key area is squeezed into the space below it.
+  Receptors: the camera's line, only the part of the keys above the line (receptors) is drawn. Hidden: no keys; the
+  highway's judgement line is drawn unless the skin draws one (`JudgementLine: 1`), because skins like Minty put
+  their receptor line in the key images and leave the stage hint blank. The line is never lowered below the camera's.
+- **Stage position** (`SkinStageFit`): SkinPosition (default) keeps the camera's track width and moves its centre to
+  where stable centres the stage (`ColumnStart` + half the stage width, 853 units at 16:9), clamped on screen; Camera
+  keeps the preset; SkinLayout also takes the skin's stage width. `ColumnStart` is parsed by lazer but not used, so it
+  is read by reflection from `LegacySkin`'s internal configuration list (`TestReadingColumnStartStillWorks` fails if
+  osu! renames it; the porter then centres); 136, stable's default, means "not set" (centred). Beatmap skins are
+  skipped. This reads a core type, it does not patch one.
+- **Note shapes**: with "Skin note proportions" (default on), a note's depth makes its image as tall for its width at
+  the line as it is flat (Ākala's 296x152 bars stay bars, Flow's circles become ellipses lying on the track), capped at
+  15% of the track; off, every note uses the preset's note thickness, scaled per image. Hold bodies tile along the
+  track at the image's proportions (`NoteBodyStyle` RepeatBottom/RepeatTop, at most 200 tiles) or stretch (Stretch,
+  skins before version 2.5); tails are drawn flipped past the end, as lazer draws them.
+- **Sizes**: hit and hold lighting, the hint and the stage bottom keep their flat size on a wider track (lighting is
+  drawn three to five lanes wide, growing it with a 2-3x wider track swamped the field) and shrink with a narrower one.
+- **Mania's own legacy hit lighting** (explosions, hold light) is hidden and cleared while the ported lighting shows;
+  the column containers that hold it are kept present so they still follow skin changes.
+- **Not changed**: judgements, score and input. The lighting listens to each column's `NewResult` with mania's own
+  conditions; nothing feeds back. Visibility mods work on ported notes because they go through the native note
+  layer's cover cut.
+- **Existing installs**: osu! stores every setting's default the first time a ruleset runs, so installs that ran
+  maniaortho before kept "Highway" for the three styles. A hidden setting runs a one-time move: styles still on
+  "Highway" become "Skin (ported)", any other choice is kept, and choosing "Highway" again afterwards sticks
+  (`TestOldDefaultsMoveToThePorterOnce`). Q11 (default track) was open; Alpha's request answers it for skins.
+- **Review follow-ups** (gameplay-reviewer): the lifted line is capped at the lift setting's 40%; note depth past the
+  vanishing point falls back to the cap; body tiles are counted in whole steps and anchored to the scrolling head (a
+  held body's pattern keeps moving, as mania's); keys and lane lights run on the game-wide clock as mania's key area
+  does, and forget presses while hidden. Left as is: solid fills go through the subdivided grid (a few hundred quads at
+  10K, only measurable on Alpha's PC); the hold check walks each column's notes up to three times a frame.
+- **Parity**: `TestJudgementParityWithPortedSkin` plays both runs with the classic skin; it compares judgements, score
+  and accuracy but not live pp, because the classic skin's HUD has no pp counter (every other case still compares it).
+- **Known limitation**: keys keep their flat height and stretch to the lane's width, so round receptors (Mania Flow
+  Mode's rings) become wide ellipses on a track wider than the flat stage. Notes keep their proportions.
+- **How to reverse**: set the three styles back to Highway or Skin (warped); delete `SkinPort/`.

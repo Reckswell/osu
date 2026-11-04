@@ -71,6 +71,31 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
                 if (!applyingPreset && preset.Value != HighwayPreset.Custom && !matches(HighwayPresets.Get(preset.Value)))
                     preset.Value = HighwayPreset.Custom;
             }
+
+            ApplySkinPortDefaults();
+        }
+
+        /// <summary>
+        /// Once per install: the note, hit effect and track styles were stored as "Highway" (the default before the skin
+        /// porter) the first time this ruleset ran, so the new "Skin (ported)" default would never reach an existing install.
+        /// Styles still on "Highway" move to "Skin (ported)" (skins without legacy mania images keep the highway's look
+        /// anyway); a style set to anything else is left alone. Runs once, so choosing "Highway" again sticks.
+        /// </summary>
+        public void ApplySkinPortDefaults()
+        {
+            var applied = GetOriginalBindable<bool>(HighwaySetting.SkinPortDefaultsApplied);
+
+            if (applied.Value)
+                return;
+
+            if (Get<HighwayNoteStyle>(HighwaySetting.NoteStyle) == HighwayNoteStyle.Highway)
+                SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Ported);
+            if (Get<HighwayHitEffectStyle>(HighwaySetting.HitEffects) == HighwayHitEffectStyle.Highway)
+                SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Ported);
+            if (Get<HighwayTrackStyle>(HighwaySetting.Track) == HighwayTrackStyle.Highway)
+                SetValue(HighwaySetting.Track, HighwayTrackStyle.Ported);
+
+            applied.Value = true;
         }
 
         protected override void InitialiseDefaults()
@@ -85,7 +110,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.Preset, HighwayPresets.DEFAULT);
             SetDefault(HighwaySetting.CameraMode, defaults.CameraMode);
             SetDefault(HighwaySetting.FarWidthRatio, defaults.FarWidthRatio, HighwayLayout.MIN_FAR_WIDTH_RATIO, 1f, precision);
-            SetDefault(HighwaySetting.JudgementLineHeight, defaults.JudgementLineHeight, 0f, 0.4f, precision);
+            SetDefault(HighwaySetting.JudgementLineHeight, defaults.JudgementLineHeight, 0f, HighwaySettings.MAX_JUDGEMENT_LINE_HEIGHT, precision);
             SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, precision);
             SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
             SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.01f);
@@ -93,9 +118,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
             SetDefault(HighwaySetting.LaneGuides, true);
             SetDefault(HighwaySetting.SkinHitTarget, false);
-            SetDefault(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
-            SetDefault(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
-            SetDefault(HighwaySetting.Track, HighwayTrackStyle.Highway);
+            SetDefault(HighwaySetting.NoteStyle, defaults.NoteStyle);
+            SetDefault(HighwaySetting.HitEffects, defaults.HitEffects);
+            SetDefault(HighwaySetting.Track, defaults.Track);
+            SetDefault(HighwaySetting.KeyArea, defaults.KeyArea);
+            SetDefault(HighwaySetting.StageFit, defaults.StageFit);
+            SetDefault(HighwaySetting.SkinNoteProportions, defaults.SkinNoteProportions);
+            SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
         }
 
         /// <summary>
@@ -116,13 +145,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             NoteStyle = Get<HighwayNoteStyle>(HighwaySetting.NoteStyle),
             HitEffects = Get<HighwayHitEffectStyle>(HighwaySetting.HitEffects),
             Track = Get<HighwayTrackStyle>(HighwaySetting.Track),
+            KeyArea = Get<SkinKeyArea>(HighwaySetting.KeyArea),
+            StageFit = Get<SkinStageFit>(HighwaySetting.StageFit),
+            SkinNoteProportions = Get<bool>(HighwaySetting.SkinNoteProportions),
         };
 
         /// <summary>
         /// Writes a preset's values into the individual settings. Leaves <see cref="HighwaySetting.WallKeepsVisibleTime"/>,
         /// <see cref="HighwaySetting.LaneGuides"/>, <see cref="HighwaySetting.SkinHitTarget"/>,
-        /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/> and <see cref="HighwaySetting.Track"/>
-        /// alone (preferences, not part of a camera).
+        /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/>, <see cref="HighwaySetting.Track"/>
+        /// and the skin porter's settings alone (preferences, not part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
         {
@@ -202,5 +234,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         NoteThickness,
         HitEffects,
         Track,
+        KeyArea,
+        StageFit,
+        SkinNoteProportions,
+
+        /// <summary>
+        /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.
+        /// </summary>
+        SkinPortDefaultsApplied,
     }
 }

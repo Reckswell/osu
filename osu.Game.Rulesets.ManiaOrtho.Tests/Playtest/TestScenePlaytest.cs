@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Extensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
@@ -104,9 +105,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
         protected override IBeatmap CreateBeatmap(RulesetInfo ruleset) => PlaytestBeatmaps.Load(options.Beatmap);
 
+        /// <summary>
+        /// The skin imported from <see cref="PlaytestOptions.Skin"/> when it is a folder.
+        /// </summary>
+        private Task<Live<SkinInfo>>? importedSkin;
+
         [SetUpSteps]
         public override void SetUpSteps()
         {
+            if (options.SkinIsFolder)
+            {
+                // Imported into the test game's own storage; the folder is only read.
+                AddStep("import skin folder", () => importedSkin ??= skins.Import(new ImportTask(options.Skin)));
+                AddUntilStep("skin imported", () => importedSkin?.IsCompleted == true);
+            }
+
             AddStep("apply ruleset settings", () =>
             {
                 // The local user's avatar would be fetched from osu!'s servers (a.ppy.sh); an empty address loads none.
@@ -120,7 +133,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     };
                 }
 
-                skins.CurrentSkinInfo.Value = options.CreateSkinInfo().ToLiveUnmanaged();
+                skins.CurrentSkinInfo.Value = options.SkinIsFolder
+                    ? importedSkin?.GetResultSafely() ?? throw new InvalidOperationException($"Could not import the skin at {options.Skin}.")
+                    : options.CreateSkinInfo().ToLiveUnmanaged();
 
                 var config = (ManiaRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull();
 
@@ -137,9 +152,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         ortho.Highway.SetValue(HighwaySetting.Wall, wall);
 
                     ortho.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, !options.SpeedLock);
-                    ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.NoteStyle);
-                    ortho.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
-                    ortho.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
+                    ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.Port ? HighwayNoteStyle.Ported : options.NoteStyle);
+                    ortho.Highway.SetValue(HighwaySetting.HitEffects, options.Port ? HighwayHitEffectStyle.Ported : HighwayHitEffectStyle.Highway);
+                    ortho.Highway.SetValue(HighwaySetting.Track, options.Port ? HighwayTrackStyle.Ported : HighwayTrackStyle.Highway);
                     options.ApplyHighwayValues(ortho.Highway);
                 }
             });
@@ -381,10 +396,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         notes = used.NoteStyle.ToString(),
                         hitEffects = used.HitEffects.ToString(),
                         track = used.Track.ToString(),
+                        keyArea = used.KeyArea.ToString(),
+                        stageFit = used.StageFit.ToString(),
+                        used.SkinNoteProportions,
+                        ported = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Port != null,
                     }
                     : null,
                 skin = options.Skin,
-                notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? options.NoteStyle.ToString() : null,
+                notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? (options.Port ? HighwayNoteStyle.Ported : options.NoteStyle).ToString() : null,
                 mods = Player.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),

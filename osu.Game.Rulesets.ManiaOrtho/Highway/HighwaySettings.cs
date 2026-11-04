@@ -34,9 +34,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         Highway,
 
         /// <summary>
+        /// The skin's own note, hold and tail images, drawn sharp on the track by the skin porter
+        /// (<see cref="SkinPort.PortedSkin"/>). Stable (legacy) skins only; other skins get <see cref="Highway"/>.
+        /// </summary>
+        [Description("Skin (ported)")]
+        Ported,
+
+        /// <summary>
         /// The skin's notes, drawn on the track with the rest of mania's stage (warped: thicker and softer near the line).
         /// </summary>
-        [Description("Skin (tilted)")]
+        [Description("Skin (warped)")]
         Skin,
     }
 
@@ -50,9 +57,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         Highway,
 
         /// <summary>
+        /// The skin's own hit lighting and hold lighting images, standing upright at the judgement line at the skin's size
+        /// relative to its lane (<see cref="SkinPort.PortedLighting"/>). Stable (legacy) skins only; other skins get
+        /// <see cref="Highway"/>.
+        /// </summary>
+        [Description("Skin (ported)")]
+        Ported,
+
+        /// <summary>
         /// The skin's hit explosions, drawn on the track with the rest of mania's stage (warped: stretched near the line).
         /// </summary>
-        [Description("Skin (tilted)")]
+        [Description("Skin (warped)")]
         Skin,
     }
 
@@ -67,11 +82,86 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         Highway,
 
         /// <summary>
+        /// The skin's stage rebuilt from its images by the skin porter: lane colours and lines, stage edges and lane lighting
+        /// on the track, and its hit target, keys and stage bottom upright at the line, laid out by
+        /// <see cref="HighwaySettings.KeyArea"/> and <see cref="HighwaySettings.StageFit"/>. Stable (legacy) skins only; other
+        /// skins get <see cref="Highway"/>.
+        /// </summary>
+        [Description("Skin (ported)")]
+        Ported,
+
+        /// <summary>
         /// The skin's stage, lane backgrounds, receptors and lane lighting, drawn on the track with the rest of mania's stage
         /// (warped: magnified near the line).
         /// </summary>
-        [Description("Skin (tilted)")]
+        [Description("Skin (warped)")]
         Skin,
+    }
+
+    /// <summary>
+    /// Where a ported skin's key area (everything below its hit position: keys, receptors, stage bottom) goes. Matters most
+    /// for skins whose hit position sits well above the bottom of the screen, as IIDX-style skins do.
+    /// </summary>
+    public enum SkinKeyArea
+    {
+        /// <summary>
+        /// The judgement line is lifted to the skin's hit position (when that is higher than the camera's), and the key area
+        /// stands upright below it as a flat panel, the width of the track at the line, as IIDX's key panel does.
+        /// </summary>
+        [Description("Panel under a lifted line")]
+        Panel,
+
+        /// <summary>
+        /// The judgement line is lifted as for <see cref="Panel"/>, and the key area lies on the track below it, widening with
+        /// the lanes towards the bottom of the screen.
+        /// </summary>
+        [Description("Floor under a lifted line")]
+        Floor,
+
+        /// <summary>
+        /// The judgement line stays at the camera's height, and the key area is squeezed into the space below it.
+        /// </summary>
+        [Description("Squeezed below the line")]
+        Squeezed,
+
+        /// <summary>
+        /// The judgement line stays at the camera's height and the key area keeps its size, so only its top (the receptors)
+        /// fits on screen.
+        /// </summary>
+        [Description("Receptors only")]
+        Receptors,
+
+        /// <summary>
+        /// No keys: the line stays at the camera's height with the skin's hit target on it.
+        /// </summary>
+        [Description("Hidden")]
+        Hidden,
+    }
+
+    /// <summary>
+    /// Where a ported skin's track sits across the screen.
+    /// </summary>
+    public enum SkinStageFit
+    {
+        /// <summary>
+        /// The camera's track width, centred.
+        /// </summary>
+        [Description("Camera")]
+        Camera,
+
+        /// <summary>
+        /// The camera's track width, centred where the skin centres its stage (its <c>ColumnStart</c>), so a stage the skin
+        /// puts to one side stays there.
+        /// </summary>
+        [Description("Skin position")]
+        SkinPosition,
+
+        /// <summary>
+        /// The skin's own stage width at the judgement line and its position, so narrow, wide and off-centre stages keep their
+        /// layout.
+        /// </summary>
+        [Description("Skin position and width")]
+        SkinLayout,
     }
 
     public enum HighwayPreset
@@ -99,6 +189,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// The judgement line's height above the bottom of the playfield (IIDX "LIFT" is a higher value).
         /// </summary>
         public float JudgementLineHeight { get; init; }
+
+        /// <summary>
+        /// The highest <see cref="JudgementLineHeight"/> can be set, and the highest a ported skin may lift the line.
+        /// </summary>
+        public const float MAX_JUDGEMENT_LINE_HEIGHT = 0.4f;
 
         /// <summary>
         /// The far edge's distance below the top of the playfield.
@@ -158,6 +253,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public HighwayTrackStyle Track { get; init; }
 
+        /// <summary>
+        /// Where a ported skin's key area goes (<see cref="HighwayTrackStyle.Ported"/> only).
+        /// </summary>
+        public SkinKeyArea KeyArea { get; init; }
+
+        /// <summary>
+        /// Where a ported skin's track sits across the screen (<see cref="HighwayTrackStyle.Ported"/> only).
+        /// </summary>
+        public SkinStageFit StageFit { get; init; }
+
+        /// <summary>
+        /// Whether ported notes keep the skin's proportions (as tall at the judgement line, relative to their lane, as the skin
+        /// draws them flat) instead of the camera's <see cref="NoteThickness"/> (<see cref="HighwayNoteStyle.Ported"/> only).
+        /// </summary>
+        public bool SkinNoteProportions { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -170,9 +281,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             WallKeepsVisibleTime = true;
             LaneGuides = true;
             SkinHitTarget = false;
-            NoteStyle = HighwayNoteStyle.Highway;
-            HitEffects = HighwayHitEffectStyle.Highway;
-            Track = HighwayTrackStyle.Highway;
+            NoteStyle = HighwayNoteStyle.Ported;
+            HitEffects = HighwayHitEffectStyle.Ported;
+            Track = HighwayTrackStyle.Ported;
+            KeyArea = SkinKeyArea.Panel;
+            StageFit = SkinStageFit.SkinPosition;
+            SkinNoteProportions = true;
         }
 
         /// <summary>

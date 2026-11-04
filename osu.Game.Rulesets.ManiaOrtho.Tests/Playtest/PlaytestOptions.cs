@@ -3,6 +3,7 @@
 
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
@@ -31,6 +32,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_SKIN = "ORTHO_PLAYTEST_SKIN";
         public const string ENV_NOTES = "ORTHO_PLAYTEST_NOTES";
         public const string ENV_MODS = "ORTHO_PLAYTEST_MODS";
+        public const string ENV_PORT = "ORTHO_PLAYTEST_PORT";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -66,9 +68,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public bool SpeedLock { get; init; }
 
         /// <summary>
-        /// One of the built-in skins: argon (the default), argon-pro, triangles or classic (the legacy skin).
+        /// One of the built-in skins: argon (the default), argon-pro, triangles or classic (the legacy skin), or the path of a
+        /// stable skin's folder, which is imported into the test game's own storage (the folder itself is only read).
         /// </summary>
         public string Skin { get; init; } = "argon";
+
+        /// <summary>
+        /// Whether <see cref="Skin"/> is a skin folder to import.
+        /// </summary>
+        public bool SkinIsFolder => Directory.Exists(Skin);
+
+        /// <summary>
+        /// Whether maniaortho draws the skin with the skin porter: notes, track and hit effects all "Skin (ported)".
+        /// </summary>
+        public bool Port { get; init; }
 
         /// <summary>
         /// How maniaortho draws notes (skin or highway).
@@ -132,9 +145,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, track);
                     break;
 
+                case HighwaySetting.KeyArea:
+                    var keyArea = Enum.Parse<SkinKeyArea>(value, true);
+                    config?.SetValue(setting, keyArea);
+                    break;
+
+                case HighwaySetting.StageFit:
+                    var fit = Enum.Parse<SkinStageFit>(value, true);
+                    config?.SetValue(setting, fit);
+                    break;
+
                 case HighwaySetting.WallKeepsVisibleTime:
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:
+                case HighwaySetting.SkinNoteProportions:
                     bool flag = bool.Parse(value);
                     config?.SetValue(setting, flag);
                     break;
@@ -155,7 +179,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             "argon-pro" => ArgonProSkin.CreateInfo(),
             "triangles" => TrianglesSkin.CreateInfo(),
             "classic" => DefaultLegacySkin.CreateInfo(),
-            _ => throw new ArgumentException($"Unknown skin \"{Skin}\" (expected argon, argon-pro, triangles or classic)."),
+            _ => throw new ArgumentException($"Unknown skin \"{Skin}\" (expected argon, argon-pro, triangles, classic or a skin folder)."),
         };
 
         public Ruleset CreateRuleset() => Ruleset switch
@@ -189,6 +213,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 Skin = get(ENV_SKIN) ?? defaults.Skin,
                 NoteStyle = get(ENV_NOTES) is string n ? Enum.Parse<HighwayNoteStyle>(n, true) : defaults.NoteStyle,
                 Mods = get(ENV_MODS)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.Mods,
+                Port = get(ENV_PORT) == "1",
             };
 
             // Fail on a bad --set in every run, including the mania baseline that comes first.

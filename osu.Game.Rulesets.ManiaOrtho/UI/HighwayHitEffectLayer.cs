@@ -141,24 +141,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// <param name="projection">The highway's projection.</param>
         /// <param name="columnLanes">Each column's left and right edge in lane space, in playfield column order.</param>
         /// <param name="active">Whether the highway's effects are wanted (a tilted camera and <see cref="HighwayHitEffectStyle.Highway"/>).</param>
-        public void Place(in HighwayProjection projection, ReadOnlySpan<Vector2> columnLanes, bool active)
+        /// <param name="hideSkinExplosions">Whether the skin's explosions are hidden: with the highway's effects, or while the
+        /// skin porter draws the skin's lighting itself.</param>
+        public void Place(in HighwayProjection projection, ReadOnlySpan<Vector2> columnLanes, bool active, bool hideSkinExplosions)
         {
+            if (Active && !active)
+            {
+                // Hidden, this layer's children are not updated, so bursts would not expire; return them to the pool now.
+                bursts.Clear(false);
+            }
+
             Active = active;
             Alpha = active ? 1 : 0;
 
-            if (explosionsHidden != active)
+            if (explosionsHidden != hideSkinExplosions)
             {
-                explosionsHidden = active;
+                explosionsHidden = hideSkinExplosions;
 
                 for (int i = 0; i < columns.Count; i++)
-                    columns[i].HitObjectArea.Explosions.Alpha = active ? 0 : 1;
-
-                // Hidden, this layer's children are not updated, so bursts would not expire; return them to the pool now.
-                if (!active)
-                    bursts.Clear(false);
+                    columns[i].HitObjectArea.Explosions.Alpha = hideSkinExplosions ? 0 : 1;
             }
 
-            if (active)
+            if (hideSkinExplosions)
             {
                 // Mania keeps adding an explosion on every hit. Hidden, they are never updated, so they would never prepare,
                 // expire or go back to their pool; hand them back as they arrive (before they are drawn this frame).

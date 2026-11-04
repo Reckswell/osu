@@ -9,6 +9,7 @@
 #   scripts/ortho/playtest.sh --wall 0.4 --speed-lock      (the wall keeps the note speed instead of the visible time)
 #   scripts/ortho/playtest.sh --set JudgementLineHeight=0.3,TrackWidth=0.7   (any highway setting, after the preset)
 #   scripts/ortho/playtest.sh --skin classic                (built-in skin: argon, argon-pro, triangles, classic)
+#   scripts/ortho/playtest.sh --skin "path/to/Skins/My Skin" --port   (a stable skin folder, drawn by the skin porter)
 #   scripts/ortho/playtest.sh --notes skin                  (maniaortho notes: highway, the default, or skin)
 #   scripts/ortho/playtest.sh --mods HD                     (mod acronyms, comma separated, besides autoplay and no fail)
 #
@@ -28,7 +29,7 @@ while [ $# -gt 0 ]; do
     --beatmap) beatmaps+=("$2"); shift ;;
     --times|--scroll-speed|--preset|--wall|--skin|--notes|--mods|--set) extra+=("$1" "$2"); shift ;;
     --size) size="$2"; shift ;;
-    --play-to-end|--speed-lock) extra+=("$1") ;;
+    --play-to-end|--speed-lock|--port) extra+=("$1") ;;
     --no-baseline) baseline=0 ;;
     --out) out="$2"; shift ;;
     *) echo "unknown option $1" >&2; exit 2 ;;

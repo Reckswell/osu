@@ -65,7 +65,9 @@ Requirements:
 - **Top wall** (Chunithm's field wall, IIDX's SUDDEN+): an opaque cover over the far part of the track. Notes appear
   at the wall's edge. Position: 0-80% of the track length *(tune)*. Drawn in track space (it is a plane on the track
   or a vertical panel at that depth; pick whichever reads better in playtests).
-- **Bottom lift** (IIDX's LIFT): optional, raises the judgement line. Off by default.
+- **Bottom lift** (IIDX's LIFT): optional, raises the judgement line. Off by default. Exception: a ported legacy skin
+  whose hit position sits above the camera's line raises the line to the skin's hit position with the "Panel" and
+  "Floor" key areas (section 8), never higher than the lift setting's maximum (40%).
 - **Constant visible time by default**: moving the wall changes on-screen speed so that visible time stays the same.
   A toggle "keep speed when moving the wall" switches to keeping on-screen speed instead (visible time shrinks).
 - Walls are ruleset **settings**, adjustable from settings and with a hotkey during gameplay (Shift+F3 / Shift+F4).
@@ -99,8 +101,14 @@ Requirements:
 ## 8. Skins
 
 - Ship a built-in highway skin first (simple, high contrast, SDVX-like colours per lane type).
-- Later, map legacy mania skin note and hold textures onto projected quads. Stage decorations that cannot be projected
-  are ignored.
+- Legacy mania skins are **ported at runtime** (Alpha, 2026-11-04): the porter reads the skin's own images and
+  `skin.ini` values through osu!'s mania skin lookups and draws them on the tilted track, so any skin the player
+  selects plays tilted with no texture editing and no external tool. It covers notes, hold heads, bodies and tails
+  (perspective-correct, keeping the skin's proportions), column backgrounds and lines, stage side images, the hit
+  target, lane lights, keys, the stage bottom, and hit and hold lighting. The skin's own files are never changed.
+- Skins whose hit position sits above the camera's judgement line (keys or an IIDX-style panel below it) choose where
+  the key area goes ("Skin key area"); the skin's stage position (`ColumnStart`) moves the track sideways by default.
+  Skins without legacy mania images (argon, triangles) keep the built-in highway look.
 
 ## 9. Mods
 

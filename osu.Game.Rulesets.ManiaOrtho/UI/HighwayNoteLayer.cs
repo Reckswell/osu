@@ -6,12 +6,15 @@ using osu.Framework.Allocation;
 using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Colour;
+using osu.Framework.Graphics.Primitives;
 using osu.Framework.Graphics.Rendering;
 using osu.Framework.Graphics.Shaders;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Utils;
 using osu.Game.Rulesets.Mania.Objects.Drawables;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.SkinPort;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.UI.Scrolling.Algorithms;
 using osuTK;
@@ -118,6 +121,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private DepthCover cover;
 
         /// <summary>
+        /// When set, notes are drawn with the skin's own images (<see cref="HighwayNoteStyle.Ported"/>) instead of plain bars.
+        /// </summary>
+        public PortedNoteShapes? Ported { get; set; }
+
+        /// <summary>
         /// Collects every alive note of <paramref name="playfield"/>, in the lanes <paramref name="columnLanes"/> gives for each
         /// column (in playfield column order, lane space), at the depths <paramref name="scroll"/> maps their times to, under
         /// each column's cover in <paramref name="columnCovers"/> (Hidden, Fade In, Cover; empty or <see cref="DepthCover.None"/>
@@ -144,6 +152,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     var column = columns[j];
 
                     Vector2 lanes = columnLanes[columnIndex];
+
+                    if (Ported is PortedNoteShapes ported && columnIndex < ported.Count)
+                    {
+                        cover = columnIndex < columnCovers.Length ? columnCovers[columnIndex] : DepthCover.None;
+
+                        foreach (var entry in column.HitObjectContainer.AliveEntries)
+                        {
+                            switch (entry.Value)
+                            {
+                                case DrawableHoldNote hold:
+                                    addPortedHold(hold, ported, columnIndex, lanes, algorithm, timeRange, scroll, currentTime);
+                                    break;
+
+                                case DrawableNote note:
+                                    addPortedNote(note, ported, columnIndex, lanes, algorithm, timeRange, scroll, currentTime);
+                                    break;
+                            }
+                        }
+
+                        continue;
+                    }
+
                     float inset = (lanes.Y - lanes.X) * NOTE_GAP;
                     float lane0 = lanes.X + inset;
                     float lane1 = lanes.Y - inset;
@@ -237,6 +267,143 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
+        /// The tint a ported image is drawn with: white (the image's own colours), or the snap colour with timing-based colouring
+        /// on, which mania applies to legacy skins' notes the same way.
+        /// </summary>
+        private Color4 portedTint(DrawableNote snapSource) => SnapColours ? snapSource.Colour.TopLeft.SRGB.Opacity(1f) : Color4.White;
+
+        private void addPortedNote(DrawableNote note, PortedNoteShapes ported, int column, Vector2 lanes, IScrollAlgorithm algorithm, double timeRange,
+                                   HighwayScroll scroll, double currentTime)
+        {
+            if (note.Alpha <= 0)
+                return;
+
+            var texture = PortedNoteShapes.FrameAt(ported.Columns[column].Note, ported.NoteFrameLength, currentTime);
+
+            if (texture == null)
+                return;
+
+            float depth = scroll.DepthAt(algorithm, note.HitObject.StartTime, currentTime, timeRange);
+            Color4 colour = portedTint(note).Opacity(note.Alpha);
+
+            addImage(note.HitObject, NoteQuadKind.Note, texture, lanes.X, lanes.Y, depth, depth + ported.NoteDepth[column], colour, false);
+        }
+
+        private void addPortedHold(DrawableHoldNote hold, PortedNoteShapes ported, int column, Vector2 lanes, IScrollAlgorithm algorithm, double timeRange,
+                                   HighwayScroll scroll, double currentTime)
+        {
+            if (hold.Alpha <= 0)
+                return;
+
+            var images = ported.Columns[column];
+            double startTime = hold.HitObject.StartTime;
+
+            float headDepth = scroll.DepthAt(algorithm, startTime, currentTime, timeRange);
+            float tailDepth = headDepth + scroll.LengthBetween(algorithm, startTime, hold.HitObject.EndTime, timeRange);
+
+            // Where the head would be if it were not pinned: a repeated body pattern keeps moving with the note under the
+            // pinned head, as mania's masked body does.
+            float scrollingHeadDepth = headDepth;
+
+            // Pinned to the line while held, as for highway notes (see addHold).
+            if (tailDepth > headDepth && currentTime >= startTime && hold.Head.IsHit && !hold.Result.DroppedHoldAfter(startTime))
+                headDepth = Math.Max(headDepth, 0);
+
+            // As mania's legacy pieces: a hold whose head was missed darkens.
+            bool broken = hold.MissingStartTime.Value != null;
+            Color4 tint = broken ? Color4.DarkGray : portedTint(hold.Head);
+
+            float headThickness = ported.HeadDepth[column];
+            float tailThickness = ported.TailDepth[column];
+
+            // As mania's legacy layout: the body runs from the middle of the head to the middle of the tail, which lies past
+            // the hold's end, upside down.
+            float bodyStart = headDepth + headThickness / 2;
+            float bodyEnd = tailDepth + tailThickness / 2;
+
+            // The body's animation (if any) plays only while held, at mania's 30 ms a frame.
+            var body = hold.IsHolding.Value
+                ? PortedNoteShapes.FrameAt(images.Body, PortedNoteShapes.BODY_FRAME_LENGTH, currentTime)
+                : images.Body.Length > 0 ? images.Body[0] : null;
+
+            if (body != null && bodyEnd > bodyStart)
+            {
+                float anchor = ported.BodyFromTail ? bodyEnd : scrollingHeadDepth + headThickness / 2;
+                addBody(hold.HitObject, body, lanes, bodyStart, bodyEnd, ported.BodyTile[column], anchor, tint.Opacity(hold.Alpha));
+            }
+
+            var tail = PortedNoteShapes.FrameAt(images.Tail, ported.NoteFrameLength, currentTime);
+            if (tail != null)
+                addImage(hold.HitObject, NoteQuadKind.HoldTail, tail, lanes.X, lanes.Y, tailDepth, tailDepth + tailThickness, tint.Opacity(hold.Alpha * hold.Tail.Alpha), true);
+
+            var head = PortedNoteShapes.FrameAt(images.Head, ported.NoteFrameLength, currentTime);
+            if (head != null)
+                addImage(hold.HitObject, NoteQuadKind.HoldHead, head, lanes.X, lanes.Y, headDepth, headDepth + headThickness, tint.Opacity(hold.Alpha * hold.Head.Alpha), false);
+        }
+
+        /// <summary>
+        /// A hold body from <paramref name="start"/> to <paramref name="end"/>: the image stretched over it, or repeated every
+        /// <paramref name="tile"/> of depth from <paramref name="anchor"/> (a depth that scrolls with the note, so the pattern
+        /// moves with it and does not slide while the body shortens).
+        /// </summary>
+        private void addBody(HitObject hitObject, Texture texture, Vector2 lanes, float start, float end, float tile, float anchor, Color4 colour)
+        {
+            if (colour.A <= 0)
+                return;
+
+            float height = texture.DisplayHeight;
+
+            // Only what is on the track: tiles past either end are never drawn.
+            float visibleStart = Math.Max(start, 0);
+            float visibleEnd = Math.Min(end, 1);
+
+            if (!(tile > 0) || (visibleEnd - visibleStart) / tile > PortedNoteShapes.MAX_BODY_TILES)
+            {
+                add(new NoteQuad(hitObject, NoteQuadKind.HoldBody, lanes.X, lanes.Y, start, end, colour, colour, texture, height, 0));
+                return;
+            }
+
+            if (visibleEnd <= visibleStart)
+                return;
+
+            // Tile edges sit at anchor + k * tile. Counted in whole tiles, so a tile too small to move a float still ends.
+            float firstTile = MathF.Floor((visibleStart - anchor) / tile);
+
+            for (int k = 0; k <= PortedNoteShapes.MAX_BODY_TILES + 1; k++)
+            {
+                float tileStart = anchor + (firstTile + k) * tile;
+
+                if (tileStart >= visibleEnd)
+                    break;
+
+                float d0 = Math.Max(tileStart, start);
+                float d1 = Math.Min(tileStart + tile, end);
+
+                if (d1 <= d0)
+                    continue;
+
+                // Each tile shows the image near edge at its bottom row; a cut tile keeps the rows it would show.
+                float texNear = height * (1 - (d0 - tileStart) / tile);
+                float texFar = height * (1 - (d1 - tileStart) / tile);
+
+                add(new NoteQuad(hitObject, NoteQuadKind.HoldBody, lanes.X, lanes.Y, d0, d1, colour, colour, texture, texNear, texFar));
+            }
+        }
+
+        /// <summary>
+        /// A ported image lying on the track from <paramref name="depth0"/> (its bottom edge, which crosses the judgement line
+        /// at its time) to <paramref name="depth1"/>, upside down when <paramref name="flip"/> (hold tails, as mania draws them).
+        /// </summary>
+        private void addImage(HitObject hitObject, NoteQuadKind kind, Texture texture, float lane0, float lane1, float depth0, float depth1, Color4 colour, bool flip)
+        {
+            if (colour.A <= 0 || !(depth1 > depth0))
+                return;
+
+            float height = texture.DisplayHeight;
+            add(new NoteQuad(hitObject, kind, lane0, lane1, depth0, depth1, colour, colour, texture, flip ? 0 : height, flip ? height : 0));
+        }
+
+        /// <summary>
         /// A note-like bar from <paramref name="depth"/> (its leading edge, which crosses the judgement line at its time) to
         /// <paramref name="depth"/> + <paramref name="thickness"/>, with a bright rim at the near edge.
         /// </summary>
@@ -284,6 +451,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                         Depth1 = to,
                         Near = near.Opacity(near.A * visibleFrom),
                         Far = far.Opacity(far.A * visibleTo),
+                        TexNear = textureAt(quad, from),
+                        TexFar = textureAt(quad, to),
                     });
                 }
 
@@ -293,6 +462,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         private static Color4 colourAt(in NoteQuad quad, float depth)
             => quad.Depth1 > quad.Depth0 ? Interpolation.ValueAt(depth, quad.Near, quad.Far, quad.Depth0, quad.Depth1) : quad.Near;
+
+        /// <summary>
+        /// The texture row a ported image shows at <paramref name="depth"/>: linear in depth, as it is drawn.
+        /// </summary>
+        private static float textureAt(in NoteQuad quad, float depth)
+            => quad.Depth1 > quad.Depth0 ? quad.TexNear + (quad.TexFar - quad.TexNear) * (depth - quad.Depth0) / (quad.Depth1 - quad.Depth0) : quad.TexNear;
 
         private void append(in NoteQuad quad)
         {
@@ -313,9 +488,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
-        /// One flat quad on the track, from <see cref="Depth0"/> (near) to <see cref="Depth1"/> (far).
+        /// One flat quad on the track, from <see cref="Depth0"/> (near) to <see cref="Depth1"/> (far): a plain colour, or with
+        /// <see cref="Texture"/>, a skin image whose rows <see cref="TexNear"/> and <see cref="TexFar"/> (texture pixels from
+        /// its top) lie at the near and far edges.
         /// </summary>
-        public readonly record struct NoteQuad(HitObject HitObject, NoteQuadKind Kind, float Lane0, float Lane1, float Depth0, float Depth1, Color4 Near, Color4 Far);
+        public readonly record struct NoteQuad(HitObject HitObject, NoteQuadKind Kind, float Lane0, float Lane1, float Depth0, float Depth1, Color4 Near, Color4 Far,
+                                               Texture? Texture = null, float TexNear = 0, float TexFar = 0);
 
         private class HighwayNoteLayerDrawNode : DrawNode
         {
@@ -385,10 +563,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 Color4 near = length > 0 ? Interpolation.ValueAt(depth0, quad.Near, quad.Far, quad.Depth0, quad.Depth1) : quad.Near;
                 Color4 far = length > 0 ? Interpolation.ValueAt(depth1, quad.Near, quad.Far, quad.Depth0, quad.Depth1) : quad.Far;
 
+                var colour = ColourInfo.GradientVertical(far.Opacity(far.A * alpha), near.Opacity(near.A * alpha));
+
+                if (quad.Texture is Texture texture)
+                {
+                    float texNear = textureAt(quad, depth0);
+                    float texFar = textureAt(quad, depth1);
+                    bool flip = texNear < texFar;
+
+                    var rect = new RectangleF(0, Math.Min(texNear, texFar), texture.DisplayWidth, Math.Abs(texNear - texFar));
+
+                    if (rect.Height > 0)
+                        PortDrawing.DrawOnTrack(renderer, texture, rect, projection, DrawInfo.Matrix, quad.Lane0, quad.Lane1, depth0, depth1, colour, flip);
+
+                    return;
+                }
+
                 var screen = projection.ToScreen(quad.Lane0, quad.Lane1, depth0, depth1);
 
-                renderer.DrawQuad(renderer.WhitePixel, screen * DrawInfo.Matrix,
-                    ColourInfo.GradientVertical(far.Opacity(far.A * alpha), near.Opacity(near.A * alpha)));
+                renderer.DrawQuad(renderer.WhitePixel, screen * DrawInfo.Matrix, colour);
             }
         }
     }

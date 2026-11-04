@@ -6,6 +6,15 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q16. Where a ported skin's key area goes by default
+Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a
+tall key panel there. The camera's judgement line is lower (Chunithm 7.4%). Five placements are built ("Skin key
+area"): Panel (line lifted to the skin's hit position, keys upright below it), Floor (same line, keys lying on the
+floor), Squeezed (camera's line, keys squeezed under it), Receptors (camera's line, keys cropped by the screen edge),
+Hidden (camera's line, no keys). Screenshots: `/mnt/project-files/ortho-agent/skin-port/`. Asked on a decision card.
+- **Default until answered**: Panel. Switching is one default value.
+- **Answer**:
+
 ### Q2. Public name
 The client must not be called "osu!" anything (trademark). What should the game and the ruleset be called?
 - **Default until answered**: internal working name `maniaortho`, no public branding yet. M3 rebrand is blocked.
@@ -65,6 +74,9 @@ the thread; captures in `/mnt/project-files/ortho-agent/track/`.
 - **Options**: (a) the highway's track by default, the skin's as a setting; (b) the skin's by default, the highway's as a
   setting.
 - **Default until answered**: (a), "Track: Highway". Switching is one default value (DECISIONS, 2026-11-03).
+- **Note** (2026-11-04): Alpha's skin port request ("port over skins and play maps without needing to adjust any
+  textures") makes the ported skin the default track; skins without legacy mania images keep the highway's track.
+  The warped skin stays a setting. Change back if Alpha prefers the highway's look by default.
 - **Answer**:
 
 ### Q12. The HUD's key counter over the outer lanes

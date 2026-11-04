@@ -166,6 +166,7 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
 
 ## M6: Polish
 
-- [ ] Legacy skin textures on projected notes.
+- [x] Legacy skin textures on projected notes: the runtime skin porter (Alpha's ask, 2026-11-04; survey in
+      `research/skins-survey.md`). Open: the default key-area variant for raised hit positions (asked on a card).
 - [ ] Optional cosmetic camera motion (kiai sway), off by default.
 - [ ] More presets from research.

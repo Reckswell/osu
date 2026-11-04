@@ -138,8 +138,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormEnumDropdown<HighwayNoteStyle>
                 {
                     Caption = "Notes",
-                    HintText = "Skin: your skin's notes, tilted with the track. Highway: sharp notes drawn on the track at the "
-                               + "preset's thickness, in your skin's colours or white and pink lanes. Applies from the next play.",
+                    HintText = "Skin (ported): your skin's note images, redrawn sharp on the track. Skin (warped): your skin's "
+                               + "notes tilted with the rest of its stage. Highway: notes drawn on the track at the preset's thickness, in "
+                               + "your skin's colours or white and pink lanes. Ported needs a stable (legacy) skin. Applies from the next play.",
                     Current = highway.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle),
                 })
                 {
@@ -160,7 +161,8 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Caption = "Hit effects",
                     HintText = "Highway: bursts on the track at the judgement line, gold for Perfect and orange for Great, and a glow "
-                               + "while you hold a note. Skin: your skin's hit explosions, tilted with the track.",
+                               + "while you hold a note. Skin (ported): your skin's hit and hold lighting, upright at the line. Skin "
+                               + "(warped): your skin's hit explosions, tilted with the track.",
                     Current = highway.GetBindable<HighwayHitEffectStyle>(HighwaySetting.HitEffects),
                 })
                 {
@@ -170,11 +172,42 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Caption = "Track",
                     HintText = "Highway: a dark floor with teal side rails, and a beam rising from the judgement line in each lane you "
-                               + "press. Skin: your skin's stage, lane backgrounds, receptors and lane lighting, tilted with the track.",
+                               + "press. Skin (ported): your skin's stage rebuilt on the track from its images, with its keys under the line. "
+                               + "Skin (warped): your skin's stage, tilted with the track.",
                     Current = highway.GetBindable<HighwayTrackStyle>(HighwaySetting.Track),
                 })
                 {
-                    Keywords = new[] { "stage", "lane background", "column", "receptor", "key area", "floor", "beam", "lane lighting" },
+                    Keywords = new[] { "stage", "lane background", "column", "receptor", "key area", "floor", "beam", "lane lighting", "port" },
+                },
+                new SettingsItemV2(new FormEnumDropdown<SkinKeyArea>
+                {
+                    Caption = "Skin key area",
+                    HintText = "Where a ported skin's keys go when its judgement line sits high (IIDX-style skins). Panel and Floor lift "
+                               + "the line to the skin's height; the others keep the camera's line.",
+                    Current = highway.GetBindable<SkinKeyArea>(HighwaySetting.KeyArea),
+                })
+                {
+                    Keywords = new[] { "keys", "receptor", "iidx", "hit position", "lift", "panel" },
+                },
+                new SettingsItemV2(new FormEnumDropdown<SkinStageFit>
+                {
+                    Caption = "Skin stage position",
+                    HintText = "Camera: the preset's track, centred. Skin position: centred where the skin puts its stage. Skin "
+                               + "position and width: the skin's own stage width too.",
+                    Current = highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit),
+                })
+                {
+                    Keywords = new[] { "column start", "stage width", "centre", "center", "left" },
+                },
+                new SettingsItemV2(new FormCheckBox
+                {
+                    Caption = "Skin note proportions",
+                    HintText = "On: ported notes are as tall at the judgement line, for their width, as your skin draws them. Off: they "
+                               + "use the note thickness above.",
+                    Current = highway.GetBindable<bool>(HighwaySetting.SkinNoteProportions),
+                })
+                {
+                    Keywords = new[] { "note height", "note size", "thickness" },
                 },
             };
         }
