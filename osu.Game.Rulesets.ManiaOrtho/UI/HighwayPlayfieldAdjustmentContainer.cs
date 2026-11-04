@@ -488,7 +488,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 NoteLayer.FarFade = DepthCover.FarFade(Warp.Scroll.AppearDepth, Settings.FarFade);
                 NoteLayer.HoldOpacity = Settings.HoldOpacity;
                 measureCovers(stage);
-                NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
+                // Plain bars meet the lane lines when they are drawn.
+                var laneLines = Guides.ShowLaneLines && Guides.Alpha > 0 ? Guides.Lines : ReadOnlySpan<HighwayGuides.GuideLine>.Empty;
+                NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, laneLines, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
                     Time.Current);
             }
 

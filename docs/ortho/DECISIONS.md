@@ -1054,3 +1054,32 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   runner, on the committed code too (the frame-stable clock was past the chart when the first steps ran).
 - **Reverse**: restore the 2026-11-03 rectangle (`HighwayWall` as a composite of two boxes, placed by its lower-left corner
   and sheared by the sway) and drop `SetStages`.
+
+## 2026-11-04: Highway notes meet the lane lines, corner by corner (Alpha)
+
+- **Alpha asked** (after a demo): notes had "a tiny bit of clipping/space (not completely flush) with the lines in
+  between"; make them "visually as seamless as possible". Close-ups of the default skin at 4K showed a 1-2 px dark gap
+  between each note and the line (the 1% margin per side, at least 1 px, from "a pixel of gap between notes").
+- **What**: with the lane guides drawn, each plain note bar (taps, hold heads and tails) spans from the solid edge of the
+  line on its left to the one on its right (`HighwayNoteLayer.NoteSides`, `HighwayGuides.SolidHalfWidth`): half the
+  line's width, at least its pixel floor, and for the feathered group dividers their solid core (a pixel narrower). Hold
+  bodies are 80% of the narrowest their column's bars get on the track (at its near or far end), centred, so they keep
+  one width as they scroll and never pass their head or tail. Without lane lines (guides off, or the ported skin's own track) the old
+  gap stays, so neighbouring notes do not merge into one bar.
+- **Why corner by corner**: native notes are drawn over the lines, and a line is often 1 px. Placing the sides by one
+  measurement per bar failed both ways in captures: measured at the near side, a note a few hundredths of a pixel too
+  wide took the line's only pixel (the centre line vanished between two notes); measured at the far side, the centre
+  line (on a pixel boundary at an even window width) had a dark pixel column beside the note on one side. Each corner is
+  now placed on the line's edge at its own depth: a line's edge is straight on screen (its width grows with the track,
+  linearly in screen height, until its floor, then stays), so the bar's side between two corners is the same straight
+  line (within a hundredth of a pixel where a bar straddles the point where the floor takes over). Captures at 4K (pixel rows across the centre line: note, line, note, with nothing between), 7K beside the stage
+  edge and a lane line, and 10K Voltex far away beside 1 px lines and the centre divider.
+- **Gate**: `TestNotesMeetTheLaneLines` (Chunithm 4K, 7K and 7K dual stages, Voltex 10K: every corner of every bar,
+  taps and hold ends with a held head on the line, within 0.001 px of the line's solid edge as `TrackDrawing.GetLaneLine`
+  builds it from the guides' own layout and scale, floored lines and group dividers included),
+  `TestSolidHalfWidth`, `TestNotesKeepAPixelOfGapWithoutLines` (the old gap rule, guides off),
+  `TestHoldBodiesStayWithinTheirEnds` (80% of the narrowest bar, centred, within both ends at every corner, the same
+  width a moment later).
+- **Supersedes** the "Note gap floor" part of "Hand-group dividers from 6K, and a pixel of gap between notes" wherever
+  lines are drawn.
+- **Reverse**: pass an empty span of lines to `HighwayNoteLayer.Gather`.

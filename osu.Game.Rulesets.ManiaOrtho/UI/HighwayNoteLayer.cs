@@ -47,8 +47,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public float NoteThickness { get; set; } = NOTE_THICKNESS;
 
         /// <summary>
-        /// The gap on each side of a note, as a fraction of its lane (a 98% wide note), but never under
-        /// <see cref="MIN_GAP_PIXELS"/>.
+        /// Where no lane line is drawn beside it, the gap on each side of a note, as a fraction of its lane (a 98% wide note),
+        /// but never under <see cref="MIN_GAP_PIXELS"/>. Where lines are drawn, notes meet them instead.
         /// </summary>
         public const float NOTE_GAP = 0.01f;
 
@@ -155,13 +155,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public PortedNoteShapes? Ported { get; set; }
 
         /// <summary>
+        /// The lane lines beside the column being gathered, when they are drawn.
+        /// </summary>
+        private NoteSides? sides;
+
+        /// <summary>
         /// Collects every alive note of <paramref name="playfield"/>, in the lanes <paramref name="columnLanes"/> gives for each
         /// column (in playfield column order, lane space), at the depths <paramref name="scroll"/> maps their times to, under
         /// each column's cover in <paramref name="columnCovers"/> (Hidden, Fade In, Cover; empty or <see cref="DepthCover.None"/>
-        /// for none).
+        /// for none). Plain bars reach the <paramref name="laneLines"/> drawn beside them (<see cref="HighwayGuides.Lines"/>, in
+        /// the same order); with none (empty), they keep a gap inside their column (<see cref="NoteGap"/>).
         /// </summary>
-        public void Gather(ManiaPlayfield playfield, ReadOnlySpan<Vector2> columnLanes, ReadOnlySpan<DepthCover> columnCovers, IScrollAlgorithm algorithm,
-                           double timeRange, HighwayScroll scroll, double currentTime)
+        public void Gather(ManiaPlayfield playfield, ReadOnlySpan<Vector2> columnLanes, ReadOnlySpan<DepthCover> columnCovers,
+                           ReadOnlySpan<HighwayGuides.GuideLine> laneLines, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
+                           double currentTime)
         {
             Count = 0;
             Invalidate(Invalidation.DrawNode);
@@ -171,12 +178,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             var stages = playfield.Stages;
             int columnIndex = 0;
+            int lineIndex = 0;
 
             for (int i = 0; i < stages.Count; i++)
             {
                 var columns = stages[i].Columns;
 
-                for (int j = 0; j < columns.Length; j++, columnIndex++)
+                for (int j = 0; j < columns.Length; j++, columnIndex++, lineIndex++)
                 {
                     if (columnIndex >= columnLanes.Length)
                         return;
@@ -184,6 +192,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     var column = columns[j];
 
                     Vector2 lanes = columnLanes[columnIndex];
+
+                    // Each stage has a line before each of its columns and one after its last.
+                    sides = lineIndex + 1 < laneLines.Length
+                        ? new NoteSides(laneLines[lineIndex], laneLines[lineIndex + 1])
+                        : null;
 
                     if (Ported is PortedNoteShapes ported && columnIndex < ported.Count)
                     {
@@ -223,6 +236,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                         }
                     }
                 }
+
+                // Past the stage's right edge.
+                lineIndex++;
             }
         }
 
@@ -296,18 +312,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             bool broken = hold.MissingStartTime.Value != null;
             Color4 colour = broken ? broken_colour : noteColour(hold.Head, columnColour);
 
-            // The body is narrower than the note by a share of the lane, wide enough at any size, and never wider than its head
-            // or tail: on a lane a few pixels wide their gap's pixel floor is more than the share.
-            float laneWidth = lanes.Y - lanes.X;
-            float bodyInset = laneWidth * (NOTE_GAP + (1 - 2 * NOTE_GAP) * (1 - BODY_WIDTH) / 2);
-            bodyInset = Math.Max(bodyInset, Math.Max(barGap(lanes, headDepth, NoteThickness), barGap(lanes, tailDepth, NoteThickness / 2)));
+            // The body is a share of the narrowest the column's bars get on the track, centred on it, so it is never wider than
+            // its head or tail wherever they are, and keeps one width as it scrolls. Their sides differ a little with depth: a
+            // line's pixel floor or the gap's narrows them far away, a group divider's feathered core near the line. Both grow
+            // with one over the track's width, as the larger of a constant and a linear term, so the narrowest is at one end.
+            Vector2 near = barSides(lanes, 0, 0);
+            Vector2 far = barSides(lanes, 1, 0);
+            float bodyLeft = Math.Max(near.X, far.X);
+            float bodyRight = Math.Min(near.Y, far.Y);
+            float bodyInset = Math.Max(0, bodyRight - bodyLeft) * (1 - BODY_WIDTH) / 2;
             float bodyAlpha = broken ? 0.35f : hold.IsHolding.Value ? 0.85f : 0.55f;
             float bodyStart = headDepth + NoteThickness / 2;
 
-            if (tailDepth > bodyStart)
+            if (tailDepth > bodyStart && bodyRight > bodyLeft)
             {
                 Color4 body = colour.Opacity(bodyAlpha * HoldOpacity * hold.Alpha);
-                add(new NoteQuad(hold.HitObject, NoteQuadKind.HoldBody, lanes.X + bodyInset, lanes.Y - bodyInset, bodyStart, tailDepth, body, body));
+                add(new NoteQuad(hold.HitObject, NoteQuadKind.HoldBody, bodyLeft + bodyInset, bodyRight - bodyInset, bodyStart, tailDepth, body, body));
             }
 
             addBar(hold.HitObject, NoteQuadKind.HoldTail, lanes, tailDepth, NoteThickness / 2, colour, hold.Alpha * hold.Tail.Alpha);
@@ -453,29 +473,65 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         /// <summary>
         /// A note-like bar from <paramref name="depth"/> (its leading edge, which crosses the judgement line at its time) to
-        /// <paramref name="depth"/> + <paramref name="thickness"/>, with a bright rim at the near edge, across
-        /// <paramref name="lanes"/> (its column's edges in lane space) less the gap on each side (<see cref="NoteGap"/>).
+        /// <paramref name="depth"/> + <paramref name="thickness"/>, with a bright rim at the near edge, across its column
+        /// (<paramref name="lanes"/>, lane space) as <see cref="barSides"/> places its sides.
         /// </summary>
         private void addBar(HitObject hitObject, NoteQuadKind kind, Vector2 lanes, float depth, float thickness, Color4 colour, float alpha)
         {
             if (alpha <= 0)
                 return;
 
-            float inset = barGap(lanes, depth, thickness);
-            float lane0 = lanes.X + inset;
-            float lane1 = lanes.Y - inset;
+            Vector2 bar = barSides(lanes, depth, thickness);
             float rim = depth + thickness * rim_fraction;
 
-            add(new NoteQuad(hitObject, kind, lane0, lane1, rim, depth + thickness, colour.Lighten(0.25f).Opacity(alpha), colour.Opacity(alpha)));
-            add(new NoteQuad(hitObject, kind, lane0, lane1, depth, rim, Color4.White.Opacity(alpha), Color4.White.Opacity(alpha)));
+            add(new NoteQuad(hitObject, kind, bar.X, bar.Y, rim, depth + thickness, colour.Lighten(0.25f).Opacity(alpha), colour.Opacity(alpha), Sides: sides));
+            add(new NoteQuad(hitObject, kind, bar.X, bar.Y, depth, rim, Color4.White.Opacity(alpha), Color4.White.Opacity(alpha), Sides: sides));
         }
 
         /// <summary>
-        /// The gap on each side of a bar from <paramref name="depth"/> to <paramref name="depth"/> + <paramref name="thickness"/>
-        /// (<see cref="NoteGap"/>), measured where the bar is narrowest on screen: its far side.
+        /// The sides, in lane space, of a bar from <paramref name="depth"/> to <paramref name="depth"/> +
+        /// <paramref name="thickness"/> in the column at <paramref name="lanes"/>, as measured at its far side (or the track's
+        /// end, where it is cut). Where lane lines are drawn, the bar is drawn with each corner on the solid edge of the line
+        /// beside it (<see cref="NoteSides"/>); these are its far corners. Without lines, the column's edges less the gap on
+        /// each side (<see cref="NoteGap"/>).
         /// </summary>
-        private float barGap(Vector2 lanes, float depth, float thickness)
-            => NoteGap(lanes.Y - lanes.X, projection.WidthAt(Math.Max(depth + thickness, 0)) * pixelsPerUnit);
+        private Vector2 barSides(Vector2 lanes, float depth, float thickness)
+        {
+            float trackPixels = projection.WidthAt(Math.Clamp(depth + thickness, 0, 1)) * pixelsPerUnit;
+
+            if (sides is NoteSides lines)
+                return lines.LanesAt(trackPixels);
+
+            float gap = NoteGap(lanes.Y - lanes.X, trackPixels);
+            return new Vector2(lanes.X + gap, lanes.Y - gap);
+        }
+
+        /// <summary>
+        /// The lane lines on each side of a plain bar, which its sides meet (Alpha 2026-11-04: notes as seamless as possible).
+        /// </summary>
+        /// <remarks>
+        /// Notes are drawn over the lines, so a side must never cross into one, nor stop short of it: a 1 px line loses its only
+        /// pixel to a note a hundredth of a pixel too wide, and a line on a pixel boundary (the centre line, at an even width)
+        /// shows a dark pixel beside a note a hundredth too narrow. So each corner is placed on the line's edge at its own depth
+        /// (<see cref="LanesAt"/>): a line's edge is straight on screen (its width grows with the track's, linearly in screen
+        /// height, until its pixel floor, then stays), and so is the bar's side between two of its points.
+        /// </remarks>
+        public readonly record struct NoteSides(HighwayGuides.GuideLine Left, HighwayGuides.GuideLine Right)
+        {
+            /// <summary>
+            /// The sides, in lane space, at a depth where the track is <paramref name="trackPixels"/> screen pixels wide: each on
+            /// the solid edge of its line (<see cref="HighwayGuides.SolidHalfWidth"/>), but a line never takes more than a quarter
+            /// of the lane, so a note on a tiny lane still shows.
+            /// </summary>
+            public Vector2 LanesAt(float trackPixels)
+            {
+                float cell = Right.Lane - Left.Lane;
+                float left = Math.Min(HighwayGuides.SolidHalfWidth(Left.Kind, trackPixels), cell * max_gap);
+                float right = Math.Min(HighwayGuides.SolidHalfWidth(Right.Kind, trackPixels), cell * max_gap);
+
+                return new Vector2(Left.Lane + left, Right.Lane - right);
+            }
+        }
 
         /// <summary>
         /// Adds <paramref name="quad"/>, cut where the column's cover or the far fade changes so each piece fades as mania's
@@ -550,12 +606,35 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
-        /// One flat quad on the track, from <see cref="Depth0"/> (near) to <see cref="Depth1"/> (far): a plain colour, or with
-        /// <see cref="Texture"/>, a skin image whose rows <see cref="TexNear"/> and <see cref="TexFar"/> (texture pixels from
-        /// its top) lie at the near and far edges.
+        /// One flat quad on the track, from <see cref="Lane0"/> to <see cref="Lane1"/> across and <see cref="Depth0"/> (near) to
+        /// <see cref="Depth1"/> (far) along it: a plain colour, or with <see cref="Texture"/>, a skin image whose rows
+        /// <see cref="TexNear"/> and <see cref="TexFar"/> (texture pixels from its top) lie at the near and far edges. With
+        /// <see cref="Sides"/>, its corners are on the lane lines' edges instead, at each corner's depth (<see cref="NoteSides"/>),
+        /// and the lanes are those at its bar's far side.
         /// </summary>
         public readonly record struct NoteQuad(HitObject HitObject, NoteQuadKind Kind, float Lane0, float Lane1, float Depth0, float Depth1, Color4 Near, Color4 Far,
-                                               Texture? Texture = null, float TexNear = 0, float TexFar = 0);
+                                               Texture? Texture = null, float TexNear = 0, float TexFar = 0, NoteSides? Sides = null)
+        {
+            /// <summary>
+            /// The sides, in lane space, at a depth where the track is <paramref name="trackPixels"/> screen pixels wide.
+            /// </summary>
+            public Vector2 LanesAt(float trackPixels) => Sides is NoteSides sides ? sides.LanesAt(trackPixels) : new Vector2(Lane0, Lane1);
+
+            /// <summary>
+            /// Where this piece is drawn on screen (in <paramref name="projection"/>'s space), from <paramref name="depth0"/> to
+            /// <paramref name="depth1"/>, where one of its units is <paramref name="pixelsPerUnit"/> screen pixels.
+            /// </summary>
+            public Quad ToScreen(in HighwayProjection projection, float pixelsPerUnit, float depth0, float depth1)
+            {
+                if (Sides == null)
+                    return projection.ToScreen(Lane0, Lane1, depth0, depth1);
+
+                Vector2 near = LanesAt(projection.WidthAt(depth0) * pixelsPerUnit);
+                Vector2 far = LanesAt(projection.WidthAt(depth1) * pixelsPerUnit);
+
+                return new Quad(projection.ToScreen(far.X, depth1), projection.ToScreen(far.Y, depth1), projection.ToScreen(near.X, depth0), projection.ToScreen(near.Y, depth0));
+            }
+        }
 
         private class HighwayNoteLayerDrawNode : DrawNode
         {
@@ -566,6 +645,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             private NoteQuad[] quads = Array.Empty<NoteQuad>();
             private int count;
             private float alpha;
+            private float pixelsPerUnit;
 
             public HighwayNoteLayerDrawNode(HighwayNoteLayer source)
                 : base(source)
@@ -579,6 +659,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 shader = Source.shader;
                 projection = new HighwayProjection(Source.layout, Source.DrawSize);
                 alpha = DrawColourInfo.Colour.MaxAlpha;
+                pixelsPerUnit = MathF.Sqrt(DrawInfo.Matrix.M11 * DrawInfo.Matrix.M11 + DrawInfo.Matrix.M12 * DrawInfo.Matrix.M12);
 
                 count = Source.Count;
                 if (quads.Length < count)
@@ -641,7 +722,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     return;
                 }
 
-                var screen = projection.ToScreen(quad.Lane0, quad.Lane1, depth0, depth1);
+                var screen = quad.ToScreen(projection, pixelsPerUnit, depth0, depth1);
 
                 renderer.DrawQuad(renderer.WhitePixel, screen * DrawInfo.Matrix, colour);
             }
