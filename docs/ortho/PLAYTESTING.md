@@ -95,14 +95,19 @@ metadata cache download, no online images).
 
 ## L4: Alpha plays
 
-Alpha plays the full game (menus, song select, settings, replays) built from the clone:
+Alpha plays the full game (menus, song select, settings, replays) by double-clicking
+`Documents\Projects\osu!\osu\osu.exe`. To ship changes, package it again (the game must be closed):
 
 ```powershell
 # in C:\Users\alpha\Documents\Projects\osu!\ortho
 git pull
-powershell -ExecutionPolicy Bypass -File scripts\ortho\play.ps1          # build, then start osu!
-powershell -ExecutionPolicy Bypass -File scripts\ortho\play.ps1 -NoBuild # start without building
+powershell -ExecutionPolicy Bypass -File scripts\ortho\package.ps1       # osu\game (the build) and osu\osu.exe (the launcher)
+powershell -ExecutionPolicy Bypass -File scripts\ortho\play.ps1          # for development: build the clone and start it
 ```
+
+`osu.exe` (`ManiaOrtho.Launcher`) does for the package what `play.ps1` does for the clone's build: the ini files,
+temp files in `osu\temp`, no update checks or crash reports, screenshots moved to stable, and `osu\launcher.log`. It
+starts nothing when the packaged game is already running. `osu\version.txt` names the commit it was packaged from.
 
 - **Data**: `Documents\Projects\osu!\ortho-data`, next to the clone, so a fresh clone or `git clean` keeps it. The
   script writes `framework.ini` (portable: the profile's data folders are never opened) and `storage.ini` (osu!'s own

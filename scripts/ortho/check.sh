@@ -20,7 +20,7 @@ done
 echo "== build (warnings as errors, code style enforced)"
 dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Debug -warnaserror -v q -nologo
 # Incremental builds skip analyzers, so re-run them on this fork's own projects every time (about 20s).
-for project in osu.Game.Rulesets.ManiaOrtho osu.Game.Rulesets.ManiaOrtho.Tests; do
+for project in osu.Game.Rulesets.ManiaOrtho osu.Game.Rulesets.ManiaOrtho.Tests ManiaOrtho.Launcher; do
   dotnet build "$project" -c Debug -warnaserror -p:EnforceCodeStyleInBuild=true --no-incremental --no-dependencies -v q -nologo
 done
 

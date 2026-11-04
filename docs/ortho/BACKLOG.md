@@ -112,6 +112,9 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [ ] Alpha's files from stable: osu!'s first-run import of maps, skins and scores from `AppData\Local\osu!` by hard
   links; screenshots moved into stable's `Screenshots` folder; never open `%APPDATA%\osu`. Gate: on Alpha's PC the
   import reports hard links, stable's files unchanged (sizes and times), a screenshot lands in stable's folder.
+- [~] Package for Alpha (asked 2026-11-04): `osu\osu.exe` next to the clone starts the packaged game, repackaged with
+  `scripts/ortho/package.ps1`. Gate: `GameLauncherTest`; on Alpha's PC the package builds and `osu.exe` starts the game
+  with its data in `ortho-data`.
 - [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays.
 
 ## M2.6: Feel follow-ups from the research baseline

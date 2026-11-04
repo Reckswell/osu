@@ -12,6 +12,7 @@ Alpha (the owner) about every step. Read `docs/ortho/README.md` once for the ful
 | Path | What |
 |---|---|
 | `osu.Game.Rulesets.ManiaOrtho/` | The ruleset. Delegates everything except the playfield to `ManiaRuleset`. |
+| `ManiaOrtho.Launcher/` | `osu.exe`, the launcher of the packaged game Alpha plays (`scripts/ortho/package.ps1`). Not part of the game. |
 | `osu.Game.Rulesets.ManiaOrtho.Tests/` | Parity tests, playtest harness (`Playtest/`), visual test scenes. `dotnet run` opens the test browser. |
 | `docs/ortho/SPEC.md` | What the gameplay must look and feel like. The source of truth for behaviour. |
 | `docs/ortho/BACKLOG.md` | Milestones and tasks with acceptance gates. Work top to bottom. |
@@ -32,6 +33,7 @@ scripts/ortho/playtest.sh               # autoplay real + synthetic charts in a 
 scripts/ortho/playtest.sh --beatmap path/to/map.osu --times 5000,20000 --scroll-speed 24
 scripts/ortho/cloud-setup.sh --force    # install .NET 10, Mesa, Xvfb, ImageMagick on a fresh Linux container
 scripts/ortho/play.ps1                  # Windows: the full game with maniaortho, data kept next to the clone (PLAYTESTING L4)
+scripts/ortho/package.ps1               # Windows: package it as Documents\Projects\osu!\osu\osu.exe for Alpha; rerun after changes
 dotnet run --project osu.Game.Rulesets.ManiaOrtho.Tests   # interactive visual test browser (needs a display)
 ```
 

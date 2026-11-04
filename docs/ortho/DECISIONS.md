@@ -541,6 +541,27 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   optimisation" setting for `osu!.exe` is reset to Auto on start.
 - **How to reverse**: delete the two ini files next to the build; the game then uses `%APPDATA%\osu-development`.
 
+## 2026-11-04: osu.exe, a launcher for a packaged game (Alpha)
+
+- **Alpha asked** for an .exe to just run, rebuilt when changes are made, and named it: "just call it osu".
+- **Decision**: `scripts/ortho/package.ps1` publishes `osu.Desktop` (Debug, as `play.ps1` builds it) into
+  `Documents\Projects\osu!\osu\game` and a small launcher, `ManiaOrtho.Launcher` (assembly name `osu`), as
+  `osu\osu.exe` (single file, framework-dependent, about 190 KB). Double-clicking it does what `play.ps1` does: the
+  framework.ini and storage.ini that keep the data in `ortho-data` (shared with `play.ps1`), temp files in
+  `osu\temp`, `OSU_EXTERNAL_UPDATE_PROVIDER` and `OSU_DISABLE_ERROR_REPORTING`, screenshots moved into stable's folder
+  after the game closes, a log in `osu\launcher.log`. It starts nothing if that game is already running.
+- **Why a launcher and not osu!.exe itself**: the temp folder and the two variables are per process; setting them
+  inside the game would mean editing `osu.Desktop/Program.cs` (a core patch). The game's own `osu!.exe` still works on
+  its own with the data in `ortho-data`, only without those extras.
+- **Why outside osu.sln**: adding a project there is a core-file change. The test project references the launcher, so
+  `check.sh` builds it, analyses it and tests its logic (`GameLauncherTest`) without starting a game.
+- **Packaging**: built beside the old package and swapped in at the end, so a failed build leaves the last one
+  playable; refused while the packaged game runs; `osu\version.txt` names the commit. Framework-dependent because
+  the PC already has .NET 10 (it builds the clone); self-contained would add about 70 MB per copy.
+- **Name**: `osu.exe` runs as process "osu", the game as "osu!" (as stable does); the launcher tells them apart by path.
+  The game's window title stays "osu! (development)" (a Debug build). No icon of osu!'s is copied.
+- **How to reverse**: delete `ManiaOrtho.Launcher/`, its reference in the test project and `package.ps1`.
+
 ## 2026-11-04: Note thickness up to 8%
 
 - Alpha's 4K note bars are 6.4% of the scroll length (`research/game-osu-mania.md`, finding 7); under the Parallel

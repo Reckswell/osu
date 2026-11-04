@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup Label="Project">
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <!-- Alpha's name for it: osu.exe, next to the packaged game (scripts/ortho/package.ps1). -->
+    <AssemblyName>osu</AssemblyName>
+    <RootNamespace>ManiaOrtho.Launcher</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Added to every project by Directory.Build.props; the launcher draws nothing. -->
+    <PackageReference Remove="SixLabors.ImageSharp" />
+  </ItemGroup>
+</Project>

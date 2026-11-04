@@ -16,5 +16,7 @@
     <!-- Only for tests that switch away from maniaortho (present beatmap). -->
     <ProjectReference Include="..\osu.Game.Rulesets.Osu\osu.Game.Rulesets.Osu.csproj"/>
     <ProjectReference Include="..\osu.Game.Rulesets.ManiaOrtho\osu.Game.Rulesets.ManiaOrtho.csproj"/>
+    <!-- The osu.exe launcher's logic (folders, ini files, screenshots), tested without starting a game. -->
+    <ProjectReference Include="..\ManiaOrtho.Launcher\ManiaOrtho.Launcher.csproj"/>
   </ItemGroup>
 </Project>
