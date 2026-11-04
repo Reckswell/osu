@@ -567,3 +567,15 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - Alpha's 4K note bars are 6.4% of the scroll length (`research/game-osu-mania.md`, finding 7); under the Parallel
   camera the setting is the same measure, so its range now goes to 8% (was 6%). Default and presets unchanged.
   Test: `TestNoteThicknessReachesBarsOfAlphasSkin`.
+
+## 2026-11-04: Held wall keys keep osu-framework's repeat (research C4 dropped)
+
+- **Decision**: no change. `research/topic-covers.md` C4 proposed a repeat timer of our own because the wall keys
+  seemed to follow the operating system's key repeat (about 30 per second). They do not: osu-framework drops OS
+  repeats and makes its own (`InputManager.updateKeyRepeat`: 250 ms, then every 70 ms, on the input manager's real-time
+  clock, so pause and replay fast-forward do not change it). A held Shift+F4 moves the wall about 14 steps (70%) per
+  second and crosses 0-90% in about 1.4 s, not half a second. A timer of our own at 100 ms was written, reviewed and
+  reverted: it only slowed this to 10 steps a second, for more code.
+- **Corrects** C4's premise ("OS key repeat, about 30 Hz", "25-75x beatoraja") and the 2026-11-03 hotkeys entry's
+  "repeat on hold" only in that the repeat is osu-framework's, not the OS's.
+- **Revisit** if Alpha finds the held rate too fast.

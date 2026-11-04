@@ -93,7 +93,7 @@ See `topic-speed.md`. This note only records what each cover does to speed.
 | Chunithm | 5.82% of the visible track (steps 0-11; larger above) | menu |
 | osu!mania Cover | 10% of the playfield | mod setting |
 | Sonolus Sekai stage cover | 1% | engine option |
-| **maniaortho** | **5% of the track depth** | OS key repeat, about 30 Hz → about 150%/s |
+| **maniaortho** | **5% of the track depth** | osu-framework's repeat: 250 ms, then every 70 ms → about 70%/s (corrected 2026-11-04; was "OS key repeat, about 30 Hz → about 150%/s") |
 
 ## Notes and holds, key count, feedback
 
@@ -126,6 +126,9 @@ Not relevant to covers.
   proposal 1). The examples are speed 29 on argon.
 
 **C4. Step and repeat.** Ours is 25-75× faster than beatoraja's held rate, at the mercy of the OS repeat rate.
+*Corrected 2026-11-04:* the repeat is osu-framework's (250 ms delay, then every 70 ms, real time), about 70%/s: 3.5× beatoraja's
+fast rate, independent of the OS. The timer below was tried and dropped (DECISIONS, "Held wall keys keep
+osu-framework's repeat").
 
 - **Proposal:** keep **5% per press**, close to Chunithm's 5.82% step, so round values stay reachable.
 - Repeat at **one step per 100 ms** (50%/s) from a timer of our own while the key is held, ignoring OS repeats.
