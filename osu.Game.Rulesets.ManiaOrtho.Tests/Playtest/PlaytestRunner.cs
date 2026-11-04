@@ -68,15 +68,42 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
             // Portable: the harness keeps its settings and database next to its build output, inside the clone, never in the
             // user's application data (where the real osu! lives).
-            using (var host = Host.GetSuitableDesktopHost(@"ortho-playtest", new HostOptions { FriendlyGameName = "ortho playtest", PortableInstallation = true }))
+            try
             {
-                var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]), parsed.GetValueOrDefault("screenshot"),
-                    int.Parse(parsed.GetValueOrDefault("case", "0")));
-                host.Run(game);
+                using (var host = Host.GetSuitableDesktopHost(@"ortho-playtest", new HostOptions { FriendlyGameName = "ortho playtest", PortableInstallation = true }))
+                {
+                    var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]), parsed.GetValueOrDefault("screenshot"),
+                        int.Parse(parsed.GetValueOrDefault("case", "0")));
+                    host.Run(game);
 
-                Console.WriteLine(game.Error == null ? "PLAYTEST PASSED" : $"PLAYTEST FAILED: {game.Error}");
-                return game.Error == null ? 0 : 1;
+                    Console.WriteLine(game.Error == null ? "PLAYTEST PASSED" : $"PLAYTEST FAILED: {game.Error}");
+                    return game.Error == null ? 0 : 1;
+                }
             }
+            finally
+            {
+                RemovePortableMarker(RuntimeInfo.StartupDirectory);
+            }
+        }
+
+        /// <summary>
+        /// The file osu-framework saves its settings to in a portable game's folder. Its presence alone makes the folder portable
+        /// for any host started from it.
+        /// </summary>
+        public const string PORTABLE_MARKER = "framework.ini";
+
+        /// <summary>
+        /// Removes the framework settings a run saved next to the build output. The run is portable by its option; the file
+        /// would make every later host started from this folder portable too, NUnit's headless test hosts included: they
+        /// would take the build output as their storage and delete it when cleaning up, so the rest of a <c>dotnet test</c>
+        /// run fails on missing assemblies. The harness sets its framework settings each run, so nothing is lost.
+        /// </summary>
+        public static void RemovePortableMarker(string buildOutput)
+        {
+            string marker = Path.Combine(buildOutput, PORTABLE_MARKER);
+
+            if (File.Exists(marker))
+                File.Delete(marker);
         }
 
         private static void setEnv(string name, string? value)

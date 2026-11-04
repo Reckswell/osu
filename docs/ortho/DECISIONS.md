@@ -742,3 +742,18 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   separated by a black pixel; after feathering the split widens smoothly (pixel rows 2, 2+, 4, 4+, 6).
 - **Reverse**: `SetLine(..., Lane)` for every inner line; `NoteGap` back to `laneWidth * NOTE_GAP`; the body's inset back
   to its share alone.
+
+## 2026-11-04: The playtest harness leaves no framework.ini in the test build output
+
+- **Problem**: full checks run after a playtest failed a third of the tests with "Could not load file or assembly
+  'MessagePack.Annotations'", and the test build output folder was gone afterwards. The harness runs portable from that
+  folder, so osu-framework saves `framework.ini` there; a folder with that file is portable for every host started from
+  it, NUnit's headless test hosts included, which take it as their storage and delete it when they clean up. Reproduced
+  by touching the file and running one test scene: the folder disappeared.
+- **Decision**: `PlaytestRunner` deletes the file when a run ends (its framework settings are set every run anyway), and
+  `check.sh` deletes a stale one (a run killed by the timeout) before testing. The harness stays portable, so nothing
+  of it reaches the user's application data.
+- **Alternatives**: running the harness from a copy of the build output (650 MB per run, and the copy could go stale);
+  a non-portable harness (would write to `%APPDATA%` on Alpha's PC).
+- **Gate**: `PortableMarkerTest`; a playtest run followed by a test scene keeps the folder.
+- **Reverse**: drop the `finally` in `PlaytestRunner.Run` and the line in `check.sh`.

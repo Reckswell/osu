@@ -25,6 +25,9 @@ for project in osu.Game.Rulesets.ManiaOrtho osu.Game.Rulesets.ManiaOrtho.Tests M
 done
 
 echo "== ruleset tests"
+# A playtest killed mid-run leaves its framework.ini in the build output; with it, NUnit's headless hosts take that folder
+# as their storage and delete it on cleanup, and every later test fails on missing assemblies (PlaytestRunner).
+rm -f osu.Game.Rulesets.ManiaOrtho.Tests/bin/Debug/net10.0/framework.ini
 args=(osu.Game.Rulesets.ManiaOrtho.Tests --no-build --logger "console;verbosity=normal")
 [ -n "$filter" ] && args+=(--filter "$filter")
 log="$(mktemp -t ortho-check.XXXXXX.log)"
