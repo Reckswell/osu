@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
@@ -298,12 +299,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         {
             AddStep("play an osu! beatmap as 7K dual stages", () =>
             {
-                // Dual Stages applies to converts only.
-                beatmap = new Beatmap
-                {
-                    BeatmapInfo = { Ruleset = new OsuRuleset().RulesetInfo },
-                    HitObjects = Enumerable.Range(0, 32).Select(i => (HitObject)new HitCircle { StartTime = 1000 + i * 250, Position = new Vector2(i * 61 % 512, 192) }).ToList(),
-                };
+                beatmap = osuBeatmapForDualStages();
 
                 var ruleset = CreatePlayerRuleset();
                 LoadPlayer(new[] { ruleset.CreateModFromAcronym("7K").AsNonNull(), ruleset.CreateModFromAcronym("DS").AsNonNull() });
@@ -314,6 +310,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 () => Is.EqualTo(expectedKinds(7, new[] { 3, 4 }).Concat(expectedKinds(7, new[] { 3, 4 }))));
         }
 
+        /// <summary>
+        /// An osu! beatmap, as Dual Stages applies to converts only.
+        /// </summary>
+        private static Beatmap osuBeatmapForDualStages() => new Beatmap
+        {
+            BeatmapInfo = { Ruleset = new OsuRuleset().RulesetInfo },
+            HitObjects = Enumerable.Range(0, 32).Select(i => (HitObject)new HitCircle { StartTime = 1000 + i * 250, Position = new Vector2(i * 61 % 512, 192) }).ToList(),
+        };
+
         private static HighwayGuides.GuideLineKind[] expectedKinds(int keys, int[] groupStarts) => Enumerable.Range(0, keys + 1)
             .Select(i => i == 0 || i == keys ? HighwayGuides.GuideLineKind.Edge
                 : groupStarts.Contains(i) ? HighwayGuides.GuideLineKind.Group
@@ -321,14 +326,218 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             .ToArray();
 
         /// <summary>
-        /// Notes keep at least a pixel of gap on each side on screen (research/topic-wide-keys.md W3): 1% of a 10K lane is far
-        /// under a pixel at Voltex's far end. Where 1% is more, as for 4K near the line under Chunithm, it stays 1%. Checked once
-        /// a note is near the line, so far and near notes are both on screen.
+        /// With the lane guides drawn, every corner of every bar (notes, hold heads and tails) lies on the solid edge of the line
+        /// beside it on screen, as the guides draw it (Alpha 2026-11-04: notes as seamless as possible), whatever the line: lane
+        /// lines, the stage's edges, and from 6K the wider, feathered group dividers (their solid core), in each stage of a
+        /// dual-stage play. Notes are drawn over the lines, so a hundredth of a pixel either way shows: a 1 px line loses its
+        /// pixel, or a dark one opens beside it. Far away the lines' pixel floor applies (10K under Voltex). Checked once a note
+        /// is near the line, so far and near notes are both on screen, then in a long note, its head held on the line.
+        /// </summary>
+        [TestCase(HighwayPreset.Voltex, 10, false)]
+        [TestCase(HighwayPreset.Chunithm, 4, false)]
+        [TestCase(HighwayPreset.Chunithm, 7, false)]
+        [TestCase(HighwayPreset.Chunithm, 7, true)]
+        public void TestNotesMeetTheLaneLines(HighwayPreset preset, int keys, bool dualStages)
+        {
+            if (dualStages)
+                playDualStagesWithHighwayNotes(preset, keys);
+            else
+                playWithHighwayNotes(preset, keys);
+
+            AddUntilStep("a note near the line", () => noteBars().Any(b => b.Depth0 > 0 && b.Depth0 < 0.2f));
+
+            var counts = new SideCounts();
+
+            AddStep("measure each side against its line", () => counts = measureSidesAgainstLines());
+            AddAssert("bars measured", () => counts.Bars, () => Is.GreaterThan(0));
+
+            if (preset == HighwayPreset.Voltex)
+                AddAssert("some beside lines held at a pixel", () => counts.Floored, () => Is.GreaterThan(0));
+
+            if (keys >= 6)
+                AddAssert("some beside group dividers", () => counts.GroupSides, () => Is.GreaterThan(0));
+
+            if (dualStages)
+            {
+                AddAssert("some in the second stage", () => counts.SecondStage, () => Is.GreaterThan(0));
+                return;
+            }
+
+            double time = 0;
+
+            AddStep("stop in the first long note", () =>
+            {
+                time = drawableRuleset.Objects.First(h => h is HoldNote).StartTime + 100;
+
+                Player.GameplayClockContainer.Stop();
+                Player.GameplayClockContainer.Seek(time);
+            });
+            AddUntilStep("playfield at that time", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(time).Within(1));
+            AddWaitStep("let the highway gather", 2);
+
+            AddStep("measure again", () => counts = measureSidesAgainstLines());
+            AddAssert("hold heads and tails measured", () => counts.HoldEnds, () => Is.GreaterThan(0));
+            AddAssert("a held head on the line among them", () => counts.HeldHeads, () => Is.GreaterThan(0));
+        }
+
+        private class SideCounts
+        {
+            public int Bars { get; set; }
+            public int Floored { get; set; }
+            public int GroupSides { get; set; }
+            public int HoldEnds { get; set; }
+            public int HeldHeads { get; set; }
+            public int SecondStage { get; set; }
+        }
+
+        /// <summary>
+        /// Checks every corner of every bar against the solid edge of the line beside it, in screen pixels. The lines are rebuilt
+        /// from the guides' own layout, size and scale, so the check fails if the note layer and the guides ever disagree.
+        /// </summary>
+        private SideCounts measureSidesAgainstLines()
+        {
+            var noteLayer = highway.NoteLayer;
+            var projection = new HighwayProjection(noteLayer.Layout, noteLayer.DrawSize);
+            float pixelsPerUnit = pixelsPerUnitOf(noteLayer);
+
+            var guides = highway.Guides;
+            var lineProjection = new HighwayProjection(guides.Layout, guides.DrawSize);
+            float linePixelsPerUnit = pixelsPerUnitOf(guides);
+
+            int firstStageColumns = drawableRuleset.Playfield.Stages[0].Columns.Length;
+            var quads = Enumerable.Range(0, noteLayer.Count).Select(noteLayer.GetQuad).ToArray();
+            var counts = new SideCounts();
+
+            foreach (var bar in quads.Where(q => q.Kind != HighwayNoteLayer.NoteQuadKind.HoldBody).GroupBy(q => (q.HitObject, q.Kind)))
+            {
+                int column = ((ManiaHitObject)bar.Key.HitObject).Column;
+                int lineIndex = lineIndexOf(column);
+                var left = guides.GetLine(lineIndex);
+                var right = guides.GetLine(lineIndex + 1);
+
+                foreach (var quad in bar)
+                {
+                    float depth0 = Math.Max(quad.Depth0, 0);
+                    float depth1 = Math.Min(quad.Depth1, 1);
+
+                    if (depth1 <= depth0)
+                        continue;
+
+                    // As the note layer draws it.
+                    var drawn = quad.ToScreen(projection, pixelsPerUnit, depth0, depth1);
+
+                    foreach (var (corner, isLeft) in new[] { (drawn.TopLeft, true), (drawn.BottomLeft, true), (drawn.TopRight, false), (drawn.BottomRight, false) })
+                    {
+                        var inGuides = guides.ToLocalSpace(noteLayer.ToScreenSpace(corner));
+                        var line = isLeft ? left : right;
+                        float edge = solidEdgeAt(lineProjection, linePixelsPerUnit, line, inGuides.Y, isLeft);
+
+                        Assert.That((inGuides.X - edge) * linePixelsPerUnit, Is.EqualTo(0).Within(1e-3f),
+                            $"{bar.Key.Kind} {(isLeft ? "left" : "right")} side at y {inGuides.Y}, line {line} (pixels off)");
+                    }
+                }
+
+                float far = Math.Clamp(bar.Max(q => q.Depth1), 0, 1);
+
+                counts.Bars++;
+
+                if (HighwayGuides.LINE_WIDTH * lineProjection.WidthAt(far) * linePixelsPerUnit < HighwayGuides.MIN_LINE_PIXELS)
+                    counts.Floored++;
+
+                if (left.Kind == HighwayGuides.GuideLineKind.Group || right.Kind == HighwayGuides.GuideLineKind.Group)
+                    counts.GroupSides++;
+
+                if (bar.Key.Kind != HighwayNoteLayer.NoteQuadKind.Note)
+                    counts.HoldEnds++;
+
+                if (bar.Key.Kind == HighwayNoteLayer.NoteQuadKind.HoldHead && bar.Min(q => q.Depth0) == 0)
+                    counts.HeldHeads++;
+
+                if (column >= firstStageColumns)
+                    counts.SecondStage++;
+            }
+
+            return counts;
+        }
+
+        /// <summary>
+        /// The index of the guide line on the left of <paramref name="column"/>: each stage has its columns' left lines and its
+        /// right edge.
+        /// </summary>
+        private int lineIndexOf(int column)
+        {
+            int line = 0;
+
+            foreach (var stage in drawableRuleset.Playfield.Stages)
+            {
+                if (column < stage.Columns.Length)
+                    return line + column;
+
+                column -= stage.Columns.Length;
+                line += stage.Columns.Length + 1;
+            }
+
+            throw new ArgumentOutOfRangeException(nameof(column));
+        }
+
+        private static float pixelsPerUnitOf(Drawable drawable) =>
+            MathF.Sqrt(drawable.DrawInfo.Matrix.M11 * drawable.DrawInfo.Matrix.M11 + drawable.DrawInfo.Matrix.M12 * drawable.DrawInfo.Matrix.M12);
+
+        /// <summary>
+        /// The x of the solid edge of <paramref name="line"/> facing a note on its right (<paramref name="noteOnRight"/>) or left,
+        /// at screen height <paramref name="y"/>, from the line's quads as <see cref="HighwayGuides"/> draws them.
+        /// </summary>
+        private static float solidEdgeAt(in HighwayProjection projection, float pixelsPerUnit, HighwayGuides.GuideLine line, float y, bool noteOnRight)
+        {
+            bool group = line.Kind == HighwayGuides.GuideLineKind.Group;
+            float pixel = 1 / pixelsPerUnit;
+
+            TrackDrawing.GetLaneLine(projection, line.Lane, group ? HighwayGuides.GROUP_LINE_WIDTH : HighwayGuides.LINE_WIDTH, 1,
+                (group ? HighwayGuides.MIN_GROUP_LINE_PIXELS : HighwayGuides.MIN_LINE_PIXELS) * pixel, out var near, out var far, out float split);
+
+            var part = split < 1 && y < near.TopLeft.Y ? far : near;
+
+            // Feathered group dividers: their solid core, half a pixel in from each side.
+            if (group)
+                TrackDrawing.Feather(part, pixel, out part, out _, out _);
+
+            // Top is the far end of the part, bottom its near end.
+            float t = (y - part.BottomLeft.Y) / (part.TopLeft.Y - part.BottomLeft.Y);
+
+            return noteOnRight
+                ? part.BottomRight.X + (part.TopRight.X - part.BottomRight.X) * t
+                : part.BottomLeft.X + (part.TopLeft.X - part.BottomLeft.X) * t;
+        }
+
+        /// <summary>
+        /// The note's side and the line's solid edge are the same straight line on screen, so they meet with no gap and no
+        /// overlap: the line's half width in lane space is a constant share of the track until its pixel floor, then the floor.
+        /// </summary>
+        [Test]
+        public void TestSolidHalfWidth()
+        {
+            Assert.That(HighwayGuides.SolidHalfWidth(HighwayGuides.GuideLineKind.Lane, 1000), Is.EqualTo(HighwayGuides.LINE_WIDTH / 2).Within(1e-7f));
+            Assert.That(HighwayGuides.SolidHalfWidth(HighwayGuides.GuideLineKind.Edge, 1000), Is.EqualTo(HighwayGuides.LINE_WIDTH / 2).Within(1e-7f));
+            Assert.That(HighwayGuides.SolidHalfWidth(HighwayGuides.GuideLineKind.Lane, 100) * 100, Is.EqualTo(HighwayGuides.MIN_LINE_PIXELS / 2).Within(1e-5f), "pixel floor");
+
+            // A group divider's solid core is a pixel narrower than the divider: it fades over its outer half pixel each side.
+            Assert.That(HighwayGuides.SolidHalfWidth(HighwayGuides.GuideLineKind.Group, 1000) * 1000,
+                Is.EqualTo((HighwayGuides.GROUP_LINE_WIDTH * 1000 - 1) / 2).Within(1e-4f));
+            Assert.That(HighwayGuides.SolidHalfWidth(HighwayGuides.GuideLineKind.Group, 100) * 100,
+                Is.EqualTo((HighwayGuides.MIN_GROUP_LINE_PIXELS - 1) / 2).Within(1e-5f), "group pixel floor");
+            Assert.That(HighwayGuides.SolidHalfWidth(HighwayGuides.GuideLineKind.Lane, 0), Is.EqualTo(HighwayGuides.LINE_WIDTH / 2), "no screen scale known");
+        }
+
+        /// <summary>
+        /// Without lane lines, notes keep at least a pixel of gap on each side on screen (research/topic-wide-keys.md W3): 1% of
+        /// a 10K lane is far under a pixel at Voltex's far end. Where 1% is more, as for 4K near the line under Chunithm, it stays
+        /// 1%. Checked once a note is near the line, so far and near notes are both on screen.
         /// </summary>
         [TestCase(HighwayPreset.Voltex, 10, false)]
         [TestCase(HighwayPreset.Chunithm, 4, true)]
-        public void TestNotesKeepAPixelOfGap(HighwayPreset preset, int keys, bool someWiderThanAPixel)
+        public void TestNotesKeepAPixelOfGapWithoutLines(HighwayPreset preset, int keys, bool someWiderThanAPixel)
         {
+            AddStep("lane guides off", () => highwayConfig.SetValue(HighwaySetting.LaneGuides, false));
             playWithHighwayNotes(preset, keys);
             AddUntilStep("a note near the line", () => noteBars().Any(b => b.Depth0 > 0 && b.Depth0 < 0.2f));
 
@@ -339,26 +548,27 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             {
                 var noteLayer = highway.NoteLayer;
                 var projection = new HighwayProjection(noteLayer.Layout, noteLayer.DrawSize);
-                float pixelsPerUnit = MathF.Sqrt(noteLayer.DrawInfo.Matrix.M11 * noteLayer.DrawInfo.Matrix.M11 + noteLayer.DrawInfo.Matrix.M12 * noteLayer.DrawInfo.Matrix.M12);
+                float pixelsPerUnit = pixelsPerUnitOf(noteLayer);
 
                 floored = share = 0;
 
-                // Each bar's gap is measured at its far side.
+                // Each bar's gap is measured at its far side, or the track's end where that cuts it.
                 foreach (var bar in noteBars().Where(q => q.Depth1 >= 0))
                 {
                     var lane = highway.ColumnLanes[((ManiaHitObject)bar.HitObject).Column];
                     float width = lane.Y - lane.X;
-                    float trackPixels = projection.WidthAt(bar.Depth1) * pixelsPerUnit;
+                    float farSide = Math.Min(bar.Depth1, 1);
+                    float trackPixels = projection.WidthAt(farSide) * pixelsPerUnit;
                     float floor = HighwayNoteLayer.MIN_GAP_PIXELS / trackPixels;
                     float expected = Math.Min(Math.Max(width * HighwayNoteLayer.NOTE_GAP, floor), width / 4);
 
                     foreach (float gap in new[] { bar.Lane0 - lane.X, lane.Y - bar.Lane1 })
                     {
                         if (gap * trackPixels < HighwayNoteLayer.MIN_GAP_PIXELS - 1e-3f)
-                            throw new AssertionException($"under a pixel at depth {bar.Depth1}: {gap * trackPixels} px");
+                            throw new AssertionException($"under a pixel at depth {farSide}: {gap * trackPixels} px");
 
                         if (Math.Abs(gap - expected) * trackPixels > 1e-3f)
-                            throw new AssertionException($"gap {gap * trackPixels} px at depth {bar.Depth1}, expected {expected * trackPixels} px");
+                            throw new AssertionException($"gap {gap * trackPixels} px at depth {farSide}, expected {expected * trackPixels} px");
                     }
 
                     if (floor > width * HighwayNoteLayer.NOTE_GAP)
@@ -374,8 +584,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         }
 
         /// <summary>
-        /// A hold's body is never wider than its head or tail (SPEC 6), also where the gap's pixel floor narrows them: 10K under
-        /// Voltex at the test window's size, where far lanes are a few pixels wide and a pixel is more than the body's own inset.
+        /// A hold's body is the body share of the narrowest its column's bars get on the track, centred on it (SPEC 6): so it is
+        /// never wider than its head or tail wherever they are, also where a line's pixel floor narrows the bars far away (10K
+        /// under Voltex at the test window's size, where far lanes are a few pixels wide), and keeps one width as it scrolls,
+        /// however far off its tail is.
         /// </summary>
         [Test]
         public void TestHoldBodiesStayWithinTheirEnds()
@@ -383,6 +595,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             playWithHighwayNotes(HighwayPreset.Voltex, 10);
 
             double time = 0;
+            var widths = new Dictionary<HitObject, float>();
+            var counts = new BodyCounts();
 
             AddStep("stop among the long notes", () =>
             {
@@ -395,35 +609,104 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddUntilStep("playfield at that time", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(time).Within(1));
             AddWaitStep("let the highway gather", 2);
 
-            int holds = 0;
-            int narrowedByTheirEnds = 0;
+            AddStep("compare each body with its ends", () => counts = compareBodiesWithTheirEnds(widths));
+            AddAssert("holds compared", () => counts.Holds, () => Is.GreaterThan(0));
+            AddAssert("some with bars narrower far away", () => counts.NarrowerFarAway, () => Is.GreaterThan(0));
 
-            AddStep("compare each body with its ends", () =>
+            AddStep("move on a little", () =>
             {
-                var noteLayer = highway.NoteLayer;
-                var quads = Enumerable.Range(0, noteLayer.Count).Select(noteLayer.GetQuad).ToArray();
-
-                holds = narrowedByTheirEnds = 0;
-
-                foreach (var hold in quads.Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody).GroupBy(q => q.HitObject))
-                {
-                    var body = hold.First();
-                    var ends = quads.Where(q => q.HitObject == hold.Key && q.Kind is HighwayNoteLayer.NoteQuadKind.HoldHead or HighwayNoteLayer.NoteQuadKind.HoldTail).ToArray();
-
-                    foreach (var end in ends)
-                    {
-                        if (body.Lane0 < end.Lane0 - 1e-6f || body.Lane1 > end.Lane1 + 1e-6f)
-                            throw new AssertionException($"body {body.Lane0}-{body.Lane1} wider than its {end.Kind} {end.Lane0}-{end.Lane1} at depth {end.Depth1}");
-                    }
-
-                    holds++;
-                    if (ends.Any(e => Math.Abs(body.Lane0 - e.Lane0) < 1e-6f))
-                        narrowedByTheirEnds++;
-                }
+                time += 150;
+                Player.GameplayClockContainer.Seek(time);
             });
+            AddUntilStep("playfield at that time", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(time).Within(1));
+            AddWaitStep("let the highway gather", 2);
 
-            AddAssert("holds compared", () => holds, () => Is.GreaterThan(0));
-            AddAssert("some bodies narrowed by a pixel-wide gap", () => narrowedByTheirEnds, () => Is.GreaterThan(0));
+            AddStep("compare again", () => counts = compareBodiesWithTheirEnds(widths));
+            AddAssert("the same holds kept their width", () => counts.SeenBefore, () => Is.GreaterThan(0));
+        }
+
+        private class BodyCounts
+        {
+            public int Holds { get; set; }
+            public int NarrowerFarAway { get; set; }
+            public int SeenBefore { get; set; }
+        }
+
+        /// <summary>
+        /// Checks each hold's body against its ends at every one of their corners, and against the width it had when last seen
+        /// (<paramref name="widths"/>, updated).
+        /// </summary>
+        private BodyCounts compareBodiesWithTheirEnds(Dictionary<HitObject, float> widths)
+        {
+            var noteLayer = highway.NoteLayer;
+            var projection = new HighwayProjection(noteLayer.Layout, noteLayer.DrawSize);
+            float pixelsPerUnit = pixelsPerUnitOf(noteLayer);
+            var quads = Enumerable.Range(0, noteLayer.Count).Select(noteLayer.GetQuad).ToArray();
+            var counts = new BodyCounts();
+
+            foreach (var hold in quads.Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody).GroupBy(q => q.HitObject))
+            {
+                var body = hold.First();
+                var ends = quads.Where(q => q.HitObject == hold.Key && q.Kind is HighwayNoteLayer.NoteQuadKind.HoldHead or HighwayNoteLayer.NoteQuadKind.HoldTail).ToArray();
+
+                if (ends.Length == 0)
+                    continue;
+
+                Assert.That(hold.All(q => q.Lane0 == body.Lane0 && q.Lane1 == body.Lane1), "one width along the body");
+
+                foreach (var end in ends)
+                {
+                    foreach (float depth in new[] { end.Depth0, end.Depth1 })
+                    {
+                        if (depth < 0 || depth > 1)
+                            continue;
+
+                        var sides = end.LanesAt(projection.WidthAt(depth) * pixelsPerUnit);
+
+                        if (body.Lane0 < sides.X - 1e-6f || body.Lane1 > sides.Y + 1e-6f)
+                            throw new AssertionException($"body {body.Lane0}-{body.Lane1} wider than its {end.Kind} {sides.X}-{sides.Y} at depth {depth}");
+                    }
+                }
+
+                // The column's bars at either end of the track; the narrowest is at one of them.
+                var near = ends[0].LanesAt(projection.WidthAt(0) * pixelsPerUnit);
+                var far = ends[0].LanesAt(projection.WidthAt(1) * pixelsPerUnit);
+                float from = Math.Max(near.X, far.X);
+                float to = Math.Min(near.Y, far.Y);
+                float width = body.Lane1 - body.Lane0;
+
+                Assert.That(width, Is.EqualTo((to - from) * HighwayNoteLayer.BODY_WIDTH).Within(1e-6f), "the body share of the narrowest bar");
+                Assert.That((body.Lane0 + body.Lane1) / 2, Is.EqualTo((from + to) / 2).Within(1e-6f), "centred on it");
+
+                if (widths.TryGetValue(hold.Key, out float before))
+                {
+                    Assert.That(width, Is.EqualTo(before).Within(1e-6f), "the same width as it scrolls");
+                    counts.SeenBefore++;
+                }
+
+                widths[hold.Key] = width;
+                counts.Holds++;
+
+                if (far.Y - far.X < near.Y - near.X - 1e-7f)
+                    counts.NarrowerFarAway++;
+            }
+
+            return counts;
+        }
+
+        private void playDualStagesWithHighwayNotes(HighwayPreset preset, int keys)
+        {
+            AddStep($"{preset}, an osu! beatmap as {keys}K dual stages, highway notes", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.Preset, preset);
+                highwayConfig.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
+                beatmap = osuBeatmapForDualStages();
+
+                var ruleset = CreatePlayerRuleset();
+                LoadPlayer(new[] { ruleset.CreateModFromAcronym($"{keys}K").AsNonNull(), ruleset.CreateModFromAcronym("DS").AsNonNull() });
+            });
+            AddUntilStep("highway notes shown", () => Player.IsLoaded && Player.Alpha == 1 && highway.NativeNotes && drawableRuleset.Playfield.Stages.Count == 2
+                                                       && highway.Guides.LineCount == 2 * (keys + 1));
         }
 
         private void playWithHighwayNotes(HighwayPreset preset, int keys)

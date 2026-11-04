@@ -165,6 +165,34 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         public GuideLine GetLine(int index) => lines[index];
 
+        /// <summary>
+        /// The lines set with <see cref="SetLine"/>: for each stage its left edge, the line before each of its columns after the
+        /// first, then its right edge.
+        /// </summary>
+        public ReadOnlySpan<GuideLine> Lines => lines.AsSpan(0, LineCount);
+
+        /// <summary>
+        /// Half of the solid part of a <paramref name="kind"/> line, in lane space, where the whole track is
+        /// <paramref name="trackPixels"/> screen pixels wide: half its width (at least its pixel floor), less the fading edge of
+        /// a feathered group divider, whose solid core is a pixel narrower (<see cref="TrackDrawing.Feather"/>). A note's side
+        /// placed this far from the line's centre meets the line without a gap.
+        /// </summary>
+        public static float SolidHalfWidth(GuideLineKind kind, float trackPixels)
+        {
+            bool group = kind == GuideLineKind.Group;
+            float width = group ? GROUP_LINE_WIDTH : LINE_WIDTH;
+
+            if (!(trackPixels > 0))
+                return width / 2;
+
+            float pixels = Math.Max(width * trackPixels, group ? MIN_GROUP_LINE_PIXELS : MIN_LINE_PIXELS);
+
+            if (group)
+                pixels -= 1;
+
+            return pixels / 2 / trackPixels;
+        }
+
         protected override DrawNode CreateDrawNode() => new HighwayGuidesDrawNode(this);
 
         public readonly record struct GuideLine(float Lane, GuideLineKind Kind)

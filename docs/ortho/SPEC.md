@@ -86,6 +86,8 @@ Requirements:
 
 - Notes are rectangles in track space with a fixed thickness in track units, drawn as projected trapezoids. They shrink
   with distance in perspective mode.
+- Highway notes are seamless with the lane lines: each side meets the line beside it with no gap and without covering
+  it, at every depth and key count (Alpha, 2026-11-04). Without lane lines they keep a small gap inside their lane.
 - Hold bodies are one projected quad from head to tail (subdivided if needed for texture correctness). Heads, bodies
   and tails must line up exactly at every depth: a misaligned hold is a visible bug.
 - Textures on trapezoids use perspective-correct mapping. Two plain triangles show a bend along the diagonal.
