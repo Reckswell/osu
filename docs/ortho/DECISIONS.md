@@ -1129,3 +1129,57 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   fork rather than osu!'s live version).
 - **Reverse**: turn the setting off (nothing is sent); delete `ortho-server/`, `osu.Game.Rulesets.ManiaOrtho/ScoreServer`
   and the recorder's upload block.
+
+## 2026-11-04: Signing in to the score server from the game (Alpha, Q21)
+
+- **What**: Alpha chose "Also log in to it in-game" on the Q21 card, then asked for "the conventional login methods used
+  by other 3rd party servers, so that i can ideally connect, then log in through the lazer client, rather than having to
+  do finnicking around with files". Lazer private servers are reached by pointing every endpoint at one address; the
+  server then answers lazer's OAuth and `/api/v2` shapes. Done the same way here, with the address as a setting
+  (Settings > Online > Server) rather than a patched binary, an environment variable or a file to edit.
+- **Game (core patches, listed in README)**: `OsuSetting.ServerAddress`, read once at start by `CreateEndpoints`
+  (restart to change, as the endpoints are fixed for the game's lifetime and every online component holds them). A
+  `ppy.sh` host is never taken there, so the setting cannot be used to talk to osu! under another configuration.
+  A saved sign-in belongs to the server that issued it: `OsuSetting.TokenServer` records the API address the saved token
+  came from, and at start a token from another server is forgotten before the API reads it (a token saved before this
+  patch is osu!'s, so nobody is signed out of osu! by the update). Confirming a different address also signs out at
+  once. Found by review: signing in again before restarting, or editing `game.ini`, would otherwise have sent osu!'s token
+  to the private server at the next start (or the reverse).
+  The sign-in panel names the server, so the private sign-in cannot be mistaken for osu!'s.
+- **Plain http, loopback only**: osu-framework upgrades http to https on every request (`AllowInsecureRequests`). The
+  server has no certificate and should not need one on 127.0.0.1, so `EndpointConfiguration.AllowsPlainHttp` lets
+  requests, sign-in and registration use http only when the custom server is itself http on a loopback address and the
+  request goes to that same scheme and authority. A server on another machine is reached over https only: an http
+  address there is taken as https (the framework would upgrade API requests anyway, but the SignalR hubs and the play
+  uploads would not, and they carry the token). Alternatives: a local certificate (setup Alpha asked to avoid); allowing
+  http to any custom address (passwords and tokens in plain text on a network).
+- **Server**: accounts of its own (PBKDF2-SHA256, 600k iterations as OWASP gives for SHA-256, each hash keeping its
+  count; an unknown name is checked against a dummy hash so timing does not tell which names exist; tokens stored as
+  SHA-256; access a day, refresh 90 days, rotated on use), registration through lazer's own Register screen (`POST /users`), the routes lazer calls after
+  sign-in answered in the shapes of lazer's types (`LazerApiTest` deserializes each with NuGet `ppy.osu.Game`), empty
+  answers for friends, chat, notifications and the like so no screen shows errors. Written from lazer's client code
+  (MIT) and observed requests; no code from AGPL private servers (read for reference only).
+- **Details lazer forced**: account ids start at 2 (lazer treats user 1 as nobody: no statistics, no avatar); avatars
+  are an empty string (any other host triggers lazer's "blocking resource lookup" notification, and null falls back to
+  `a.ppy.sh/{id}`, someone else's picture); beatmap covers are `{}` unless the play has an osu! beatmapset id.
+- **maniaortho shown as osu!mania**: lazer's profile ruleset selector lists only its four rulesets, so the server's
+  maniaortho pp, rank and plays are the user's osu!mania statistics on this server (4K/7K as osu!mania's variants). The
+  game never submits osu!mania scores here: lazer's solo submission (`beatmaps/{id}/solo/scores`) is refused with 403,
+  and lazer makes no submission token for non-legacy rulesets anyway (invariant 2 unchanged: maniaortho plays still go
+  only through `ScoreServerClient`).
+- **Plays and accounts**: an upload carrying the game's sign-in (`Authorization: Bearer`) goes to that account;
+  `ScoreServerSignIn` hands the token over only when the game is signed in to a custom server at the score server's
+  exact scheme and authority, never to a `ppy.sh` host. Plays sent with no sign-in, and those stored before any account
+  existed, belong to the first account (the owner), so the old flow keeps working and nothing is orphaned. An upload with a
+  sign-in the server does not know (expired, signed out) is refused with 401 and waits in the game's outbox for the
+  next send, rather than going to the owner. The score server address setting says whose account plays go to, and
+  warns when the game is signed in to another address (`localhost` in one setting and `127.0.0.1` in the other are
+  different servers to it: the token is only sent to the exact address that issued it).
+- **Web pages**: a request that changes something and carries `Origin` or `Sec-Fetch-Site` (browsers add them, the game
+  never does) is refused on every path, so a web page cannot register, sign in or post on Alpha's behalf; the
+  `X-ManiaOrtho` rule for `/api` posts stays.
+- **Not served**: SignalR hubs (multiplayer, spectating, live metadata; lazer retries them quietly), chat, beatmap
+  listing, and beatmap leaderboards (lazer's `LeaderboardManager` refuses online leaderboards for non-legacy rulesets;
+  lifting that is another core patch, not asked; backlog M5).
+- **Reverse**: leave the address empty (the game is exactly upstream's again); delete the core patches listed in README,
+  `ortho-server/OrthoServer/Accounts` and `Lazer`, and `ScoreServerSignIn`.

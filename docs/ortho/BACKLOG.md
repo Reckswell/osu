@@ -191,7 +191,12 @@ matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score ser
   `LiveCalculatorVersionTest`, `RecalculationTest`.
 - [x] The game sends plays (opt-in setting), queues them while the server is away, refuses `ppy.sh`, toasts the pp and
   total. Gate: `ScoreServerClientTest`, `ScoreServerContractTest`, `TestScenePlayToScoreServer`.
-- [ ] **[Alpha: Q21]** The game's own login and leaderboards on this server (needs core patches to the API endpoints).
+- [x] The game's own sign-in on this server (Alpha, Q21): Settings > Online > Server, registration and sign-in in
+  lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.
+  Gate: `CustomServerTest`, `CustomServerGameTest`, `TestSceneServerSettings`, `ScoreServerClientTest`, `LazerApiTest`;
+  end to end in the real game (register, sign in, stay signed in across a restart, profile).
+- [ ] Beatmap leaderboards for maniaortho on this server. Lazer's `LeaderboardManager` refuses online leaderboards for
+  rulesets other than its four, so this needs another core patch and the server's `beatmaps/{id}/scores`. Not asked.
 
 ## M6: Polish
 

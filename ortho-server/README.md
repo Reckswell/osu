@@ -2,8 +2,9 @@
 
 Your own score server for maniaortho, on your own computer. The game sends it each play you pass or fail (once you turn
 on **Settings > maniaortho > Send plays to my score server**), and it keeps them, rates them with osu!'s own osu!mania pp
-and shows an unofficial total at <http://127.0.0.1:7727/>. It is not osu!: it does not speak osu!'s protocols, nobody
-logs in to it, and it never sends anything to osu!'s servers.
+and shows an unofficial total at <http://127.0.0.1:7727/>. You can also sign in to it from the game's own sign-in panel,
+the way lazer signs in to other private servers, and see your rank and pp on your profile. It is not osu!: it is not a
+copy of osu!'s server, it accepts no osu! accounts or osu! scores, and it never sends anything to osu!'s servers.
 
 ## Run it
 
@@ -26,6 +27,38 @@ server is not running, the address is wrong or the server fails, the play waits 
 play. A play the server refuses (or fails on five times) is kept in `outbox refused` with the reason in `error.txt`;
 move its folder back to `outbox` to send it again. The game never follows a redirect and never contacts a `ppy.sh`
 address, whatever the setting says.
+
+## Sign in from the game
+
+1. Start the server (above).
+2. In the game: **Settings > Online > Server > Server address**: `http://127.0.0.1:7727` (or just `127.0.0.1:7727`).
+   Restart the game; the note under the address says when it is connected.
+3. Open the sign-in panel (top right). It says "on the server at http://127.0.0.1:7727". Press **Register** once to
+   make your account (username 3-15 characters, password at least 8; the email is optional and never used), then sign
+   in as you would on osu!. "Stay signed in" works as usual.
+4. Turn on **Settings > maniaortho > Send plays to my score server**. Plays now go under your account.
+
+Your profile (click your name) shows the server's pp, rank, accuracy, grades, best plays with their weights and recent
+plays. Lazer's profile only has the four osu! rulesets, so your maniaortho figures appear under **osu!mania** (4K and 7K
+as osu!mania's variants). Leave the address empty to go back to osu!'s own server; osu!'s addresses (`ppy.sh`) are never
+taken there.
+
+- **Your account is on this server only.** It has nothing to do with your osu! account; use a different password. The
+  password is stored as a PBKDF2 hash, sign-in tokens as hashes (a day for the access token, 90 days to stay signed in).
+- **Plain http only on this computer.** Lazer sends everything over https; it uses plain http only to a server on a
+  loopback address (127.0.0.1, localhost, ::1), so a password never crosses a network unencrypted. A server on another
+  computer is reached over https, whatever the address says.
+- **Use the same address in both settings.** Plays carry your sign-in only to the exact address the game signed in to
+  (`localhost` and `127.0.0.1` count as different). The note under the score server address says whose account plays go
+  to. A play sent with a sign-in the server no longer accepts (expired, signed out) waits in the outbox for the next send.
+- **A sign-in stays with its server.** Switching servers signs you out; a saved osu! sign-in is never sent to your
+  server, nor your server's to osu!.
+- **The first account owns the plays sent before it existed**, and plays sent while no one is signed in. The score page
+  at <http://127.0.0.1:7727/> shows that account.
+- **Not served**: multiplayer, spectating and live updates (lazer's SignalR hubs; it retries them quietly), chat, beatmap
+  listings and downloads, and beatmap leaderboards (lazer shows online leaderboards only for its own four rulesets).
+  osu!mania scores sent by lazer's normal submission are refused ("This server rates maniaortho plays only"); they stay
+  in your local scores.
 
 ## How plays are rated
 
@@ -73,8 +106,26 @@ game's in-game pp is behind until the fork takes the same osu! update.
 | `POST` | `/api/plays` | Multipart: `play` (`contract/play-upload.example.json`), `beatmap` (the `.osu` file), `replay` (optional). Answers `contract/play-result.example.json`, or 400 `{"error": ...}`. The same `score_id` twice is stored once. |
 | `POST` | `/api/recalculate` | Rate every play again. |
 
-Every `POST` needs an `X-ManiaOrtho` header (any value); without it the server answers 403. Browsers cannot add it
-without asking first, so a web page you visit cannot post plays to your server.
+Every `POST` under `/api` (not `/api/v2`) needs an `X-ManiaOrtho` header (any value); without it the server answers 403.
+Browsers cannot add it without asking first, so a web page you visit cannot post plays to your server. Any request that
+changes something and comes from a web page (it carries `Origin` or `Sec-Fetch-Site`, which the game never sends) is
+refused, on every path. A play sent with the game's sign-in (`Authorization: Bearer`) goes to that account.
+
+What lazer asks for after it signs in (`OrthoServer/Lazer`), in the shapes of lazer's own types (`LazerApiTest`
+deserializes each answer with them):
+
+| Method | Path | What |
+|---|---|---|
+| `POST` | `/oauth/token` | Sign in (`grant_type=password`, username or email) or stay signed in (`refresh_token`). Any client id. |
+| `POST` | `/users` | Register: `user[username]`, `user[user_email]`, `user[password]`; 422 with `form_error.user` on a problem. |
+| `DELETE` | `/api/v2/oauth/tokens/current` | Sign out. |
+| `GET` | `/api/v2/me/{ruleset?}` | You, with statistics (pp, rank, accuracy, grades, level, 4K/7K) for osu!mania. |
+| `GET` | `/api/v2/users/{id or name}/{ruleset?}`, `/api/v2/users?ids[]=` | Profiles. |
+| `GET` | `/api/v2/users/{id}/scores/{best,recent}`, `/api/v2/users/{id}/beatmapsets/most_played` | Best plays with weights, recent plays (`include_fails=1` for fails), most played maps. |
+| `GET` | friends, blocks, favourites, kudosu, recent activity, chat, notifications, seasonal backgrounds | Empty answers, so lazer's screens load. `notifications` points to a websocket that needs the sign-in. |
+| `POST` | `/api/v2/beatmaps/{id}/solo/scores` | Refused (403): osu! scores are not taken. |
+
+Anything else answers 404 `{"error": "This server does not do that."}` and is logged once per path.
 
 `OrthoServer recalculate --data <folder>` and `OrthoServer check-live [--write calculator-version.txt]` do the same from
 the command line.
@@ -84,7 +135,7 @@ the command line.
 | Path | What |
 |---|---|
 | `OrthoServer/` | The server (ASP.NET Core minimal API, SQLite). Builds against NuGet `ppy.osu.Game*`, not this repository's projects. |
-| `OrthoServer.Tests/` | Profile maths, pp rules, the HTTP API on a real port, recalculation, the live-version check, parity. |
+| `OrthoServer.Tests/` | Profile maths, pp rules, the HTTP API on a real port, sign-in and lazer's API (`LazerApiTest`), recalculation, the live-version check, parity. |
 | `contract/` | Shared with the game (`osu.Game.Rulesets.ManiaOrtho/ScoreServer`): the upload and answer types, their examples, the synthetic maps and `pp-parity.json`. |
 
 `scripts/ortho/check.sh` runs the server's tests after the game's. To regenerate `pp-parity.json` from the game's

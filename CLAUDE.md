@@ -127,6 +127,18 @@ note the licence in the research note).
   return false (see `HighwayHotkeys`). A key binding container that handles a key swallows it before mania's, and it
   only matches keys whose key-down reached it: osu! takes Shift's own event while watching a replay (fast-forward).
   Read modifiers from the event's state (`e.ShiftPressed`) instead.
+- osu-framework turns every `http://` request into `https://` unless the request sets `AllowInsecureRequests`, so a
+  local server without a certificate is unreachable by default. The game allows plain http only to a custom server on a
+  loopback address (`EndpointConfiguration.AllowsPlainHttp`); keep it that narrow.
+- Lazer treats user id 1 as nobody (no statistics fetched, no avatar), so the score server's accounts start at 2. It
+  fetches `avatar_url` through a store that refuses non-`ppy.sh` hosts with a visible notification and falls back to
+  `a.ppy.sh/{id}` for null: the server sends an empty string. `beatmapset.covers` must be an object (`{}`), never null.
+- `DummyAPIAccess.Login` while it is already signed in (its default) keeps the old username: `APIUser` equality is by id
+  and both users share the dummy id, so the bindable sees no change. Call `Logout()` first. It also asks for a second
+  factor unless `SessionVerificationMethod = null`.
+- Driving the real game under Xvfb with `xdotool`: mouse motion reaches SDL only with `SDL_VIDEO_X11_XINPUT2=0`, and
+  the window is 1366x768, so start Xvfb with `-screen 0 1366x768x24`. Type into a text box only after clicking it, or
+  the keys reach the menu's hotkeys.
 
 ## Code conventions (from upstream; CI enforces most)
 

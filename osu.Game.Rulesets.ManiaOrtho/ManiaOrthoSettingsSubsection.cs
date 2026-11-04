@@ -10,6 +10,7 @@ using osu.Framework.Localisation;
 using osu.Game.Beatmaps;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Localisation;
+using osu.Game.Online.API;
 using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
@@ -41,6 +42,13 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         [Resolved]
         private OsuGame? game { get; set; }
+
+        [Resolved]
+        private IAPIProvider? api { get; set; }
+
+        private SettingsItemV2 scoreServerAddressItem = null!;
+        private Bindable<string> scoreServerAddress = null!;
+        private IBindable<APIState>? apiState;
 
         private HighwayConfigManager highway = null!;
         private FormSliderBar<double> scrollSpeed = null!;
@@ -419,12 +427,13 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "pp", "performance", "ranking", "profile", "server", "upload" },
                 },
-                new SettingsItemV2(new FormTextBox
+                scoreServerAddressItem = new SettingsItemV2(new FormTextBox
                 {
                     Caption = "Score server address",
                     HintText = $"Where your score server listens ({ScoreServerConfigManager.DEFAULT_ADDRESS} on this computer). osu!'s own "
-                               + "servers (ppy.sh) are refused.",
-                    Current = config.ScoreServer.GetBindable<string>(ScoreServerSetting.ScoreServerAddress),
+                               + "servers (ppy.sh) are refused. Signed in to it (Settings > Online > Server, same address), your plays "
+                               + "go to your account there.",
+                    Current = scoreServerAddress = config.ScoreServer.GetBindable<string>(ScoreServerSetting.ScoreServerAddress),
                 })
                 {
                     Keywords = new[] { "pp", "server", "address", "url" },
@@ -439,6 +448,8 @@ namespace osu.Game.Rulesets.ManiaOrtho
             };
         }
 
+        private void showScoreServerSignIn() => scoreServerAddressItem.Note.Value = ScoreServerSignIn.Describe(api, scoreServerAddress.Value);
+
         private void openScorePage()
         {
             var address = ScoreServerClient.ParseAddress(((ManiaOrthoRulesetConfigManager)Config).ScoreServer.Get<string>(ScoreServerSetting.ScoreServerAddress), out _);
@@ -450,6 +461,12 @@ namespace osu.Game.Rulesets.ManiaOrtho
         protected override void LoadComplete()
         {
             base.LoadComplete();
+
+            // Whose account plays go to: the game's sign-in when it is signed in to this same server.
+            apiState = api?.State.GetBoundCopy();
+            scoreServerAddress.BindValueChanged(_ => showScoreServerSignIn());
+            apiState?.BindValueChanged(_ => Schedule(showScoreServerSignIn));
+            showScoreServerSignIn();
 
             showVisibleTimeOnChange(highway.GetBindable<float>(HighwaySetting.Wall));
 

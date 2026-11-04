@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Data.Sqlite;
 using NUnit.Framework;
+using OrthoServer.Accounts;
 using OrthoServer.Live;
 using OrthoServer.Scoring;
 using OrthoServer.Storage;
@@ -30,7 +31,7 @@ namespace OrthoServer.Tests
         [Test]
         public void TestPlaysFromAnotherCalculatorVersionAreRatedAgain()
         {
-            var service = new PlayService(new PlayStore(dataPath));
+            var service = new PlayService(new PlayStore(dataPath), new AccountStore(dataPath));
             byte[] map = TestPlays.Map();
 
             var result = service.Submit(TestPlays.Upload(map), map, null);
@@ -42,7 +43,7 @@ namespace OrthoServer.Tests
             service.Store.UpdateRating(stored);
 
             // A new server (as after an update) rates only what is outdated.
-            var restarted = new PlayService(new PlayStore(dataPath));
+            var restarted = new PlayService(new PlayStore(dataPath), new AccountStore(dataPath));
             Assert.That(restarted.Recalculate(onlyOutdated: true), Is.EqualTo((1, 0)));
             Assert.That(restarted.Recalculate(onlyOutdated: true), Is.EqualTo((0, 0)));
 
@@ -54,7 +55,7 @@ namespace OrthoServer.Tests
         [Test]
         public void TestPlayWhoseMapIsMissingIsReported()
         {
-            var service = new PlayService(new PlayStore(dataPath));
+            var service = new PlayService(new PlayStore(dataPath), new AccountStore(dataPath));
             byte[] map = TestPlays.Map();
             service.Submit(TestPlays.Upload(map), map, null);
 

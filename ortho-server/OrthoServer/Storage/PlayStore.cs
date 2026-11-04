@@ -73,6 +73,10 @@ namespace OrthoServer.Storage
                                     );
                                     CREATE INDEX IF NOT EXISTS plays_beatmap ON plays (beatmap_id, beatmap_md5);
                                     """);
+
+                // Added with accounts: older data folders get the column, their plays belong to nobody until the first account takes them.
+                if (!hasColumn(connection, "plays", "user_id"))
+                    execute(connection, "ALTER TABLE plays ADD COLUMN user_id INTEGER");
             }
         }
 
@@ -119,11 +123,11 @@ namespace OrthoServer.Storage
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = """
-                                      INSERT INTO plays (client_score_id, played_at, received_at, passed, rank, beatmap_md5, beatmap_id, beatmapset_id,
+                                      INSERT INTO plays (client_score_id, user_id, played_at, received_at, passed, rank, beatmap_md5, beatmap_id, beatmapset_id,
                                           status, artist, title, version, creator, keys, mods, statistics, maximum_statistics, max_combo, accuracy,
                                           total_score, client_pp, client_stars, client_difficulty_version, settings, replay_file, pp, stars, awards_pp,
                                           reason, calculator_version)
-                                      VALUES ($client_score_id, $played_at, $received_at, $passed, $rank, $beatmap_md5, $beatmap_id, $beatmapset_id,
+                                      VALUES ($client_score_id, $user_id, $played_at, $received_at, $passed, $rank, $beatmap_md5, $beatmap_id, $beatmapset_id,
                                           $status, $artist, $title, $version, $creator, $keys, $mods, $statistics, $maximum_statistics, $max_combo, $accuracy,
                                           $total_score, $client_pp, $client_stars, $client_difficulty_version, $settings, $replay_file, $pp, $stars, $awards_pp,
                                           $reason, $calculator_version);
@@ -190,6 +194,35 @@ namespace OrthoServer.Storage
             return plays;
         }
 
+        /// <summary>
+        /// Every play of one account, oldest first; with null, the plays that belong to nobody (sent before any account existed).
+        /// </summary>
+        public List<PlayRecord> ForUser(long? userId) => All().FindAll(p => p.UserId == userId);
+
+        /// <summary>
+        /// Gives an account every play that belongs to nobody (plays sent before the first account was made).
+        /// </summary>
+        public int AdoptUnowned(long userId)
+        {
+            using (var connection = open())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "UPDATE plays SET user_id = $user_id WHERE user_id IS NULL";
+                command.Parameters.AddWithValue("$user_id", userId);
+                return command.ExecuteNonQuery();
+            }
+        }
+
+        private static bool hasColumn(SqliteConnection connection, string table, string column)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = $column";
+                command.Parameters.AddWithValue("$column", column);
+                return (long)command.ExecuteScalar()! > 0;
+            }
+        }
+
         private SqliteConnection open()
         {
             var connection = new SqliteConnection(connectionString);
@@ -211,6 +244,7 @@ namespace OrthoServer.Storage
             void add(string name, object? value) => command.Parameters.AddWithValue(name, value ?? DBNull.Value);
 
             add("$client_score_id", play.ClientScoreId);
+            add("$user_id", play.UserId);
             add("$played_at", play.PlayedAt.ToString("O", CultureInfo.InvariantCulture));
             add("$received_at", play.ReceivedAt.ToString("O", CultureInfo.InvariantCulture));
             add("$passed", play.Passed ? 1 : 0);
@@ -253,6 +287,7 @@ namespace OrthoServer.Storage
             {
                 Id = integer("id"),
                 ClientScoreId = nullableText("client_score_id"),
+                UserId = reader.IsDBNull(reader.GetOrdinal("user_id")) ? null : integer("user_id"),
                 PlayedAt = DateTimeOffset.Parse(text("played_at"), CultureInfo.InvariantCulture),
                 ReceivedAt = DateTimeOffset.Parse(text("received_at"), CultureInfo.InvariantCulture),
                 Passed = integer("passed") != 0,

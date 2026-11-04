@@ -6,13 +6,6 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
-### Q21. Should the game's own login and leaderboards also use your score server?
-The score server (M5) works without logging in: plays go to it from the play log, and its page shows your pp. Lazer's
-own sign-in, profile and beatmap leaderboards could point at it too, but that needs core patches to osu!'s API endpoints
-and a server that answers osu!'s web API shapes (much more of Bancho's surface). Asked on a card in the thread.
-**Default meanwhile**: server and its page only; no core patches.
-**Answer**:
-
 ### Q20. How a side-placed skin stage is made easier to play
 Some skins put their stage to one side with `ColumnStart` (R Skin's stages at 29-38% of the screen width, Aristia's at
 52-54%; an IIDX 1P layout would be near 17%). The tilted track keeps the skin's centre exactly at the judgement line
@@ -145,6 +138,17 @@ tests can replay it on the highway.
 - **Answer**:
 
 ## Answered
+
+### Q21. Should the game's own login and leaderboards also use your score server?
+The score server (M5) works without logging in: plays go to it from the play log, and its page shows your pp. Lazer's
+own sign-in, profile and beatmap leaderboards could point at it too, but that needs core patches to osu!'s API endpoints
+and a server that answers osu!'s web API shapes (much more of Bancho's surface). Asked on a card in the thread.
+**Default meanwhile**: server and its page only; no core patches.
+**Answer** (Alpha, 2026-11-04, on the decision card, then in the thread): yes, sign in from the lazer client "through
+the conventional login methods used by other 3rd party servers ... rather than having to do finnicking around with
+files". Built: Settings > Online > Server, sign-in and registration in lazer's own panel, the profile with the server's
+pp (DECISIONS 2026-11-04, "Signing in to the score server from the game"). Beatmap leaderboards stay off: lazer shows
+online leaderboards only for its four rulesets, and lifting that is another core patch (not asked).
 
 ### Q16. Where a ported skin's key area goes by default
 Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a

@@ -2,25 +2,46 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ManiaOrtho.ScoreServerContract;
+using OrthoServer.Accounts;
 using OrthoServer.Storage;
 
 namespace OrthoServer.Scoring
 {
     /// <summary>
-    /// Takes plays in, rates them and keeps the profile. One at a time: plays arrive one by one from one player.
+    /// Takes plays in, rates them and keeps each account's profile. One at a time: plays arrive one by one.
     /// </summary>
     public class PlayService
     {
         public PlayStore Store { get; }
 
+        public AccountStore Accounts { get; }
+
         private readonly object gate = new object();
 
-        public PlayService(PlayStore store)
+        public PlayService(PlayStore store, AccountStore accounts)
         {
             Store = store;
+            Accounts = accounts;
+        }
+
+        /// <summary>
+        /// Makes an account. The first one made also takes every play sent before it (they were its player's).
+        /// </summary>
+        public Account? Register(string? username, string? email, string? password, out Dictionary<string, List<string>> errors)
+        {
+            lock (gate)
+            {
+                var account = Accounts.Register(username, email, password, out errors);
+
+                if (account != null && Accounts.Owner()?.Id == account.Id)
+                    Store.AdoptUnowned(account.Id);
+
+                return account;
+            }
         }
 
         /// <summary>
@@ -28,7 +49,11 @@ namespace OrthoServer.Scoring
         /// again; its stored result is returned.
         /// </summary>
         /// <exception cref="InvalidDataException">The upload is not a play this server can rate.</exception>
-        public PlayResult Submit(PlayUpload upload, byte[] osuFile, byte[]? replay)
+        /// <param name="upload">The play.</param>
+        /// <param name="osuFile">Its map's file.</param>
+        /// <param name="replay">Its replay, if any.</param>
+        /// <param name="signedIn">The account the game is signed in to on this server; plays sent without one are the first account's.</param>
+        public PlayResult Submit(PlayUpload upload, byte[] osuFile, byte[]? replay, Account? signedIn = null)
         {
             if (!string.Equals(upload.Client, "maniaortho", StringComparison.Ordinal))
                 throw new InvalidDataException($"Plays from \"{upload.Client}\" are not accepted; only maniaortho plays are.");
@@ -41,13 +66,15 @@ namespace OrthoServer.Scoring
             lock (gate)
             {
                 if (!string.IsNullOrEmpty(upload.ScoreId) && Store.FindByClientScoreId(upload.ScoreId) is PlayRecord existing)
-                    return result(existing, ProfileCalculator.Calculate(Store.All()), alreadyStored: true);
+                    return result(existing, ProfileCalculator.Calculate(Store.ForUser(existing.UserId)), alreadyStored: true);
 
-                var before = ProfileCalculator.Calculate(Store.All());
+                long? userId = signedIn?.Id ?? Accounts.Owner()?.Id;
+                var before = ProfileCalculator.Calculate(Store.ForUser(userId));
 
                 var play = new PlayRecord
                 {
                     ClientScoreId = string.IsNullOrEmpty(upload.ScoreId) ? null : upload.ScoreId,
+                    UserId = userId,
                     PlayedAt = upload.PlayedAt,
                     ReceivedAt = DateTimeOffset.Now,
                     Passed = upload.Passed,
@@ -85,16 +112,19 @@ namespace OrthoServer.Scoring
                     Store.SetReplayFile(play.Id, play.ReplayFile);
                 }
 
-                var after = ProfileCalculator.Calculate(Store.All());
+                var after = ProfileCalculator.Calculate(Store.ForUser(userId));
 
                 return result(play, after, alreadyStored: false, totalPpBefore: before.TotalPp);
             }
         }
 
-        public Profile Profile()
+        /// <summary>
+        /// An account's profile; with null, that of the plays sent before any account existed.
+        /// </summary>
+        public Profile Profile(long? userId)
         {
             lock (gate)
-                return ProfileCalculator.Calculate(Store.All());
+                return ProfileCalculator.Calculate(Store.ForUser(userId));
         }
 
         /// <summary>

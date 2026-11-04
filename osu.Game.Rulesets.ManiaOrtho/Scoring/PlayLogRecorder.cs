@@ -16,6 +16,7 @@ using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Game.Beatmaps;
 using osu.Game.Extensions;
+using osu.Game.Online.API;
 using osu.Game.Overlays;
 using osu.Game.Replays;
 using osu.Game.Rulesets.Mania.Beatmaps;
@@ -60,6 +61,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
         [Resolved]
         private OsuGameBase? game { get; set; }
+
+        [Resolved]
+        private IAPIProvider? api { get; set; }
 
         private bool recorded;
 
@@ -190,6 +194,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
             string playName = beatmap.GetDisplayTitle();
             var gameStorage = storage;
             var notificationOverlay = notifications;
+            var signedInApi = api;
 
             // Started here, as the results screen does: the lookup copies the play's mods, whose bindables belong to this thread.
             var difficulty = difficultyCache?.GetDifficultyAsync(beatmap, ruleset.RulesetInfo, score.Mods) ?? Task.FromResult<StarDifficulty?>(null);
@@ -245,7 +250,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
                     var outcome = map == null
                         ? new ScoreServerOutcome(ScoreServerOutcomeKind.Refused, null, "this map's file is not in osu!'s file store (is it an unsaved edit?)")
-                        : await new ScoreServerClient(log).SendAsync(serverAddress, upload, map, replayFile).ConfigureAwait(false);
+                        : await new ScoreServerClient(log, signIn: server => ScoreServerSignIn.TokenFor(signedInApi, server))
+                                .SendAsync(serverAddress, upload, map, replayFile).ConfigureAwait(false);
 
                     ScoreServerOutcome = outcome;
 

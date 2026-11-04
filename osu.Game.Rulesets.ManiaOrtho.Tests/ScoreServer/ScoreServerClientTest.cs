@@ -12,7 +12,9 @@ using ManiaOrtho.ScoreServerContract;
 using Newtonsoft.Json;
 using NUnit.Framework;
 using osu.Framework.Platform;
+using osu.Game.Online;
 using osu.Game.Online.API;
+using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.ManiaOrtho.ScoreServer;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
@@ -22,7 +24,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
     /// Over real sockets to <see cref="FakeScoreServer"/>.
     /// </summary>
     [TestFixture]
-    public class ScoreServerClientTest
+    public partial class ScoreServerClientTest
     {
         private string folder = null!;
         private ScoreServerClient client = null!;
@@ -119,6 +121,147 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             await client.SendAsync(server.Address, play("a"), map, replay).ConfigureAwait(false);
 
             Assert.That(server.Requests.Single().Headers.ContainsKey(ScoreServerProtocol.CLIENT_HEADER.ToLowerInvariant()), Is.True);
+            Assert.That(server.Requests.Single().Headers.ContainsKey("authorization"), Is.False, "not signed in: no sign-in is sent");
+        }
+
+        /// <summary>
+        /// Signed in to the score server itself (Settings > Online > Server): plays carry that sign-in and go to that account,
+        /// the queued ones included. The token is asked for at each send, for the server it is sent to.
+        /// </summary>
+        [Test]
+        public async Task TestPlaysCarryTheGamesSignInToThatServer()
+        {
+            using var server = new FakeScoreServer();
+            var asked = new List<Uri>();
+            var signedIn = new ScoreServerClient(new NativeStorage(folder), signIn: uri =>
+            {
+                asked.Add(uri);
+                return "token-for-this-server";
+            });
+
+            server.Respond = _ => (503, "{}");
+            await signedIn.SendAsync(server.Address, play("a"), map, replay).ConfigureAwait(false);
+
+            server.Respond = _ => (200, FakeScoreServer.ExampleResult);
+            await signedIn.SendAsync(server.Address, play("b", 1), map, replay).ConfigureAwait(false);
+
+            Assert.That(server.Requests.Select(r => r.Headers["authorization"]), Has.All.EqualTo("Bearer token-for-this-server"));
+            Assert.That(server.Requests, Has.Count.EqualTo(3));
+            Assert.That(asked.Select(u => u.Authority).Distinct(), Is.EquivalentTo(new[] { new Uri(server.Address).Authority }));
+        }
+
+        [TestCase("http://127.0.0.1:7727", "http://127.0.0.1:7727/", true)]
+        [TestCase("http://127.0.0.1:7727", "http://127.0.0.1:7728/", false)]
+        [TestCase("http://127.0.0.1:7727", "https://127.0.0.1:7727/", false)]
+        [TestCase("http://127.0.0.1:7727", "http://localhost:7727/", false)]
+        [TestCase("http://example.com", "http://EXAMPLE.com/scores/", true)]
+        public void TestSignInGoesOnlyToTheSameServer(string signedInTo, string scoreServer, bool same)
+            => Assert.That(ScoreServerSignIn.SameServer(new Uri(signedInTo), new Uri(scoreServer)), Is.EqualTo(same));
+
+        /// <summary>
+        /// osu!'s own sign-in (the game's default servers) is never sent anywhere.
+        /// </summary>
+        [Test]
+        public void TestOsuSignInIsNeverSent()
+        {
+            var api = new DummyAPIAccess { SessionVerificationMethod = null };
+            api.Login("someone", "password");
+
+            Assert.That(api.State.Value, Is.EqualTo(APIState.Online));
+            Assert.That(api.AccessToken, Is.Not.Empty);
+            Assert.That(ScoreServerSignIn.TokenFor(api, new Uri("http://127.0.0.1:7727")), Is.Null);
+            Assert.That(ScoreServerSignIn.TokenFor(api, new Uri("http://localhost")), Is.Null, "the stand-in API's own address");
+            Assert.That(ScoreServerSignIn.TokenFor(null, new Uri("http://127.0.0.1:7727")), Is.Null);
+        }
+
+        /// <summary>
+        /// Signed in to a private server: its token goes to that server only, and only while signed in.
+        /// </summary>
+        [Test]
+        public void TestServerSignInGoesOnlyToThatServer()
+        {
+            var api = new PrivateServerAPI("http://127.0.0.1:7727") { SessionVerificationMethod = null };
+            api.Login("someone", "password");
+
+            Assert.That(api.State.Value, Is.EqualTo(APIState.Online));
+            Assert.That(ScoreServerSignIn.TokenFor(api, new Uri("http://127.0.0.1:7727/")), Is.EqualTo(api.AccessToken));
+            Assert.That(ScoreServerSignIn.TokenFor(api, new Uri("http://127.0.0.1:7728/")), Is.Null);
+            Assert.That(ScoreServerSignIn.TokenFor(api, new Uri("http://192.168.1.2:7727/")), Is.Null);
+
+            api.Logout();
+            Assert.That(ScoreServerSignIn.TokenFor(api, new Uri("http://127.0.0.1:7727/")), Is.Null);
+        }
+
+        /// <summary>
+        /// The score server address setting says whose account plays go to, and warns when the game is signed in elsewhere
+        /// (for example localhost in one setting and 127.0.0.1 in the other).
+        /// </summary>
+        [Test]
+        public void TestSignInNote()
+        {
+            var api = new PrivateServerAPI("http://127.0.0.1:7727") { SessionVerificationMethod = null };
+
+            // The stand-in starts signed in as a user with the same id as the one it signs in, which the user bindable takes as no change.
+            api.Logout();
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(ScoreServerSignIn.Describe(new DummyAPIAccess(), "http://127.0.0.1:7727"), Is.Null, "on osu!'s servers");
+                Assert.That(ScoreServerSignIn.Describe(null, "http://127.0.0.1:7727"), Is.Null);
+                Assert.That(ScoreServerSignIn.Describe(api, "not an address"), Is.Null);
+
+                Assert.That(ScoreServerSignIn.Describe(api, "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Sign in (top right)"));
+
+                api.Login("Alpha", "password");
+                var mine = ScoreServerSignIn.Describe(api, "http://127.0.0.1:7727/");
+                Assert.That(mine?.Type, Is.EqualTo(SettingsNote.Type.Informational));
+                Assert.That(mine?.Text.ToString(), Is.EqualTo("Plays go to Alpha's account on this server."));
+
+                var elsewhere = ScoreServerSignIn.Describe(api, "http://localhost:7727");
+                Assert.That(elsewhere?.Type, Is.EqualTo(SettingsNote.Type.Warning));
+                Assert.That(elsewhere?.Text.ToString(), Does.StartWith("The game is connected to http://127.0.0.1:7727, not to this address"));
+            });
+        }
+
+        /// <summary>
+        /// A sign-in the server no longer accepts (expired between the game's refreshes, or signed out on the server) keeps the
+        /// play waiting for the next send rather than setting it aside: it is still that account's play.
+        /// </summary>
+        [Test]
+        public async Task TestRefusedSignInKeepsThePlayWaiting()
+        {
+            using var server = new FakeScoreServer { Respond = _ => (401, "{\"error\":\"signed out\"}") };
+            var signedIn = new ScoreServerClient(new NativeStorage(folder), signIn: _ => "stale-token");
+
+            var waiting = await signedIn.SendAsync(server.Address, play("a"), map, replay).ConfigureAwait(false);
+
+            Assert.That(waiting.Kind, Is.EqualTo(ScoreServerOutcomeKind.Queued));
+            Assert.That(waiting.SetAside, Is.False);
+            Assert.That(waiting.Message, Is.EqualTo("the score server did not accept the game's sign-in: signed out"));
+            Assert.That(signedIn.QueuedCount, Is.EqualTo(1));
+
+            server.Respond = _ => (200, FakeScoreServer.ExampleResult);
+            var sent = await signedIn.SendAsync(server.Address, play("b", 1), map, replay).ConfigureAwait(false);
+
+            Assert.That(sent.Kind, Is.EqualTo(ScoreServerOutcomeKind.Sent));
+            Assert.That(sent.SentFromOutbox, Is.EqualTo(1));
+            Assert.That(signedIn.QueuedCount, Is.Zero);
+        }
+
+        /// <summary>
+        /// The game's API while Settings &gt; Online &gt; Server points at a private server.
+        /// </summary>
+        private partial class PrivateServerAPI : DummyAPIAccess, IAPIProvider
+        {
+            private readonly EndpointConfiguration endpoints;
+
+            public PrivateServerAPI(string address)
+            {
+                CustomEndpointConfiguration.TryCreate(address, out var custom);
+                endpoints = custom!;
+            }
+
+            EndpointConfiguration IAPIProvider.Endpoints => endpoints;
         }
 
         /// <summary>

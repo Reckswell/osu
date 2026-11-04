@@ -61,5 +61,10 @@ namespace osu.Game.Online
         /// </list>
         /// </remarks>
         public string? LivenessProbeUrl { get; set; }
+
+        /// <summary>
+        /// Whether a request to <paramref name="url"/> may go over plain http instead of being upgraded to https. Never for osu!'s own servers.
+        /// </summary>
+        public virtual bool AllowsPlainHttp(string url) => false;
     }
 }

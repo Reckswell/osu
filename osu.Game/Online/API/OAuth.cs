@@ -18,6 +18,7 @@ namespace osu.Game.Online.API
         private readonly string clientId;
         private readonly string clientSecret;
         private readonly string endpoint;
+        private readonly bool allowPlainHttp;
 
         public readonly Bindable<OAuthToken> Token = new Bindable<OAuthToken>();
 
@@ -27,7 +28,11 @@ namespace osu.Game.Online.API
             set => Token.Value = string.IsNullOrEmpty(value) ? null : OAuthToken.Parse(value);
         }
 
-        internal OAuth(string clientId, string clientSecret, string endpoint)
+        /// <param name="clientId">The OAuth client ID.</param>
+        /// <param name="clientSecret">The OAuth client secret.</param>
+        /// <param name="endpoint">The API's root URL.</param>
+        /// <param name="allowPlainHttp">Whether token requests may go over plain http (<see cref="EndpointConfiguration.AllowsPlainHttp"/>).</param>
+        internal OAuth(string clientId, string clientSecret, string endpoint, bool allowPlainHttp = false)
         {
             Debug.Assert(clientId != null);
             Debug.Assert(clientSecret != null);
@@ -36,6 +41,7 @@ namespace osu.Game.Online.API
             this.clientId = clientId;
             this.clientSecret = clientSecret;
             this.endpoint = endpoint;
+            this.allowPlainHttp = allowPlainHttp;
         }
 
         internal void AuthenticateWithLogin(string username, string password)
@@ -50,6 +56,9 @@ namespace osu.Game.Online.API
                 ClientId = clientId,
                 ClientSecret = clientSecret
             };
+
+            if (allowPlainHttp)
+                accessTokenRequest.AllowInsecureRequests = true;
 
             using (accessTokenRequest)
             {
@@ -92,6 +101,9 @@ namespace osu.Game.Online.API
                     ClientId = clientId,
                     ClientSecret = clientSecret
                 };
+
+                if (allowPlainHttp)
+                    refreshRequest.AllowInsecureRequests = true;
 
                 using (refreshRequest)
                 {

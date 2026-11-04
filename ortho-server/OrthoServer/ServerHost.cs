@@ -17,6 +17,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using OrthoServer.Accounts;
+using OrthoServer.Lazer;
 using OrthoServer.Live;
 using OrthoServer.Scoring;
 using OrthoServer.Storage;
@@ -56,7 +58,7 @@ namespace OrthoServer
             builder.WebHost.UseUrls($"http://127.0.0.1:{options.Port}");
             builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-            var service = new PlayService(new PlayStore(options.DataPath));
+            var service = new PlayService(new PlayStore(options.DataPath), new AccountStore(options.DataPath));
             var live = new LiveCheck(options.CheckLiveVersion);
 
             builder.Services.AddSingleton(service);
@@ -66,13 +68,21 @@ namespace OrthoServer
 
             app.Lifetime.ApplicationStarted.Register(() => live.Start(app.Lifetime.ApplicationStopping));
 
-            // Only the game posts: a page in a browser cannot send this header without a preflight, which nothing here allows.
+            // Only the game changes anything. A web page's request carries Origin or Sec-Fetch-Site (the game's never do), and a
+            // page cannot add the X-ManiaOrtho header the play uploads need without a preflight, which nothing here allows.
             app.Use(async (context, next) =>
             {
-                if (HttpMethods.IsPost(context.Request.Method) && !context.Request.Headers.ContainsKey(ScoreServerProtocol.CLIENT_HEADER))
+                var request = context.Request;
+                bool changes = !HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method);
+                bool fromPage = request.Headers.ContainsKey("Origin") || request.Headers.ContainsKey("Sec-Fetch-Site");
+                bool upload = request.Path.StartsWithSegments("/api") && !request.Path.StartsWithSegments("/api/v2");
+
+                if (changes && (fromPage || (upload && !request.Headers.ContainsKey(ScoreServerProtocol.CLIENT_HEADER))))
                 {
                     context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                    await context.Response.WriteAsJsonAsync(new { error = $"Requests that change anything need the {ScoreServerProtocol.CLIENT_HEADER} header." })
+                    await context.Response.WriteAsJsonAsync(new { error = fromPage
+                                     ? "Web pages cannot change anything on this server."
+                                     : $"Requests that change anything need the {ScoreServerProtocol.CLIENT_HEADER} header." })
                                  .ConfigureAwait(false);
                     return;
                 }
@@ -80,10 +90,13 @@ namespace OrthoServer
                 await next().ConfigureAwait(false);
             });
 
+            app.UseWebSockets();
+
             app.MapGet("/", () =>
             {
-                var recent = service.Store.All().OrderByDescending(p => p.Id).Take(50).ToList();
-                return Results.Content(ProfilePage.Render(service.Profile(), recent, PlayCalculator.CalculatorVersion, live.NewerVersion), "text/html; charset=utf-8");
+                long? owner = service.Accounts.Owner()?.Id;
+                var recent = service.Store.ForUser(owner).OrderByDescending(p => p.Id).Take(50).ToList();
+                return Results.Content(ProfilePage.Render(service.Profile(owner), recent, PlayCalculator.CalculatorVersion, live.NewerVersion), "text/html; charset=utf-8");
             });
 
             app.MapGet("/api/status", () => json(new Dictionary<string, object?>
@@ -97,7 +110,7 @@ namespace OrthoServer
 
             app.MapGet("/api/profile", () =>
             {
-                var profile = service.Profile();
+                var profile = service.Profile(service.Accounts.Owner()?.Id);
 
                 return json(new Dictionary<string, object?>
                 {
@@ -127,6 +140,16 @@ namespace OrthoServer
 
             app.MapPost("/api/plays", async (HttpRequest request) =>
             {
+                var signedIn = LazerApi.SignedIn(request, service.Accounts);
+
+                // A sign-in this server does not know (expired, or from before its data was reset) must not file the play under
+                // another account: the game keeps it and sends it again with a fresh sign-in.
+                if (signedIn == null && LazerApi.CarriesSignIn(request))
+                {
+                    return Results.Json(new { error = "The game's sign-in is not valid on this server (expired or signed out); the play is sent again later." },
+                        statusCode: StatusCodes.Status401Unauthorized);
+                }
+
                 if (!request.HasFormContentType)
                     return Results.BadRequest(new { error = "Send the play as multipart/form-data: play (JSON), beatmap (.osu) and optionally replay (.osr)." });
 
@@ -144,7 +167,7 @@ namespace OrthoServer
                     byte[] osuFile = await readAll(beatmapFile).ConfigureAwait(false);
                     byte[]? replay = form.Files["replay"] is IFormFile replayFile ? await readAll(replayFile).ConfigureAwait(false) : null;
 
-                    var result = service.Submit(upload, osuFile, replay);
+                    var result = service.Submit(upload, osuFile, replay, signedIn);
                     result.LiveCalculatorVersion = live.NewerVersion;
                     return json(result);
                 }
@@ -159,6 +182,8 @@ namespace OrthoServer
                 var (rated, failed) = service.Recalculate(onlyOutdated: false);
                 return json(new Dictionary<string, object?> { ["rated"] = rated, ["failed"] = failed, ["calculator_version"] = PlayCalculator.CalculatorVersion });
             });
+
+            LazerApi.Map(app, service);
 
             return app;
         }

@@ -14,6 +14,7 @@ using osu.Game.Graphics;
 using osu.Game.Graphics.Containers;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterface;
+using osu.Game.Online;
 using osu.Game.Online.API;
 using osu.Game.Overlays.Settings;
 using osu.Game.Resources.Localisation.Web;
@@ -61,6 +62,13 @@ namespace osu.Game.Overlays.Login
                         {
                             Text = LoginPanelStrings.Account.ToUpper(),
                             Font = OsuFont.GetFont(weight: FontWeight.Bold),
+                        },
+                        // Which server this signs in to, when it is not osu!'s (Settings > Online > Server).
+                        new OsuSpriteText
+                        {
+                            Text = api.Endpoints is CustomEndpointConfiguration custom ? $@"on the server at {custom.Address}" : string.Empty,
+                            Alpha = api.Endpoints is CustomEndpointConfiguration ? 1 : 0,
+                            Font = OsuFont.GetFont(size: 12),
                         },
                         username = new OsuTextBox
                         {

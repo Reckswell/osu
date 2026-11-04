@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,14 +65,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
         private readonly string outbox;
         private readonly string refused;
         private readonly HttpClient http;
+        private readonly Func<Uri, string?>? signIn;
 
         /// <param name="playLog">The play log's folder (<c>maniaortho</c> in the game's data).</param>
         /// <param name="http">For tests; the game shares one client from <see cref="CreateHttpClient"/>.</param>
-        public ScoreServerClient(Storage playLog, HttpClient? http = null)
+        /// <param name="signIn">The game's sign-in token for a server, if the game is signed in to that very server
+        /// (<see cref="ScoreServerSignIn.TokenFor"/>): plays then go to that account. Asked at each send.</param>
+        public ScoreServerClient(Storage playLog, HttpClient? http = null, Func<Uri, string?>? signIn = null)
         {
             outbox = playLog.GetFullPath(OUTBOX_DIRECTORY);
             refused = playLog.GetFullPath(REFUSED_DIRECTORY);
             this.http = http ?? shared_http;
+            this.signIn = signIn;
         }
 
         /// <summary>
@@ -278,6 +283,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
                 request.Content = form;
                 request.Headers.Add(ScoreServerProtocol.CLIENT_HEADER, ManiaOrthoRuleset.SHORT_NAME);
 
+                if (signIn?.Invoke(server) is string token)
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
                 using var response = await http.SendAsync(request).ConfigureAwait(false);
 
                 string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -306,6 +314,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
                         ? wrongAddress($"{address} did not answer like a score server: is something else using that port?")
                         : new ScoreServerOutcome(ScoreServerOutcomeKind.Sent, result, null);
                 }
+
+                // The game's sign-in expired between its refreshes, or the server no longer knows it: the play belongs to that
+                // account, so it waits for the next send (with a fresh sign-in, or none once signed out) instead of being set aside.
+                if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    return new ScoreServerOutcome(ScoreServerOutcomeKind.Queued, null, $"the score server did not accept the game's sign-in{detail(body)}");
 
                 // An error on the server's side may pass (a restart, a full disk): try again later. A refusal will not.
                 if (status >= 500)

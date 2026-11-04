@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Threading.Tasks;
+using OrthoServer.Accounts;
 using OrthoServer.Live;
 using OrthoServer.Scoring;
 using OrthoServer.Storage;
@@ -66,7 +67,7 @@ namespace OrthoServer
 
                 case "recalculate":
                 {
-                    var service = new PlayService(new PlayStore(options.DataPath));
+                    var service = new PlayService(new PlayStore(options.DataPath), new AccountStore(options.DataPath));
                     var (rated, failed) = service.Recalculate(onlyOutdated: false, progress);
                     Console.WriteLine($"Rated {rated} plays with {PlayCalculator.CalculatorVersion}; {failed} could not be rated.");
                     return failed == 0 ? 0 : 1;
