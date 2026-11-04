@@ -1117,3 +1117,36 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Harness**: `playtest.sh --game-set Name=value,...` sets osu!'s and osu!mania's own settings in both modes, through
   each setting's bindable as osu! reads its settings files; the summary records them.
 - **Not changed** (Q22): HUD layouts per mode, the fail animation's tumbling notes, touching lanes directly.
+
+## 2026-11-04: Live osu!mania check (M4 daily job)
+
+- **Decision**: `scripts/ortho/live-mania.sh` compares mania's judgement, scoring and difficulty code with the release
+  osu!'s servers use (`osu-queue-score-statistics` pins `ppy.osu.Game.Rulesets.Mania`), and a GitHub Actions workflow
+  runs it daily and opens a pull request when that release changes (README "Live osu!mania check").
+- **Compared**: mania's rules (`ManiaRuleset.cs`, Beatmaps, Difficulty, Judgements, MathUtils, Mods, Objects with their
+  drawables, which judge, Scoring, and `Column.cs` / `OrderedHitPolicy.cs`, the order notes are judged in) and the
+  shared code under them (beatmap decoding and conversion, control points, hit objects, mods and `ModUtils`' rates,
+  judgements, scoring and health, `IBeatmapDifficultyInfo`'s hit window ranges, `WorkingBeatmap`, `LegacyRandom`,
+  difficulty). Wider than "difficulty code", as the backlog put it, because invariant 1 covers judgements, score and
+  accuracy too. Files are named one by one where a folder holds other things: `osu.Game/Beatmaps` holds the core patch
+  `BeatmapInfoExtensions.cs`, which a proposal must never revert (review: the first list missed `LegacySortHelper`,
+  `ModUtils` and the hit policy).
+- **Proposal**: when the branch lacks the release, merge it (the fork follows upstream, so this is the bump), then take
+  the release's version of any compared file that still differs; a merge that conflicts is aborted and only the files
+  are taken. Where the branch already has the release, a difference is a change upstream made after it that osu! has
+  not deployed: the proposal reverts it and says to close it if the change cannot affect a result.
+- **When**: only when the release differs from `docs/ortho/live-mania-version.txt` (one pull request per release, open
+  or closed, its branch `ortho/live-mania-<release>`), not every day a difference stays, so a reviewed difference does
+  not come back. A kept difference is taken out of the pull request (or named with `--record`) and noted here; closing
+  the pull request instead would leave the release unchecked.
+- **GitHub limits** (review): the workflow's token cannot push workflow changes, which merging an upstream release often
+  brings, so then it takes only the files; and a pull request it cannot open (Actions may not create them by default)
+  removes its branch, so the next run tries again instead of finding the branch and stopping.
+- **Why Actions, not a daily Claude routine**: free and deterministic; a routine starts a session every day. It needs
+  Actions enabled and the workflow on the default branch (Q23); until then the work loop runs the check.
+- **Today**: live is 2026.1026.0, pinned as checked. This branch differs from it in `HealthProcessor.cs` and
+  `HealthValue.cs`, upstream's health graph for replays (#39078), merged after that release: it records each health
+  value next to the judgement and never changes health, failing, judgements or score, so it stays.
+- **Shallow clones** (like this container's): the release is fetched as one commit, so whether the branch has it can be
+  "unknown" and only files are taken; a full clone fetches it with its history, so its commit never becomes a shallow
+  root that cuts `git log` short.

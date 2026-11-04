@@ -168,8 +168,12 @@ in the end. Live pp and the CSV still apply.
 
 ## M4: Upstream tracking
 
-- [ ] Daily job: read the live `ppy.osu.Game.Rulesets.Mania` version used by `osu-queue-score-statistics`; when it
+- [!] Daily job: read the live `ppy.osu.Game.Rulesets.Mania` version used by `osu-queue-score-statistics`; when it
   changes, diff mania difficulty code and open a PR that bumps it. Gate: a simulated bump opens a PR.
+  (Built: `scripts/ortho/live-mania.sh` and `.github/workflows/ortho-live-mania.yml`, README "Live osu!mania check";
+  offline test in `check.sh`; the workflow's steps simulated locally with release 2026.916.0 made the proposal commit.
+  Waits for Q23: Actions are off for this fork and a schedule runs only from the default branch. Meanwhile the work
+  loop runs the check at the start of each iteration.)
 - [ ] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
 
 ## M5: Optional self-hosted server

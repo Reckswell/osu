@@ -60,6 +60,26 @@ These touch Claude Code's own configuration, so they were left for Alpha to appr
    { "hooks": { "SessionStart": [ { "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/scripts/ortho/cloud-setup.sh" } ] } ] } }
    ```
 2. Optionally allow the loop's routine commands without prompts (`dotnet build`, `dotnet test`, `scripts/ortho/*`).
+3. Turn on the daily [live osu!mania check](#live-osumania-check): GitHub Actions are off for this fork, and a scheduled
+   workflow runs only from the default branch (QUESTIONS Q23).
+
+## Live osu!mania check
+
+maniaortho's star rating and pp equal osu!'s only while mania's code here is the code osu!'s servers rate plays with.
+osu!'s pp come from `osu-queue-score-statistics`, which pins a release of `ppy.osu.Game.Rulesets.Mania`.
+`scripts/ortho/live-mania.sh` compares the files that decide judgements, score, accuracy, star rating and pp between
+that release of ppy/osu and HEAD: mania's rules (with the order notes are judged in), and the shared beatmap decoding
+and conversion, timing, hit objects, mods and their rates, judgements, scoring and health, hit window ranges and
+difficulty code (the list is in the script). Exit 0 the same, 3 different, with the files listed.
+`docs/ortho/live-mania-version.txt` names the release last checked; a difference reviewed and kept under it is written
+in DECISIONS (`--record` names a release without changing files).
+
+`.github/workflows/ortho-live-mania.yml` runs it daily. When osu!'s servers move to another release, it opens one pull
+request for it (`ortho/live-mania-<release>`) that brings the branch to it: it merges the release if the branch lacks
+it, takes those files from the release wherever they still differ (only them if the merge conflicts, or if the merge
+would bring workflow changes, which its token cannot push), and records it. Run it by hand with a release in
+`live_version` to simulate a bump. It needs Actions enabled with "Allow GitHub Actions to create and approve pull
+requests" (Q23). Its offline test, `scripts/ortho/live-mania-test.sh`, runs in `check.sh`.
 
 ## Core patches
 

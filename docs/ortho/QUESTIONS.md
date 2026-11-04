@@ -6,24 +6,24 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q23. Turn on the daily check that pp match osu!'s servers
+`.github/workflows/ortho-live-mania.yml` (README "Live osu!mania check") opens a pull request when osu!'s servers move to
+a new osu!mania release. It cannot run yet: GitHub Actions are off for this fork, and a scheduled workflow runs only
+from the default branch, which is still plain upstream (all maniaortho work is on `claude/*` branches).
+- **Options**: (a) enable Actions for `reckswell/osu` (Settings > Actions > General, and under Workflow permissions tick
+  "Allow GitHub Actions to create and approve pull requests") and merge the maniaortho branch into `master`; upstream's own workflows then run too (`ci.yml` on every push; deploy, Sentry and mod-definition jobs need
+  ppy's secrets and should be disabled under Actions > each workflow > Disable). (b) A daily Claude routine that runs
+  the script and opens the pull request instead: works now, but starts a session every day. (c) Neither: the work loop
+  runs the check at the start of every iteration.
+- **Default until answered**: (c). Merging to `master` is yours to do.
+- **Answer**:
+
 ### Q22. Three differences from osu!mania that are not settings
 Found during the settings check (`SETTINGS-PARITY.md`, last section): a HUD layout customised for osu!mania in the skin
 editor does not carry over to maniaortho; when you fail, mania's notes tumble while the highway's slow to a stop; and
 tapping a lane on a touch screen without the touch overlay can press the wrong column.
 - **Options**: make any of them match osu!mania (each is its own task), or leave them.
 - **Default until answered**: leave them; listed in `SETTINGS-PARITY.md`.
-- **Answer**:
-
-### Q21. Share osu!mania's key bindings
-maniaortho kept its own keys (osu! stores them per mode), so keys changed under osu!mania did not carry over. Asked on a
-decision card (share / keep separate).
-- **Default until answered**: share. Gameplay reads osu!mania's keys; maniaortho's section in the key binding settings
-  stays listed (osu! lists every mode, hiding one needs a patch to osu!) and is kept equal to osu!mania's both ways (a
-  change from the other side shows in the panel after a restart). Keys set for maniaortho while osu!mania's were at their
-  defaults moved to osu!mania; where both had been changed, osu!mania's were kept and maniaortho's are in osu!'s log
-  ("its own for variant N are replaced").
-  Undo: drop `DrawableManiaOrthoRuleset.CreateInputManager`, its `Merge` call and the mirror; maniaortho then plays with
-  its section's keys, which equal osu!mania's at that point.
 - **Answer**:
 
 ### Q20. How a side-placed skin stage is made easier to play
@@ -158,6 +158,19 @@ tests can replay it on the highway.
 - **Answer**:
 
 ## Answered
+
+### Q21. Share osu!mania's key bindings
+maniaortho kept its own keys (osu! stores them per mode), so keys changed under osu!mania did not carry over. Asked on a
+decision card (share / keep separate).
+- **Default until answered**: share. Gameplay reads osu!mania's keys; maniaortho's section in the key binding settings
+  stays listed (osu! lists every mode, hiding one needs a patch to osu!) and is kept equal to osu!mania's both ways (a
+  change from the other side shows in the panel after a restart). Keys set for maniaortho while osu!mania's were at their
+  defaults moved to osu!mania; where both had been changed, osu!mania's were kept and maniaortho's are in osu!'s log
+  ("its own for variant N are replaced").
+  Undo: drop `DrawableManiaOrthoRuleset.CreateInputManager`, its `Merge` call and the mirror; maniaortho then plays with
+  its section's keys, which equal osu!mania's at that point.
+- **Answer** (Alpha, 2026-11-04, in the thread after the settings report): "i think this looks good, continue". Share,
+  as built; the card is closed with it.
 
 ### Q16. Where a ported skin's key area goes by default
 Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a
