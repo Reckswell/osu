@@ -102,6 +102,16 @@ Each is a default-feel choice, so it is yours; nothing changes until you answer.
 - **Default until answered**: (a) keep Chunithm's, (b) any time, (c) off, (d) leave it.
 - **Answer**:
 
+### Q18. Replays of your maniaortho plays
+osu! stores replays only for its four own rulesets, so it keeps none of your maniaortho plays: nothing to watch from
+the leaderboard and nothing to export. Each logged play's replay is now saved as an osu!mania `.osr` in
+`ortho-data\maniaortho\replays`. It opens in osu! as a mania replay (flat stage, same judgements), and the parity
+tests can replay it on the highway.
+- **Options**: (a) keep saving them there; (b) don't save them; (c) also let osu! store and play them back on the
+  highway, which needs a patch to osu!'s own code (core patch).
+- **Default until answered**: (a).
+- **Answer**:
+
 ## Answered
 
 ### Q15. How maniaortho gets mania maps inside official lazer

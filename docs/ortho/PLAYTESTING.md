@@ -139,11 +139,16 @@ starts nothing when the packaged game is already running. `osu\version.txt` name
   (Ctrl+Shift+S during play): "LegacyPerformancePointsCounter" in the components list, on the global HUD layer (every
   ruleset) or the maniaortho layer (only here; one added on mania's layer does not show here), then save. Lazer saves
   that layout with its copy of the skin, as new files in its own store; stable's skin files are not changed.
+- **Plays log**: every maniaortho pass or fail adds a row to `ortho-data\maniaortho\plays.csv` (map, mods, judgement
+  counts, accuracy, stars, pp, camera and wall) and saves its replay as an osu!mania `.osr` in
+  `ortho-data\maniaortho\replays`. osu! itself keeps no replay of maniaortho plays (it only stores replays of its four
+  rulesets), so these files are the only ones. Quits, replays and autoplay are skipped. Close the CSV in Excel before
+  playing: a locked file loses that play's row (the game shows an error).
 
 Only Alpha can judge feel. When asking for an L4 session, give Alpha a short list of what to try (for example "7K at
 your usual speed, wall at 30%, tell me if outer lanes are readable") and ask for:
 
 - Free-form notes, answered into `QUESTIONS.md` or the project thread.
-- Exported replays (`.osr`) of a few plays, placed in `osu.Game.Rulesets.ManiaOrtho.Tests/Resources/Replays/` only if
+- Replays (`.osr`, from `ortho-data\maniaortho\replays`) of a few plays, placed in `osu.Game.Rulesets.ManiaOrtho.Tests/Resources/Replays/` only if
   Alpha agrees, together with the matching `.osu` file. A parity test can then replay them through both rulesets,
   which turns real human input into a regression test.

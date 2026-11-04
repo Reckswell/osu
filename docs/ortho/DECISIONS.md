@@ -653,3 +653,29 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Known limitation**: keys keep their flat height and stretch to the lane's width, so round receptors (Mania Flow
   Mode's rings) become wide ellipses on a track wider than the flat stage. Notes keep their proportions.
 - **How to reverse**: set the three styles back to Highway or Skin (warped); delete `SkinPort/`.
+
+## 2026-11-04: Plays go to a CSV in the data folder
+
+- **Decision**: `PlayLogRecorder`, added by the drawable ruleset, appends one row to `<data>\maniaortho\plays.csv`
+  when a play is passed or failed (`GameplayState.HasPassed` / `HasFailed`, checked each frame). Quits, replays and
+  autoplay (`HasReplayLoaded`) are not logged. Columns: the design doc's list plus rank, artist, title and difficulty
+  name for reading, `mods_json` (each mod's settings, for exact recalculation) and `score_id` (osu!'s id of the score;
+  only passes that reach the results screen are stored by osu!, so for others it points at nothing). Stars and pp come
+  from the game's difficulty cache and mania's calculator, as on the results screen. The camera and wall are read at
+  the end of the play (the hotkeys can move the wall mid-song). UTF-8 with a byte-order mark, so Excel reads titles.
+  Accuracy and stars keep four decimals (osu! rounds down to two, so 99.996% would otherwise read as 100.00).
+- **Replays**: osu! keeps no replay for a ruleset that is not one of its four (`Player.ImportScore` only encodes an
+  `.osr` for those; `LegacyScoreEncoder` refuses others), so maniaortho plays had none to watch or export. The
+  recorder saves each logged play's replay as an osu!mania `.osr` in `<data>\maniaortho\replays` (the `replay`
+  column), from the frames recorded up to the pass or fail. It opens in osu! as a mania replay (flat stage); the parity
+  tests can replay it through both rulesets (PLAYTESTING L4). Not uploaded anywhere. Reverse: drop `saveReplay`.
+  Asked in Q18 whether Alpha wants them.
+- **Columns change**: a file whose header differs is kept as `plays until <date>.csv` and a new one started.
+- **Known limitation**: Excel reads a title starting with `=`, `+`, `-` or `@` as a formula; the CSV keeps the title as
+  it is rather than adding a quote mark other readers would see.
+- **Why polled, not `HealthProcessor.Failed`**: that event is a `Func<bool>` whose last handler decides whether the fail
+  happens. A handler of ours would override Player's answer (No Fail, for one) and change gameplay (invariant 1).
+- **Alternatives**: watching osu!'s score database (needs a component outside gameplay, so a core patch, and osu!
+  keeps a fail only when its replay is saved from the fail screen); writing rows from `osu.exe` after the game closes
+  (the launcher would need osu!'s database code).
+- **Reverse**: remove the recorder from `DrawableManiaOrthoRuleset.load`.

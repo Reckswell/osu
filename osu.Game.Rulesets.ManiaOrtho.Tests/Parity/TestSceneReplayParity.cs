@@ -14,6 +14,7 @@ using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.Scoring;
 using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Scoring;
@@ -164,6 +165,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                 AddAssert("mania showed live pp", () => mania.LivePerformance, () => Is.GreaterThan(0));
                 AddAssert("same live pp", () => ortho.LivePerformance, () => Is.EqualTo(mania.LivePerformance));
             }
+
+            AddAssert("ortho run had a play log that skipped the replay", () => ortho.PlayLog, () => Is.EqualTo("not logged"));
         }
 
         private void play(Ruleset ruleset, string source, int seed, string[] mods, System.Action<PlayRecord> store)
@@ -225,7 +228,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.TrackShown == true,
                     currentPlayer.ChildrenOfType<PerformancePointsCounter>().FirstOrDefault(c => c.IsValid)?.Current.Value ?? 0,
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault() is HighwayPlayfieldAdjustmentContainer h
-                    && h.Port != null && h.PortedNotesShown && h.PortedTrackShown && h.PortedLightingShown));
+                    && h.Port != null && h.PortedNotesShown && h.PortedTrackShown && h.PortedLightingShown,
+                    currentPlayer.ChildrenOfType<PlayLogRecorder>().SingleOrDefault() is PlayLogRecorder recorder ? recorder.Writing == null ? "not logged" : "logged" : "none"));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -236,6 +240,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
         private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
-                                  float? LineHeight, bool HighwayTrack, int LivePerformance, bool Ported);
+                                  float? LineHeight, bool HighwayTrack, int LivePerformance, bool Ported,
+                                  string PlayLog);
     }
 }

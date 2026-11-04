@@ -152,7 +152,10 @@ in the end. Live pp and the CSV still apply.
   (No code: lazer's HUD pp counter and results pp go through the delegated calculators. `TestSceneReplayParity` checks
   the live counter, `TestSceneResultsPerformanceParity` the results' with no mod, DT, HT, HR, NF and FL. Stable skins
   need the counter added in the skin editor; DECISIONS 2026-11-04, "Live pp is lazer's own".)
-- [ ] Append each play to a CSV (columns in the design doc). Gate: file written with correct values in a test.
+- [x] Append each play to a CSV (columns in the design doc). Gate: file written with correct values in a test.
+  (`ortho-data\maniaortho\plays.csv`, one row per pass or fail, with the replay saved as a mania `.osr` since osu!
+  keeps none for this ruleset; `PlayLogTest`, `TestScenePlayLogRecorder`, `TestScenePlayLogInPlayer`; DECISIONS
+  2026-11-04, "Plays go to a CSV".)
 
 ## M4: Upstream tracking
 

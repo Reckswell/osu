@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using osu.Game.Beatmaps;
 using osu.Game.Beatmaps.ControlPoints;
 using osu.Game.Beatmaps.Formats;
@@ -42,6 +43,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// The file behind <see cref="REAL_4K"/>: a 4K chart from osu!mania's own test resources.
         /// </summary>
         public static string Real4KPath => Path.Combine(RepoRoot, "osu.Game.Rulesets.Mania.Tests", "Resources", "Testing", "Beatmaps", "4869637.osu");
+
+        /// <summary>
+        /// <see cref="Real4KPath"/> packed as an .osz, so a game can import it as a player would.
+        /// </summary>
+        public static MemoryStream CreateReal4KArchive()
+        {
+            var stream = new MemoryStream();
+
+            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+                archive.CreateEntryFromFile(Real4KPath, Path.GetFileName(Real4KPath));
+
+            stream.Position = 0;
+            return stream;
+        }
 
         public static IBeatmap Load(string source)
         {

@@ -3,8 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
@@ -51,7 +49,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         {
             AddStep("import the 4K test beatmap", () =>
             {
-                var imported = beatmaps.Import(new ImportTask(createArchive(), "maniaortho results parity.osz")).GetResultSafely().AsNonNull();
+                var imported = beatmaps.Import(new ImportTask(PlaytestBeatmaps.CreateReal4KArchive(), "maniaortho real 4k.osz")).GetResultSafely().AsNonNull();
                 beatmap = imported.PerformRead(set => set.Beatmaps.Single().Detach());
             });
         }
@@ -137,21 +135,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                 Rank = ScoreRank.A,
                 Mods = mods.Select(m => ruleset.CreateModFromAcronym(m).AsNonNull()).ToArray(),
             };
-        }
-
-        /// <summary>
-        /// The test beatmap from osu!mania's test resources, packed as an .osz so the game imports it as a player would.
-        /// </summary>
-        private static MemoryStream createArchive()
-        {
-            string path = PlaytestBeatmaps.Real4KPath;
-            var stream = new MemoryStream();
-
-            using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
-                archive.CreateEntryFromFile(path, Path.GetFileName(path));
-
-            stream.Position = 0;
-            return stream;
         }
     }
 }

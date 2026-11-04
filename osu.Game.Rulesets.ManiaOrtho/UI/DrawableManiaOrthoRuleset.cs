@@ -8,6 +8,7 @@ using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Scoring;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.UI;
 
@@ -50,6 +51,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         {
             if (HighwayConfig != null)
                 AddInternal(new HighwayHotkeys(HighwayConfig));
+
+            AddInternal(new PlayLogRecorder(HasReplayLoaded, Config as ManiaOrthoRulesetConfigManager));
 
             // Mania keeps a beatmap's scroll speed changes (SV) only when the beatmap was made for the ruleset being played,
             // which it checks against Ruleset.RulesetInfo: maniaortho here, so every mania beatmap would lose its SV. This
