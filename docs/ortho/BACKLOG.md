@@ -174,7 +174,12 @@ in the end. Live pp and the CSV still apply.
   offline test in `check.sh`; the workflow's steps simulated locally with release 2026.916.0 made the proposal commit.
   Waits for Q23: Actions are off for this fork and a schedule runs only from the default branch. Meanwhile the work
   loop runs the check at the start of each iteration.)
-- [ ] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
+- [x] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
+  (`PlayLogRatings`: the first play after osu!mania's difficulty calculator version or the checked release changes
+  rates every row of `plays.csv` again from its beatmap, mods and judgement counts, the old file kept; rows whose
+  beatmap is missing wait and are tried after each later play;
+  `PlayLogRatingsTest`, `TestScenePlayLogRecorder.TestPlaysAreRatedAgainAfterACalculatorChange`; DECISIONS 2026-11-04
+  "Saved plays rated again".)
 
 ## M5: Optional self-hosted server
 

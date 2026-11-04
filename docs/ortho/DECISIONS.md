@@ -1150,3 +1150,36 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Shallow clones** (like this container's): the release is fetched as one commit, so whether the branch has it can be
   "unknown" and only files are taken; a full clone fetches it with its history, so its commit never becomes a shallow
   root that cuts `git log` short.
+
+## 2026-11-04: Saved plays rated again when the calculators change (M4)
+
+- **Stored scores** are the rows of `plays.csv`: osu! stores no maniaortho score of its own with pp (it saves scores
+  only for its four rulesets' replays), and its own star ratings are recalculated by osu! itself when a ruleset's
+  difficulty version rises (`BackgroundDataStoreProcessor.clearOutdatedStarRatings`).
+- **Decision**: `PlayLogRatings` rates every row again (stars, pp, difficulty version) when the calculators differ from
+  those named in `maniaortho\plays rated by.txt`: osu!mania's difficulty calculator version, and the osu!mania release
+  whose scoring code this build was checked against (`docs/ortho/live-mania-version.txt`, embedded in the DLL). The
+  release matters because upstream changes pp without raising the difficulty version, and a live check bump is how this
+  fork takes such a change.
+- **From what**: the beatmap osu! has under the row's MD5, the row's `mods_json` (each mod's settings) and judgement
+  counts, through maniaortho's ruleset (osu!mania's calculators, invariant 5), with the beatmap's maxima from a score
+  processor as the play's own score had them. A row whose mods do not read back (a mod this build lacks, a stored
+  setting it no longer takes, compared by value so a new order or default of settings does not matter) is not rated:
+  it would be rated as another play.
+- **Waiting rows**: a row whose beatmap osu! no longer has (or not yet: a map deleted and imported again), or that fails,
+  keeps its values and is listed under the stamp's first line; each later play tries those rows again, and they leave
+  the list once rated. A failure is said once in osu! (a notification), when the calculators change; retries only go to
+  the log file.
+- **When**: in the recorder's background write, after the new play's row is added, so the first play after an update
+  does it and a long rating never delays (or loses) that row. The log is read and written back under its lock, but
+  rated without it; ratings are put back by play (time, beatmap, score, score ID), so rows added meanwhile (rated by
+  these calculators) are left as they are and a row removed meanwhile stays removed. One rating at a time: a play ending during another's rating leaves it to that one. A log written before
+  the stamp existed has only rows of another difficulty version rated again. The file as it was is kept as
+  `plays before rating again <date>.csv` (numbered if taken), the new one written beside it and moved over it. A file
+  open in a program that locks it (Excel) cannot be read, keeps the stamp old and is tried again after the next play; a
+  file a spreadsheet saved in another encoding than UTF-8 is left alone (rewriting it would lose its accents).
+- **Not rated again**: older files kept as `plays until <date>.csv` after a column change; a row the recorder itself
+  could not rate (stars empty, osu!'s difficulty lookup gave nothing) until the next calculator change, since finding
+  those would mean reading the log after every play (it never happened in testing).
+- **Alternatives**: rating at game start (needs a component outside gameplay, a core patch); a settings button (a
+  manual step that is easy to forget).

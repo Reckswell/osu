@@ -14,6 +14,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Extensions;
 using osu.Game.Replays;
 using osu.Game.Rulesets.Mania.Beatmaps;
@@ -45,6 +46,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
         [Resolved]
         private Storage storage { get; set; } = null!;
+
+        [Resolved]
+        private BeatmapManager? beatmapManager { get; set; }
+
+        [Resolved]
+        private RealmAccess? realm { get; set; }
 
         private bool recorded;
 
@@ -131,7 +138,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
             set(row, "ok", count(score, HitResult.Ok));
             set(row, "meh", count(score, HitResult.Meh));
             set(row, "miss", count(score, HitResult.Miss));
-            set(row, "difficulty_version", ruleset.CreateDifficultyCalculator(new FlatWorkingBeatmap(state.Beatmap)).Version.ToString(CultureInfo.InvariantCulture));
+            int difficultyVersion = ruleset.CreateDifficultyCalculator(new FlatWorkingBeatmap(state.Beatmap)).Version;
+            set(row, "difficulty_version", difficultyVersion.ToString(CultureInfo.InvariantCulture));
             set(row, "mods_json", JsonConvert.SerializeObject(score.APIMods));
             set(row, "score_id", state.Score.ScoreInfo.ID.ToString());
 
@@ -180,7 +188,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
                 {
                     Logger.Error(e, $"This play could not be added to {PlayLog.DIRECTORY}/{PlayLog.FILENAME} (is it open in another program?)");
                 }
+
+                try
+                {
+                    // After this play is added, so it never waits for the others (nor is lost when the game closes meanwhile).
+                    PlayLogRatings.UpdateIfOutdated(log, ruleset, difficultyVersion, beatmapByMd5);
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e, $"The plays in {PlayLog.DIRECTORY}/{PlayLog.FILENAME} could not be rated again; trying again after the next play");
+                }
             });
+        }
+
+        /// <summary>
+        /// A logged play's beatmap, by the MD5 of its file, as osu! has it now; null when it has none (or outside a game).
+        /// </summary>
+        private WorkingBeatmap? beatmapByMd5(string md5)
+        {
+            if (realm == null || beatmapManager == null || string.IsNullOrEmpty(md5))
+                return null;
+
+            var beatmap = realm.Run(r => r.All<BeatmapInfo>().Where(b => b.MD5Hash == md5).AsEnumerable().FirstOrDefault()?.Detach());
+            return beatmap == null ? null : beatmapManager.GetWorkingBeatmap(beatmap);
         }
 
         /// <summary>

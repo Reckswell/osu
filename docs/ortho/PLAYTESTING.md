@@ -150,7 +150,9 @@ starts nothing when the packaged game is already running. `osu\version.txt` name
 - **Plays log**: every maniaortho pass or fail adds a row to `ortho-data\maniaortho\plays.csv` (map, mods, judgement
   counts, accuracy, stars, pp, camera and wall) and saves its replay as an osu!mania `.osr` in
   `ortho-data\maniaortho\replays`. osu! itself keeps no replay of maniaortho plays (it only stores replays of its four
-  rulesets), so these files are the only ones. Quits, replays and autoplay are skipped. Close the CSV in Excel before
+  rulesets), so these files are the only ones. Quits, replays and autoplay are skipped. When an update changes how
+  osu!mania rates plays, the first play after it rates every saved play again (stars and pp; the file as it was is
+  kept as `plays before rating again <date>.csv`; plays of a beatmap no longer in osu! wait until it is back). Close the CSV in Excel before
   playing: a locked file loses that play's row (the game shows an error).
 - **Speed numbers**: the scroll speed setting and the F3/F4 and Shift+F3/F4 toasts show how long notes are visible on
   the highway with the current skin, wall and camera, not osu!mania's `11485 / speed`. Same speed, larger number than

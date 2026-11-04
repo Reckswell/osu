@@ -81,9 +81,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Scoring
                 beatmap = imported.PerformRead(set => set.Beatmaps.Single().Detach());
             });
 
-            AddStep("no log or replays yet", () =>
+            AddStep("no log, stamp or replays yet", () =>
             {
                 log.Delete(PlayLog.FILENAME);
+                log.Delete(PlayLogRatings.STAMP_FILENAME);
+
+                foreach (string kept in log.GetFiles(".", "plays before *.csv").ToArray())
+                    log.Delete(kept);
+
                 log.DeleteDirectory(PlayLog.REPLAY_DIRECTORY);
             });
             AddStep("Voltex preset, wall in Chunithm's steps", () =>
@@ -175,6 +180,50 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Scoring
                 applied.GetValueOrDefault(HitResult.Miss),
                 replay_frames.Length,
             }));
+        }
+
+        /// <summary>
+        /// A simulated calculator change (BACKLOG M4): the next play rates the saved plays again, from the beatmap osu! has
+        /// and each play's mods and judgement counts.
+        /// </summary>
+        [Test]
+        public void TestPlaysAreRatedAgainAfterACalculatorChange()
+        {
+            string[] expected = Array.Empty<string>();
+
+            start("DT");
+            judge(300);
+            AddStep("pass", () => state.HasPassed = true);
+            waitForWrite();
+            AddAssert("the log is stamped with this build's calculators", () => File.ReadAllText(log.GetFullPath(PlayLogRatings.STAMP_FILENAME)),
+                () => Does.Contain(PlayLogRatings.LiveManiaRelease));
+            AddStep("note osu!mania's rating of it", () => expected = maniaRating("DT"));
+
+            AddStep("simulate a calculator change: the play rated otherwise, by an older calculator", () =>
+            {
+                PlayLog.Rewrite(log, plays =>
+                {
+                    plays[0][Array.IndexOf(PlayLog.COLUMNS, "stars")] = "1.0000";
+                    plays[0][Array.IndexOf(PlayLog.COLUMNS, "pp")] = "1.00";
+                    return true;
+                }, "plays before the test's change.csv");
+                File.WriteAllText(log.GetFullPath(PlayLogRatings.STAMP_FILENAME), "an older calculator");
+            });
+
+            start();
+            judge(50);
+            AddStep("fail", () => state.HasFailed = true);
+            waitForWrite();
+
+            AddAssert("the first play is rated as osu!mania rates it now", () =>
+            {
+                string[] first = PlayLogTest.ParseRow(lines()[1]);
+                return new[] { first[Array.IndexOf(PlayLog.COLUMNS, "stars")], first[Array.IndexOf(PlayLog.COLUMNS, "pp")] };
+            }, () => Is.EqualTo(expected));
+            AddAssert("the new play follows it", () => lines().Skip(1).Select(l => PlayLogTest.ParseRow(l)[Array.IndexOf(PlayLog.COLUMNS, "result")]),
+                () => Is.EqualTo(new[] { "pass", "fail" }));
+            AddAssert("stamped again", () => File.ReadAllText(log.GetFullPath(PlayLogRatings.STAMP_FILENAME)), () => Does.Contain(PlayLogRatings.LiveManiaRelease));
+            AddAssert("the old file is kept", () => log.GetFiles(".", "plays before rating again *.csv").Count(), () => Is.EqualTo(1));
         }
 
         [Test]
