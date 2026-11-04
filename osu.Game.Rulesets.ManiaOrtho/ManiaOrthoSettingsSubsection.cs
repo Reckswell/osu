@@ -348,12 +348,23 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormEnumDropdown<SkinStageFit>
                 {
                     Caption = "Skin stage position",
-                    HintText = "Camera: the preset's track, centred. Skin position: centred where the skin puts its stage. Skin "
-                               + "position and width: the skin's own stage width too.",
+                    HintText = "Camera: the preset's track, centred. Skin position: centred exactly where the skin puts its stage "
+                               + "(narrowed if it would not fit there). Skin position and width: the skin's own stage width too.",
                     Current = highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit),
                 })
                 {
                     Keywords = new[] { "column start", "stage width", "centre", "center", "left" },
+                },
+                new SettingsItemV2(new FormEnumDropdown<SkinConvergence>
+                {
+                    Caption = "Skin stage lanes converge",
+                    HintText = "For a skin that puts its stage to one side (with either skin stage position): where its lanes meet in "
+                               + "the distance. Above the stage keeps it upright; screen centre leans it in towards the middle, more the "
+                               + "further out the stage is. The judgement line stays put.",
+                    Current = highway.GetBindable<SkinConvergence>(HighwaySetting.Convergence),
+                })
+                {
+                    Keywords = new[] { "vanishing point", "perspective", "lean", "skew", "iidx", "stepmania", "side" },
                 },
                 new SettingsItemV2(new FormCheckBox
                 {

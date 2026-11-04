@@ -50,6 +50,23 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public const float MAX_SWAY = 0.2f;
 
+        /// <summary>
+        /// A lasting lean of the track above the judgement line, added to <see cref="Sway"/>: the far edge's shift as a
+        /// fraction of the playfield width, positive to the right. It moves where the lanes converge sideways (see
+        /// <see cref="LeanTowards"/>) and, like the sway, leaves the judgement line and everything below it in place.
+        /// </summary>
+        public float Lean { get; init; }
+
+        /// <summary>
+        /// A copy leaning so that the lanes converge above <paramref name="x"/> (a fraction of the playfield width) instead of
+        /// above <see cref="CentreX"/>. Lanes that stay parallel have nowhere to converge, so they do not lean.
+        /// </summary>
+        /// <remarks>
+        /// The lanes meet at height <c>(1 + c) / c</c> times the track's height above the line (<c>c = 1/r - 1</c>), so a
+        /// shift of <c>d</c> there is a shift of <c>d · c / (1 + c) = d · (1 - r)</c> at the far edge.
+        /// </remarks>
+        public HighwayLayout LeanTowards(float x) => this with { Lean = (x - CentreX) * (1 - Math.Clamp(FarWidthRatio, MIN_FAR_WIDTH_RATIO, 1f)) };
+
         public HighwayLayout()
         {
             JudgementY = 0.88f;
@@ -58,6 +75,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             FarWidthRatio = 0.5f;
             CentreX = 0.5f;
         }
+
+        /// <summary>
+        /// The narrowest supported <see cref="NearWidth"/>.
+        /// </summary>
+        public const float MIN_NEAR_WIDTH = 0.05f;
 
         /// <summary>
         /// The smallest supported <see cref="FarWidthRatio"/>. Below this the far edge is close to a point and far notes
@@ -76,10 +98,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             {
                 JudgementY = judgementY,
                 FarY = Math.Clamp(FarY, 0f, judgementY - 0.05f),
-                NearWidth = Math.Clamp(NearWidth, 0.05f, 1f),
+                NearWidth = Math.Clamp(NearWidth, MIN_NEAR_WIDTH, 1f),
                 FarWidthRatio = Math.Clamp(FarWidthRatio, MIN_FAR_WIDTH_RATIO, 1f),
                 CentreX = Math.Clamp(CentreX, 0f, 1f),
                 Sway = float.IsFinite(Sway) ? Math.Clamp(Sway, -MAX_SWAY, MAX_SWAY) : 0,
+                Lean = float.IsFinite(Lean) ? Math.Clamp(Lean, -1f, 1f) : 0,
             };
         }
     }

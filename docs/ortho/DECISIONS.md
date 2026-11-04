@@ -954,3 +954,42 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   scale).
 - **Reverse**: drop `HighwaySetting.WallScale`, `WallScale.cs`, the panel's derived sliders and the coupling in
   `HighwayConfigManager`; hotkeys step `WALL_STEP` again and the toast prints the percent.
+
+## 2026-11-04: A side-placed skin stage keeps its centre exactly; where its lanes converge is a setting (Alpha)
+
+- **Alpha asked** to look at games whose notes are not centred (IIDX, StepMania, Pump It Up and others) and for "the
+  angled lane [to] have the same x coordinates for the centering of the lane, to maintain the original position", by
+  projection rather than by remaking the skin. Research: `research/topic-off-centre-fields.md`.
+- **Centre, exactly**: with "Skin position" (default) and "Skin position and width", the track's centre at the
+  judgement line is stable's stage centre (`ColumnStart` + half the skin's stage width). Before, a camera track too wide
+  for that spot was slid inwards to stay on screen (the classic skin copied with `ColumnStart` 40 at 4K landed 150 px
+  right of where stable puts it at 1280x720; R Skin's widest stages 1.2% of the width). Now it is narrowed about the
+  kept centre instead (StepMania's `NotefieldZoom` and YARG's width cap also shrink rather than slide; no reference
+  slides), with no margin, never below the skin's own stage width, and with the Floor, Squeezed, Receptors and Hidden
+  key areas it fits the bottom row, where the lanes have widened further (Panel's sides are upright).
+  `SkinPortLayout.CentreOn`. Deviation from the research note's O3: there is no last-resort clamp. A stage the skin
+  itself draws partly off screen keeps its centre and width and hangs off the edge as it does flat in stable, and
+  the skin-width floor wins over the bottom-row fit, so a floor key area under a stage at the very edge can widen past
+  the screen. Moving the centre would break the one thing Alpha asked for.
+- **Convergence** (`SkinConvergence`, "Skin stage lanes converge"): Above the stage (default: no lean, the centre line
+  upright at the skin's x at every depth; StepMania skew 0), Halfway, Screen centre (StepMania Incoming/Space, YARG
+  multiplayer, Rock Band). Built as `HighwayLayout.Lean`, a lasting shear about the judgement line added to the kiai
+  sway, `(target − centre) · (1 − far/near width)`, which puts the vanishing point at the target and leaves the line
+  and everything below it where the skin puts them. Parallel cameras have no vanishing point and do not lean. The
+  default is the literal reading of Alpha's words; asked as Q20 with screenshots.
+- **Accepted**: below the line nothing leans, so with a lean (Halfway or Screen centre, not the default) the lane edges
+  bend at the line with the Floor and Squeezed key areas (as with kiai sway, but larger); upright images that span the
+  line (the stage hint, key images reaching above it outside Panel) shear above it, and in Panel the key images above
+  the line stay upright while the lanes behind them lean. All cosmetic, in non-default options. Panel's sides are
+  upright and show no bend.
+- **Classic-skin experiment** (copies of osu!'s classic skin in scratch, not committed): notes and heads at 200%
+  height, every animation frame and image top labelled, the stage moved left with a raised hit position and right.
+  Notes, heads and tails keep the edited proportions; tails flip as lazer flips them; unheld bodies show frame 0 and
+  held bodies animate, as lazer's; hit and hold lighting frames matched flat at the same instants. Two differences:
+  (1) mania overlaps explosions (a pool per column) while the port restarted one per column, so a release soon after a
+  press replaced the earlier explosion; now each column keeps its last four hits (`PortedLighting.HITS_PER_COLUMN`).
+  (2) lazer stretches a slice of a legacy hold body over its whole length whatever `NoteBodyStyle` says; the port tiles
+  it as stable does. Kept: it is the skin author's intent, and uniform bodies (nearly all) look the same either way.
+- **Not changed**: judgements, scoring, input; the porter still never writes to a skin.
+- **Reverse**: `SkinPortLayout.CentreOn` back to the clamp, drop `SkinConvergence`, `HighwaySetting.Convergence`,
+  `HighwayLayout.Lean`/`LeanTowards`, and `HITS_PER_COLUMN` (back to one slot).

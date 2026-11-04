@@ -191,6 +191,33 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         SkinLayout,
     }
 
+    /// <summary>
+    /// Where the lanes of a ported stage converge when the skin puts its stage to one side (research/topic-off-centre-fields.md).
+    /// The judgement line stays where the skin puts it either way; only the far end of the track moves.
+    /// </summary>
+    public enum SkinConvergence
+    {
+        /// <summary>
+        /// Above the stage's own centre: the stage's centre line stays upright at the skin's x all the way up, as a
+        /// side-placed playfield in StepMania (skew 0), IIDX or a single-player rhythm-game highway.
+        /// </summary>
+        [Description("Above the stage")]
+        Stage,
+
+        /// <summary>
+        /// Halfway between the stage's centre and the screen's.
+        /// </summary>
+        [Description("Halfway")]
+        Halfway,
+
+        /// <summary>
+        /// Above the screen's centre: the stage leans in towards the middle, as StepMania's Incoming and Space perspectives
+        /// (skew 1) draw a side-placed playfield.
+        /// </summary>
+        [Description("Screen centre")]
+        Screen,
+    }
+
     public enum HighwayPreset
     {
         Chunithm,
@@ -297,6 +324,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         public SkinStageFit StageFit { get; init; }
 
         /// <summary>
+        /// Where a ported stage the skin puts to one side converges (<see cref="HighwayTrackStyle.Ported"/> only).
+        /// </summary>
+        public SkinConvergence Convergence { get; init; }
+
+        /// <summary>
         /// Whether ported notes keep the skin's proportions (as tall at the judgement line, relative to their lane, as the skin
         /// draws them flat) instead of the camera's <see cref="NoteThickness"/> (<see cref="HighwayNoteStyle.Ported"/> only).
         /// </summary>
@@ -368,6 +400,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             Track = HighwayTrackStyle.Ported;
             KeyArea = SkinKeyArea.Panel;
             StageFit = SkinStageFit.SkinPosition;
+            Convergence = SkinConvergence.Stage;
             SkinNoteProportions = true;
             FarFade = 0;
             HoldOpacity = 1;

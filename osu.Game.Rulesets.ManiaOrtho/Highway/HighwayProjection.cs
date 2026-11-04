@@ -58,7 +58,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             farY = Layout.FarY * size.Y;
             nearWidth = Layout.NearWidth * size.X;
             centreX = Layout.CentreX * size.X;
-            sway = Layout.Sway * size.X;
+            sway = (Layout.Sway + Layout.Lean) * size.X;
         }
 
         /// <summary>
@@ -103,8 +103,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         public float XAt(float lane, float y) => centreX + SwayAtY(y) + (lane - 0.5f) * WidthAtY(y);
 
         /// <summary>
-        /// How far <see cref="HighwayLayout.Sway"/> moves the track sideways at screen y <paramref name="y"/>, in pixels: in
-        /// proportion to the height above the judgement line (the full sway at the far edge), nothing on or below it.
+        /// How far <see cref="HighwayLayout.Sway"/> and <see cref="HighwayLayout.Lean"/> move the track sideways at screen y
+        /// <paramref name="y"/>, in pixels: in proportion to the height above the judgement line (all of it at the far edge),
+        /// nothing on or below it.
         /// </summary>
         public float SwayAtY(float y) => y >= judgementY ? 0 : sway * (judgementY - y) / (judgementY - farY);
 

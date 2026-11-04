@@ -6,6 +6,18 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q20. Where a side-placed skin stage's lanes converge
+Some skins put their stage to one side with `ColumnStart` (R Skin's stages at 29-38% of the screen width, Aristia's at
+52-54%; an IIDX 1P layout would be near 17%). The tilted track now keeps the skin's centre exactly at the judgement line
+in every case (a track too wide for that spot is narrowed, never moved). Where its lanes meet in the distance is a
+camera choice (`research/topic-off-centre-fields.md` O2), built as "Skin stage lanes converge": Above the stage (the
+centre line stays upright at the skin's x all the way up; StepMania's Hallway/Distant), Halfway, or Screen centre (the
+stage leans in towards the middle, as StepMania's Incoming, YARG's multiplayer highways and Rock Band). Screenshots:
+`/mnt/project-files/ortho-agent/skin-port/off-centre/`. Asked on a decision card.
+- **Default until answered**: Above the stage, the literal reading of "the angled lane should have the same x
+  coordinates for the centering of the lane". Switching is one default value.
+- **Answer**:
+
 ### Q19. An "Arcaea" camera preset, with notes that grow with distance
 Arcaea's ground track (fan reimplementations' camera, `research/game-arcaea.md` R2, R3): judgement line 14% up, far
 edge 7% below the top, track 85% of the screen wide, far lanes 12% of the near width, notes approaching linearly as

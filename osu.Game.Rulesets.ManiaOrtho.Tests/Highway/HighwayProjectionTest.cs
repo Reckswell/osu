@@ -203,6 +203,27 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             Assert.That(create(0.5f, sway: float.NaN).Layout.Sway, Is.Zero);
         }
 
+        /// <summary>
+        /// A lean moves where the lanes converge (the kiai sway adds on top of it), and leaves the judgement line in place.
+        /// </summary>
+        [Test]
+        public void TestLeanMovesTheVanishingPoint()
+        {
+            var layout = new HighwayLayout { JudgementY = 0.9f, FarWidthRatio = 0.25f, NearWidth = 0.3f, CentreX = 0.2f };
+            var leaning = new HighwayProjection(layout.LeanTowards(0.5f), screen);
+            var upright = new HighwayProjection(layout, screen);
+
+            Assert.That(leaning.VanishingPoint!.Value.X, Is.EqualTo(0.5f * screen.X).Within(0.01f));
+            Assert.That(upright.VanishingPoint!.Value.X, Is.EqualTo(0.2f * screen.X).Within(0.01f));
+            Assert.That(leaning.ToScreen(0.3f, 0).X, Is.EqualTo(upright.ToScreen(0.3f, 0).X).Within(1e-3f), "the line stays");
+
+            var swaying = new HighwayProjection(layout.LeanTowards(0.5f) with { Sway = 0.01f }, screen);
+            Assert.That(swaying.ToScreen(0.5f, 1).X - leaning.ToScreen(0.5f, 1).X, Is.EqualTo(0.01f * screen.X).Within(0.01f));
+
+            Assert.That(new HighwayLayout { Lean = float.NaN }.Sanitised().Lean, Is.Zero);
+            Assert.That(new HighwayLayout { Lean = 3 }.Sanitised().Lean, Is.EqualTo(1));
+        }
+
         [TestCaseSource(nameof(farWidthRatios))]
         public void TestLaneEdgesContinueStraightBelowTheLine(float ratio)
         {
