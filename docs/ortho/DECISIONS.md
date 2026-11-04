@@ -485,3 +485,11 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   upstream pull request to ppy for that hook; a workaround inside the DLL. M3's "separate client" tasks (rebrand, own
   API endpoints) assumed a forked client and are on hold until that plan is made.
 - **Invariant 2 still holds**: a custom ruleset is never submittable, in the fork or as a mod.
+
+## 2026-11-04: Correction to "Gameplay hotkeys": when F3/F4 work
+
+- The hotkeys entry says mania's F3/F4 work in "the first 10 seconds of a play". Precisely, they work until 10 s after
+  the gameplay start time, which mania puts 2 s before the first note: so until 8 s after the first note, in breaks,
+  and never while paused (`SubmittingPlayer.AllowCriticalSettingsAdjustment`; `research/game-osu-mania.md`).
+- SPEC 3 said mania has "settings for constant / overlapping / sequential" scrolling. It has none: always sequential,
+  constant only with the Constant Speed mod. SPEC 3 now says so; the highway already followed mania.

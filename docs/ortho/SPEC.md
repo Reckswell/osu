@@ -55,8 +55,8 @@ Requirements:
 - Notes move linearly in **track space** (d is linear in time at constant SV). Under perspective they therefore move
   slowly far away and accelerate near the line. That is correct and expected (it is what SDVX does); do not "correct"
   it in screen space.
-- Scroll velocity (SV) changes behave exactly as in mania (same distance algorithm, same settings for constant /
-  overlapping / sequential).
+- Scroll velocity (SV) changes behave exactly as in mania (the same algorithm: sequential, or constant with the
+  Constant Speed mod; mania has no overlapping mode).
 - Upscroll is not offered in this ruleset (the camera defines direction). Mania's scroll direction setting is ignored
   here, and that is recorded as a decision.
 

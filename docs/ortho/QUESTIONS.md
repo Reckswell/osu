@@ -76,6 +76,20 @@ of the two or three rightmost lanes at 7K (MG2 captures, `/mnt/project-files/ort
 - **Default until answered**: (a).
 - **Answer**:
 
+### Q14. Four small feel choices from the research baseline
+Each is a default-feel choice, so it is yours; nothing changes until you answer. Notes in `research/`.
+- **(a) Missed notes.** In mania a missed note slides past the line for its 150 ms fade, the "late" cue mania players
+  read; ours stop at the line, as in Chunithm (`game-osu-mania.md` P4). Options: keep Chunithm's; slide like mania.
+- **(b) Wall keys with "keep speed when moving the wall" on.** Then Shift+F3/F4 change the visible time mid-song,
+  which mania forbids for F3/F4 after the first 8 s. IIDX allows it (`topic-covers.md` C2). Options: any time, like
+  IIDX; mania's gate only when "keep speed" is on.
+- **(c) Lane tint.** A 5% tint of each lane's note colour on the floor, so lanes read apart where no note is
+  (`topic-wide-keys.md` W2). Options: off; from 6K up; always.
+- **(d) Voltex at 9K and up.** Its far lanes are 9 px at 10K, below every reference game. Options: leave it; the preset
+  suggests a wall at 9K+ (`topic-wide-keys.md` W5).
+- **Default until answered**: (a) keep Chunithm's, (b) any time, (c) off, (d) leave it.
+- **Answer**:
+
 ## Answered
 
 ### Q13. Where the full game keeps its data on Alpha's PC (for the L4 session)

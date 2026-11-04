@@ -111,6 +111,28 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   stable's files unchanged (sizes and times), a screenshot lands in stable's folder.
 - [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays.
 
+## M2.6: Feel follow-ups from the research baseline
+
+From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md` C3-C4, `topic-wide-keys.md` W1-W3,
+`game-yarg-clonehero.md`). All visual: settings, not mods.
+
+- [ ] A hold held past its end keeps its head on the line, as in mania (osu!mania P3). Gate: in-game test that fails
+  without the fix.
+- [ ] Show the real visible time: the wall toast ("40% covered · 405 ms visible") and the speed setting's hint use the
+  highway's own time (mania's `TimeRange` after the skin's hit position, and the wall when speed is kept), not
+  `11485 / speed` (osu!mania P1, covers C3). Gate: the shown ms equals the measured time a note takes from the far
+  edge or wall to the line, within 1 ms.
+- [ ] Held Shift+F3/F4 repeats on its own 100 ms timer, not the OS key repeat (covers C4). Gate: input test, a key held
+  for 1 s moves the wall 10 steps.
+- [ ] Note thickness up to 8%, so Alpha's 6.4% bars can be matched under Parallel (osu!mania P7). Gate: settings test.
+- [ ] Constant Speed on the highway: a test that pins it (osu!mania P2). Gate: notes equally spaced through an SV
+  section with the mod on.
+- [ ] Group dividers at 6K and up (3|3, 3|1|3, 4|4, 4|1|4, 5|5) and a 1 px on-screen floor on the gap between notes
+  (wide keys W1, W3). Gate: tests; 7K and 10K captures reviewed by the playtester.
+- [ ] Optional far fade (YARG), default off. Gate: capture; parity.
+- [ ] **[Alpha: Q14]** Missed notes slide past the line; the wall keys' gate with "keep speed"; lane tint; a wall for
+  Voltex at 9K and up.
+
 ## M3: Separate client and local scoring
 
 On hold for the "separate client" part (DECISIONS 2026-11-04, "Product direction"): Alpha wants a lazer game-mode mod
