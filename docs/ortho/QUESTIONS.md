@@ -6,6 +6,14 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q24. Do you play maps with a scratch column (8K as 7 + 1)?
+Some osu!mania maps set `SpecialStyle`: in stable an 8K map is then played as 7 keys plus one scratch column on the
+skin's side. Mania (lazer) reads the flag but lays the columns out as usual. The research suggests marking that column
+with a stronger divider (1 | 7 instead of the hand split 4 | 4), visual only (`game-djmax.md` R3).
+- **Options**: (a) yes, mark the special column; (b) no, leave it.
+- **Default until answered**: (b). Nothing is built.
+- **Answer**:
+
 ### Q23. Turn on the daily check that pp match osu!'s servers
 `.github/workflows/ortho-live-mania.yml` (README "Live osu!mania check") opens a pull request when osu!'s servers move to
 a new osu!mania release. It cannot run yet: GitHub Actions are off for this fork, and a scheduled workflow runs only

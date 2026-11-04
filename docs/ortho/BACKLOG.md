@@ -117,7 +117,8 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   `scripts/ortho/package.ps1`. Gate: `GameLauncherTest`; on Alpha's PC the package builds and `osu.exe` starts the game
   with its data in `ortho-data`. (PC 2026-11-04: packaged in 24 s, game 354 files / 651 MB, osu.exe 186 KB; started
   from the package with "Storage successfully changed to ...\ortho-data", Velopack skipped, no errors; closed cleanly.)
-- [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays.
+- [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays. (Sent
+  2026-11-04, `/mnt/project-files/ortho-agent/l4/try-this.md`; waiting for Alpha's notes.)
 
 ## M2.6: Feel follow-ups from the research baseline
 
@@ -194,12 +195,13 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
   playtest (DECISIONS 2026-11-04). Great (orange) and Good (green) slot lights seen in a humanised playtest; Meh (dimmer) only in tests, as seed 4 hits none.
 - [x] Optional cosmetic camera motion (kiai sway), off by default. ("Kiai sway" 0-100%: the track leans about the
   judgement line with the beat in kiai sections; DECISIONS 2026-11-04.)
-- [ ] More presets from research. (No Arcaea preset: Alpha, Q19.)
+- [ ] **[Alpha: Q17]** More presets from research. (No Arcaea preset: Alpha, Q19. The other notes propose none but
+  Sekai's, which waits on Q17; YARG's guitar-game family is a custom recipe, not a preset, `game-yarg-clonehero.md` Y2.)
 - [x] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long
   (`game-djmax.md` R2). Half and Quarter measured to the wall's edge when there is one (DECISIONS 2026-11-04).
 - [ ] The beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9), only if Alpha's L4 notes say today's
   150 ms ease-out lingers: single captures cannot show it.
-- [ ] Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
+- [ ] **[Alpha: Q24]** Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
   R3, extends `topic-wide-keys.md` W1).
 - [x] "Wall scale": set and step the wall in Chunithm's 0-14, IIDX's white number or osu!mania / Quaver's share of the
   lane, or a flat percent (Alpha, 2026-11-04). Choosing a game gives the wall its speed behaviour. Gate: unit tests per

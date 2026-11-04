@@ -152,8 +152,8 @@ starts nothing when the packaged game is already running. `osu\version.txt` name
   `ortho-data\maniaortho\replays`. osu! itself keeps no replay of maniaortho plays (it only stores replays of its four
   rulesets), so these files are the only ones. Quits, replays and autoplay are skipped. When an update changes how
   osu!mania rates plays, the first play after it rates every saved play again (stars and pp; the file as it was is
-  kept as `plays before rating again <date>.csv`; plays of a beatmap no longer in osu! wait until it is back). Close the CSV in Excel before
-  playing: a locked file loses that play's row (the game shows an error).
+  kept as `plays before rating again <date>.csv`; plays of a beatmap no longer in osu! wait until it is back). Close
+  the CSV in Excel before playing: a locked file loses that play's row (the game shows an error).
 - **Speed numbers**: the scroll speed setting and the F3/F4 and Shift+F3/F4 toasts show how long notes are visible on
   the highway with the current skin, wall and camera, not osu!mania's `11485 / speed`. Same speed, larger number than
   in osu!mania's settings: at speed 29, 405 ms with lazer's own skins (mania's label says 396), more with a stable skin
