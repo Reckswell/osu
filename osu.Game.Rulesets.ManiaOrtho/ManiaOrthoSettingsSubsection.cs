@@ -16,6 +16,7 @@ using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.ScoreServer;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Scoring.Legacy;
 using osu.Game.Skinning;
@@ -37,6 +38,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         [Resolved]
         private IBindable<IReadOnlyList<Mod>>? mods { get; set; }
+
+        [Resolved]
+        private OsuGame? game { get; set; }
 
         private HighwayConfigManager highway = null!;
         private FormSliderBar<double> scrollSpeed = null!;
@@ -404,7 +408,43 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "camera motion", "sway", "kiai", "shake", "movement" },
                 },
+                new SettingsItemV2(new FormCheckBox
+                {
+                    Caption = "Send plays to my score server",
+                    HintText = "Off by default. Each pass and fail also goes to your own score server (ortho-server, started with "
+                               + "scripts/ortho/server), which rates it with osu!'s live osu!mania pp and keeps an unofficial total. "
+                               + "Nothing is sent to osu!. If the server is not running, plays wait and go with the next one.",
+                    Current = config.ScoreServer.GetBindable<bool>(ScoreServerSetting.ScoreServerEnabled),
+                })
+                {
+                    Keywords = new[] { "pp", "performance", "ranking", "profile", "server", "upload" },
+                },
+                new SettingsItemV2(new FormTextBox
+                {
+                    Caption = "Score server address",
+                    HintText = $"Where your score server listens ({ScoreServerConfigManager.DEFAULT_ADDRESS} on this computer). osu!'s own "
+                               + "servers (ppy.sh) are refused.",
+                    Current = config.ScoreServer.GetBindable<string>(ScoreServerSetting.ScoreServerAddress),
+                })
+                {
+                    Keywords = new[] { "pp", "server", "address", "url" },
+                },
+                new SettingsButtonV2
+                {
+                    Text = "Open my score page",
+                    TooltipText = "Your unofficial pp, best plays and latest plays, as your score server shows them.",
+                    Keywords = new[] { "pp", "profile", "server", "ranking" },
+                    Action = openScorePage,
+                },
             };
+        }
+
+        private void openScorePage()
+        {
+            var address = ScoreServerClient.ParseAddress(((ManiaOrthoRulesetConfigManager)Config).ScoreServer.Get<string>(ScoreServerSetting.ScoreServerAddress), out _);
+
+            if (address != null)
+                game?.OpenUrlExternally(address.AbsoluteUri);
         }
 
         protected override void LoadComplete()

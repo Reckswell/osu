@@ -170,11 +170,28 @@ in the end. Live pp and the CSV still apply.
 
 - [ ] Daily job: read the live `ppy.osu.Game.Rulesets.Mania` version used by `osu-queue-score-statistics`; when it
   changes, diff mania difficulty code and open a PR that bumps it. Gate: a simulated bump opens a PR.
-- [ ] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
+  (The score server already reads that version at start and every 12 hours, `LiveCalculatorVersion`, and
+  `scripts/ortho/server-update` moves the server to it; the job that moves the game itself is still open.)
+- [x] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
+  (Done for the score server's plays, `RecalculationTest`. Plays logged only to the CSV, with the setting off, are not
+  rated again; the CSV keeps raw judgements and mods so they could be imported later.)
 
 ## M5: Optional self-hosted server
 
-Only after Alpha confirms. See the design doc's "Local-only vs self-hosted server".
+Alpha confirmed (2026-11-04): a local server of their own, "imitates but does not copy bancho", its own scoring that
+matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score server".
+
+- [x] Server: stores plays, rates them with osu!'s published mania calculators at the live version, osu!'s pp rules and
+  total (preserve rule, best per map, 1000 scores, weighting, bonus), score page. Gate: `ProfileCalculatorTest`,
+  `PlayCalculatorTest`, `ServerApiTest` (real port, 127.0.0.1 only).
+- [x] Same pp as the game. Gate: `pp-parity.json` written by the game's calculators (`ScoreServerParityTest`) and met by
+  the server's (`PpParityTest`); end-to-end, six plays sent through the game's client to the real server came back with
+  the game's pp to the last digit.
+- [x] Follows osu!'s reworks: live version check, `server-update`, every play rated again on start. Gate:
+  `LiveCalculatorVersionTest`, `RecalculationTest`.
+- [x] The game sends plays (opt-in setting), queues them while the server is away, refuses `ppy.sh`, toasts the pp and
+  total. Gate: `ScoreServerClientTest`, `ScoreServerContractTest`, `TestScenePlayToScoreServer`.
+- [ ] **[Alpha: Q21]** The game's own login and leaderboards on this server (needs core patches to the API endpoints).
 
 ## M6: Polish
 

@@ -1054,3 +1054,49 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   runner, on the committed code too (the frame-stable clock was past the chart when the first steps ran).
 - **Reverse**: restore the 2026-11-03 rectangle (`HighwayWall` as a composite of two boxes, placed by its lower-left corner
   and sheared by the sway) and drop `SetStages`.
+
+## 2026-11-04: A local score server rates plays with osu!'s published calculators
+
+- **What**: Alpha asked for "my own local server which imitates but does not copy bancho", with "its own separate scoring
+  system (that 1:1 matches and updates alongside osu!'s own rework systems)", for personal use. `ortho-server/` is a small
+  ASP.NET Core server on 127.0.0.1:7727 with SQLite; the game sends each logged play when the new "Send plays to my score
+  server" setting is on (off by default).
+- **1:1 with osu!**: the server does not reimplement pp. It references NuGet `ppy.osu.Game.Rulesets.Mania` at the version
+  osu!'s live score processor (`ppy/osu-queue-score-statistics`, newest release tag by version) depends on, today
+  2026.730.0, and applies `ScorePerformanceProcessor`'s rules for a lazer score: passes only, Ranked or Approved maps,
+  every mod `Ranked` (default settings), Classic not allowed. Totals follow `UserTotalPerformanceAggregateHelper` and the
+  preserve rule (`CheckIsUserHigh`): best pp and best score per map and mod set kept, best 1000 by pp, best per map,
+  0.95^n, bonus (417 - 1/3)(1 - 0.995^n), accuracy the same way.
+- **Following reworks**: the server reads the live version at start and every 12 h (git's smart-HTTP ref list and the
+  raw csproj on GitHub; api.github.com is not needed); `server-update` writes it to `calculator-version.txt`, rebuilds,
+  and the next start rates every play again. A newer live version shows on the page and in the toast.
+- **Parity with the game**: `contract/pp-parity.json` is written from the game's calculators (this repo's mania) and
+  checked against the server's (osu!'s published ones): six synthetic plays, 4K and 7K, with DT, HT, NF+EZ, HD+MR, all
+  equal. The upload and answer types are one file (`contract/ScoreServerMessages.cs`) compiled into both, so neither side
+  can rename a field alone.
+- **Map status**: the game sends the status its local database has (`BeatmapInfo.Status`); a stale status (a map ranked
+  since the last update) shows as "not ranked" until osu! refreshes it in the game. The server cannot ask osu! (it never
+  contacts osu!'s API).
+- **Not Bancho**: no osu! protocol, no logins, no osu! passwords, no beatmap mirroring; map files come from the player's own
+  game. `ScoreServerClient` refuses any `ppy.sh` host before sending (invariant 2 reworded to say so). Whether lazer's own
+  login and leaderboards should point at it is Q21 (needs core patches; default: no).
+- **Delivery**: each play is written to `maniaortho/outbox` first and leaves it only once the server stored it (or had it:
+  `score_id` is stored once) or refused it, so nothing is lost to a closed game, a server that is away or a wrong address;
+  one send at a time, oldest first. Redirects are never followed (a redirect could carry the play to any host, osu!'s
+  included): a 3xx, 404, 405 or an answer that is not a score server's keeps the plays waiting with "is the address
+  right?". A 5xx keeps them waiting too, but a play the server fails on five times is set aside so it cannot hold up the
+  rest; a 4xx refusal sets the play aside in `outbox refused` with the reason. Disk errors on one queued play skip it, not
+  the queue. POSTs carry an `X-ManiaOrtho` header that the server requires, so a web page open in a browser cannot post to
+  it (CORS preflight). The toast gives the play's pp, its place among the best plays and the new total with its change.
+- **Where it is not exactly osu!**: (1) osu! applies the preserve rule when a score arrives and deletes the others for good;
+  the server keeps every play and applies the rule over all of them each time, so after a rework a play osu! would
+  already have deleted can count (slightly higher totals, only after a rework). Kept: deleting plays is not reversible and
+  a local record is worth more. (2) osu! reads stars and attributes stored as floats by its separate difficulty
+  calculator deploy; the server computes them in doubles, so pp can differ in the second decimal. (3) osu!'s pp
+  blacklist of a few maps is not known here. (4) Map status is the game's local copy (above).
+- **Alternatives**: rating in the game only (no history across reworks, which Alpha wanted); a Bancho-compatible server
+  such as a fork of an existing private server (osu! protocol, AGPL code, logins: far more than asked and closer to
+  osu!'s services); building the server against this repo's projects (two `osu.Game` assemblies; also drifts with the
+  fork rather than osu!'s live version).
+- **Reverse**: turn the setting off (nothing is sent); delete `ortho-server/`, `osu.Game.Rulesets.ManiaOrtho/ScoreServer`
+  and the recorder's upload block.

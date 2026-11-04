@@ -10,4 +10,9 @@
     <ProjectReference Include="..\osu.Game\osu.Game.csproj" />
     <ProjectReference Include="..\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj" />
   </ItemGroup>
+
+  <ItemGroup Label="Score server contract">
+    <!-- The upload and answer types, shared with the score server (ortho-server). -->
+    <Compile Include="..\ortho-server\contract\ScoreServerMessages.cs" Link="ScoreServer\ScoreServerMessages.cs" />
+  </ItemGroup>
 </Project>

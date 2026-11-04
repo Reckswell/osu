@@ -1,5 +1,6 @@
 #!/bin/bash
-# Fast gate for every change: style-enforced build plus the ruleset's own tests (parity + unit + headless smoke).
+# Fast gate for every change: style-enforced build plus the ruleset's own tests (parity + unit + headless smoke) and the
+# score server's.
 #   scripts/ortho/check.sh            # ~2-3 min warm
 #   scripts/ortho/check.sh --mania    # also run osu!mania's own test suite (do this when touching mania or osu.Game)
 #   scripts/ortho/check.sh --filter X # pass an NUnit filter through to the ruleset tests
@@ -38,6 +39,18 @@ set -e
 grep -E "^\s+(Passed|Failed) |Error Message|Expected|But was|^\s+at osu\.Game\.Rulesets\.ManiaOrtho|Total tests|Passed!|Failed!" "$log" || true
 if [ $status -ne 0 ]; then
   echo "RULESET TESTS FAILED (full log: $log)"
+  exit 1
+fi
+
+echo "== score server tests"
+# The local score server (ortho-server): its pp must equal the game's on the contract's plays (pp-parity.json).
+set +e
+dotnet test ortho-server/OrthoServer.Tests -nologo -warnaserror >"$log" 2>&1
+status=$?
+set -e
+grep -E "error|Failed |Error Message|Expected|But was|Passed!|Failed!" "$log" || true
+if [ $status -ne 0 ]; then
+  echo "SCORE SERVER TESTS FAILED (full log: $log)"
   exit 1
 fi
 
