@@ -36,6 +36,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public HighwayConfigManager? HighwayConfig => (Config as ManiaOrthoRulesetConfigManager)?.Highway;
 
         /// <summary>
+        /// The speed and wall toasts, or null outside a game (no settings store).
+        /// </summary>
+        public HighwayToasts? Toasts { get; private set; }
+
+        /// <summary>
         /// The actions held down in the key binding container mania's columns and notes receive their presses from (the
         /// player's keys, or a replay's), or null before it exists. Read only.
         /// </summary>
@@ -49,8 +54,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         [BackgroundDependencyLoader]
         private void load()
         {
-            if (HighwayConfig != null)
-                AddInternal(new HighwayHotkeys(HighwayConfig));
+            if (Config is ManiaOrthoRulesetConfigManager config)
+            {
+                AddInternal(new HighwayHotkeys(config.Highway));
+                AddInternal(Toasts = new HighwayToasts(this, config));
+            }
 
             AddInternal(new PlayLogRecorder(HasReplayLoaded, Config as ManiaOrthoRulesetConfigManager));
 

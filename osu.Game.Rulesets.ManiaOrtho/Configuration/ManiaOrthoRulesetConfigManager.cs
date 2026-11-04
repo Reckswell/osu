@@ -34,6 +34,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             GetOriginalBindable<ManiaScrollingDirection>(ManiaRulesetSetting.ScrollDirection).Disabled = true;
         }
 
+        /// <summary>
+        /// None: mania's scroll speed toast shows <c>11485 / speed</c>, not the time notes are visible on the highway. A play's
+        /// <see cref="UI.HighwayToasts"/> shows the speed and wall toasts instead, with the real visible time.
+        /// </summary>
+        public override TrackedSettings CreateTrackedSettings() => new TrackedSettings();
+
         protected override void Dispose(bool isDisposing)
         {
             base.Dispose(isDisposing);
@@ -199,23 +205,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
 
             static bool near(float a, float b) => Math.Abs(a - b) < 1e-4f;
         }
-
-        /// <summary>
-        /// Shown as a toast when changed during gameplay (the wall hotkeys), as osu! does for the scroll speed.
-        /// </summary>
-        public override TrackedSettings CreateTrackedSettings() => new TrackedSettings
-        {
-            new TrackedSetting<float>(HighwaySetting.Wall, wall => new SettingDescription(
-                rawValue: wall,
-                name: "Wall",
-                value: wall > 0 ? $"{wall:0%} covered" : "Off",
-                shortcut: WALL_SHORTCUT))
-        };
-
-        /// <summary>
-        /// The keys that move the wall in gameplay (<see cref="UI.HighwayHotkeys"/>), named under the wall's toast.
-        /// </summary>
-        public const string WALL_SHORTCUT = "Shift+F3 / Shift+F4";
     }
 
     public enum HighwaySetting

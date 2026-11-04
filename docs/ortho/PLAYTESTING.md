@@ -144,6 +144,10 @@ starts nothing when the packaged game is already running. `osu\version.txt` name
   `ortho-data\maniaortho\replays`. osu! itself keeps no replay of maniaortho plays (it only stores replays of its four
   rulesets), so these files are the only ones. Quits, replays and autoplay are skipped. Close the CSV in Excel before
   playing: a locked file loses that play's row (the game shows an error).
+- **Speed numbers**: the scroll speed setting and the F3/F4 and Shift+F3/F4 toasts show how long notes are visible on
+  the highway with the current skin, wall and camera, not osu!mania's `11485 / speed`. Same speed, larger number than
+  in osu!mania's settings: at speed 29, 405 ms with lazer's own skins (mania's label says 396), more with a stable skin
+  whose judgement line is low (about 473 ms with Alpha's 4K skin). Notes move exactly as fast as in osu!mania.
 
 Only Alpha can judge feel. When asking for an L4 session, give Alpha a short list of what to try (for example "7K at
 your usual speed, wall at 30%, tell me if outer lanes are readable") and ask for:

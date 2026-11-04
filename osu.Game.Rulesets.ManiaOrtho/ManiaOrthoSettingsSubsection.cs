@@ -1,15 +1,25 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.Collections.Generic;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
+using osu.Framework.Localisation;
+using osu.Game.Beatmaps;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Localisation;
 using osu.Game.Overlays.Settings;
+using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.Mods;
+using osu.Game.Rulesets.Scoring.Legacy;
+using osu.Game.Skinning;
+using osu.Game.Utils;
 
 namespace osu.Game.Rulesets.ManiaOrtho
 {
@@ -19,6 +29,23 @@ namespace osu.Game.Rulesets.ManiaOrtho
     /// </summary>
     public partial class ManiaOrthoSettingsSubsection : RulesetSettingsSubsection
     {
+        [Resolved]
+        private ISkinSource? skin { get; set; }
+
+        [Resolved]
+        private IBindable<WorkingBeatmap>? beatmap { get; set; }
+
+        [Resolved]
+        private IBindable<IReadOnlyList<Mod>>? mods { get; set; }
+
+        private HighwayConfigManager highway = null!;
+        private FormSliderBar<double> scrollSpeed = null!;
+
+        /// <summary>
+        /// The values the scroll speed's visible time depends on, kept to show it again when one changes.
+        /// </summary>
+        private readonly List<IUnbindable> visibleTimeInputs = new List<IUnbindable>();
+
         public ManiaOrthoSettingsSubsection(ManiaOrthoRuleset ruleset)
             : base(ruleset)
         {
@@ -28,16 +55,18 @@ namespace osu.Game.Rulesets.ManiaOrtho
         private void load()
         {
             var config = (ManiaOrthoRulesetConfigManager)Config;
-            var highway = config.Highway;
+            highway = config.Highway;
 
             Children = new Drawable[]
             {
-                new SettingsItemV2(new FormSliderBar<double>
+                new SettingsItemV2(scrollSpeed = new FormSliderBar<double>
                 {
                     Caption = RulesetSettingsStrings.ScrollSpeed,
+                    HintText = "Shown as the time notes are visible, from the wall (or the far end) to the judgement line, with the "
+                               + "current skin, wall and camera at the selected beatmap's key count. In gameplay, F3 and F4 change it.",
                     Current = config.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed),
                     KeyboardStep = 1,
-                    LabelFormat = v => RulesetSettingsStrings.ScrollSpeedTooltip((int)DrawableManiaRuleset.ComputeScrollTime(v), v),
+                    LabelFormat = scrollSpeedLabel,
                 }),
                 new SettingsItemV2(new FormCheckBox
                 {
@@ -210,6 +239,74 @@ namespace osu.Game.Rulesets.ManiaOrtho
                     Keywords = new[] { "note height", "note size", "thickness" },
                 },
             };
+        }
+
+        protected override void LoadComplete()
+        {
+            base.LoadComplete();
+
+            showVisibleTimeOnChange(highway.GetBindable<float>(HighwaySetting.Wall));
+            showVisibleTimeOnChange(highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime));
+            showVisibleTimeOnChange(highway.GetBindable<HighwayCameraMode>(HighwaySetting.CameraMode));
+
+            if (beatmap != null)
+                showVisibleTimeOnChange(beatmap.GetBoundCopy());
+            if (mods != null)
+                showVisibleTimeOnChange(mods.GetBoundCopy());
+
+            if (skin != null)
+                skin.SourceChanged += showVisibleTime;
+        }
+
+        private void showVisibleTimeOnChange<T>(IBindable<T> input)
+        {
+            visibleTimeInputs.Add(input);
+            input.BindValueChanged(_ => showVisibleTime());
+        }
+
+        // Setting the label's format shows the value again. Once, however many inputs changed while the panel was hidden.
+        private void showVisibleTime() => Scheduler.AddOnce(formatScrollSpeed);
+
+        private void formatScrollSpeed() => scrollSpeed.LabelFormat = scrollSpeedLabel;
+
+        /// <summary>
+        /// Mania's label ("405ms (speed 29.0)"), with how long notes are visible on the highway in place of
+        /// <c>11485 / speed</c>: the skin's hit position for the selected beatmap's key count (and key mods) changes it as in
+        /// mania, and the wall when it keeps the speed. A beatmap's own skin can change it in gameplay too; the toast there shows
+        /// the exact value.
+        /// </summary>
+        private LocalisableString scrollSpeedLabel(double speed)
+        {
+            var settings = highway.Current;
+            var selectedMods = mods?.Value ?? Array.Empty<Mod>();
+            float hitPosition = skin == null ? Stage.HIT_TARGET_POSITION : VisibleTime.HitPosition(skin, keyCount(selectedMods));
+            double visible = VisibleTime.Of(DrawableManiaRuleset.ComputeScrollTime(speed), hitPosition, ModUtils.CalculateRateWithMods(selectedMods), settings.ToScroll(),
+                settings.CameraMode == HighwayCameraMode.Flat);
+
+            return RulesetSettingsStrings.ScrollSpeedTooltip((int)Math.Round(visible), speed);
+        }
+
+        /// <summary>
+        /// The selected beatmap's key count as mania converts it (4 with none selected).
+        /// </summary>
+        private int keyCount(IReadOnlyList<Mod> selectedMods)
+        {
+            if (beatmap == null || beatmap.Value is DummyWorkingBeatmap)
+                return 4;
+
+            return ManiaBeatmapConverter.GetColumnCount(LegacyBeatmapConversionDifficultyInfo.FromBeatmapInfo(beatmap.Value.BeatmapInfo), selectedMods);
+        }
+
+        protected override void Dispose(bool isDisposing)
+        {
+            if (skin != null)
+                skin.SourceChanged -= showVisibleTime;
+
+            // Held in a list, which the drawable's own unbinding does not reach.
+            foreach (var input in visibleTimeInputs)
+                input.UnbindAll();
+
+            base.Dispose(isDisposing);
         }
     }
 }

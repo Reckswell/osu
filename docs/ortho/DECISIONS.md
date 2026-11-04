@@ -679,3 +679,36 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   keeps a fail only when its replay is saved from the fail screen); writing rows from `osu.exe` after the game closes
   (the launcher would need osu!'s database code).
 - **Reverse**: remove the recorder from `DrawableManiaOrthoRuleset.load`.
+
+## 2026-11-04: Speed and wall show the real visible time
+
+- **Decision**: the scroll speed setting's label, mania's speed toast (F3/F4) and the wall toast (Shift+F3/F4) show how
+  long notes are visible on the highway, not mania's `11485 / speed` (osu!mania note proposal 1, covers C3). The value
+  is mania's own time range, as `DrawableManiaRuleset` sets it every frame (speed, the skin's hit position factor
+  `(768 − H) / 643.2`, the rate, and the cap at 11485 game ms), in real time, times `1 − wall` when the wall keeps the
+  speed, and without the wall under the flat camera, which draws mania's own stage. Speed itself is unchanged: the same
+  skin and speed give the same visible time as in mania, so the coupling between a skin's hit position and the speed
+  stays (a lower line shows notes longer, as in mania). Mania's label format is kept ("405ms (speed 29.0)"); the wall
+  toast reads "40% covered · 405 ms visible", with "(speed kept)" when the wall shortens it.
+- **Where the numbers come from**: `Highway/VisibleTime` repeats mania's three-line formula (its hit position and rate
+  are private). In gameplay, `HighwayToasts` reads the hit position from the play's skin (beatmap skins included) and
+  the rate from the gameplay clock's mod adjustments; the wall toast uses the play's `TargetTimeRange`, the speed toast
+  the new speed (the toast fires before mania applies it). The settings label has no play: it uses the current skin at
+  the selected beatmap's key count (and key mods), 4K with none selected; a beatmap's own skin is only in the toast.
+- **Toasts moved**: the configs track nothing now (an empty list from `ManiaOrthoRulesetConfigManager`, none from the
+  highway config); `HighwayToasts`, on the drawable ruleset, tracks both through small wrappers so each description can
+  read the play. Rounded to the nearest ms (mania truncates).
+- **Gate**: `TestSceneVisibleTime` measures, from where the highway draws a note (its depth against the wall's, or its
+  height in mania's flat column), the real time it takes to the line, and both toasts match it within 1 ms: default and
+  classic skins, DT and HT, wall kept or not, ParallelTilt and Flat, and the cap (speed 1 with DT: 7657 ms, not 11749).
+  `TestScrollSpeedShowsTheVisibleTime` checks the settings label (405, 243 with a 40% speed-kept wall, 405 flat, the
+  classic skin's value). Mutation: ignoring the hit position fails 4 of the toast cases and the label test.
+- **Known limitation**: a speed changed while mania refuses it (paused, or late in a play, from the settings panel) gets
+  a toast for the new speed although the play keeps the old one, as osu!'s own toast does. F3 and F4 never do this:
+  mania ignores them then and nothing changes.
+- **Review follow-ups** (gameplay-reviewer approved; all LOW): the classic skin's label is pinned to 396 ms rather
+  than to the label's own lookup; a stub skin with a different 7K line covers the key count (7K and 4K mania maps, an
+  osu! map with the 7K mod); the wall toast's name, cover text, keys and "Off" are asserted; the settings label's
+  inputs are unbound on dispose; shared settings are reset in teardown; `VisibleTimeTest` pins the formula (cap, rate,
+  wall, flat) without a renderer.
+- **Reverse**: restore the old `LabelFormat` and the two `CreateTrackedSettings`, drop `HighwayToasts`.

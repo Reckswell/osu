@@ -1,19 +1,33 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Audio.Sample;
 using osu.Framework.Bindables;
-using osu.Framework.Configuration.Tracking;
+using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
+using osu.Framework.Graphics.Textures;
 using osu.Framework.Testing;
+using osu.Game.Audio;
+using osu.Game.Beatmaps;
 using osu.Game.Configuration;
+using osu.Game.Database;
+using osu.Game.Graphics.Sprites;
 using osu.Game.Overlays;
+using osu.Game.Rulesets.Mania;
+using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
+using osu.Game.Rulesets.Mania.Mods;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.Mods;
+using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
@@ -27,6 +41,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
     {
         [Cached]
         private readonly OverlayColourProvider colourProvider = new OverlayColourProvider(OverlayColourScheme.Purple);
+
+        [Resolved]
+        private SkinManager skins { get; set; } = null!;
 
         private SettingsStore store = null!;
 
@@ -176,29 +193,74 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
             }, () => Is.EqualTo(HighwayNoteStyle.Highway));
         }
 
+        /// <summary>
+        /// The scroll speed's label shows how long notes are visible on the highway, not mania's <c>11485 / speed</c>: the
+        /// skin's hit position changes it (the default skin's line is 14.8 units higher than the classic skin's, +2.3%), and
+        /// so does a wall that keeps the speed, except under the flat camera (no wall). Toasts in gameplay:
+        /// <see cref="ManiaOrtho.Tests.Highway.TestSceneVisibleTime"/>.
+        /// </summary>
         [Test]
-        public void TestWallChangesShowAToast()
+        public void TestScrollSpeedShowsTheVisibleTime()
         {
-            AddStep("move the wall", () =>
+            AddStep("speed 29, no wall, default skin", () =>
             {
-                using (var config = create())
-                {
-                    var tracked = config.Highway.CreateTrackedSettings();
-                    SettingDescription? shown = null;
+                skins.CurrentSkinInfo.Value = ArgonSkin.CreateInfo().ToLiveUnmanaged();
+                speedWithoutWall();
+            });
+            showPanel();
+            AddUntilStep("405 ms (mania's label: 396)", speedLabel, () => Is.EqualTo("405ms (speed 29.0)"));
 
-                    config.Highway.LoadInto(tracked);
-                    tracked.SettingChanged += description => shown = description;
+            AddStep("40% wall keeping the speed", () => gameConfig.Highway.SetValue(HighwaySetting.Wall, 0.4f));
+            AddUntilStep("243 ms", speedLabel, () => Is.EqualTo("243ms (speed 29.0)"));
 
-                    config.Highway.SetValue(HighwaySetting.Wall, 0.05f);
-                    Assert.That(shown?.Name.ToString(), Is.EqualTo("Wall"));
-                    Assert.That(shown?.Value.ToString(), Is.EqualTo("5% covered"));
-                    Assert.That(shown?.Shortcut.ToString(), Is.EqualTo(HighwayConfigManager.WALL_SHORTCUT));
+            AddStep("flat camera", () => gameConfig.Highway.SetValue(HighwaySetting.CameraMode, HighwayCameraMode.Flat));
+            AddUntilStep("405 ms: no wall when flat", speedLabel, () => Is.EqualTo("405ms (speed 29.0)"));
 
-                    config.Highway.SetValue(HighwaySetting.Wall, 0f);
-                    Assert.That(shown?.Value.ToString(), Is.EqualTo("Off"));
+            // The classic skin keeps osu!'s default line (HitPosition 402), where mania's label is right.
+            AddStep("classic skin", () => skins.CurrentSkinInfo.Value = DefaultLegacySkin.CreateInfo().ToLiveUnmanaged());
+            AddUntilStep("396 ms", speedLabel, () => Is.EqualTo("396ms (speed 29.0)"));
+        }
 
-                    tracked.Unload();
-                }
+        /// <summary>
+        /// A legacy skin gives a hit position per key count, so the label uses the selected beatmap's, as mania converts it
+        /// (key mods included): here a skin whose 7K line is at the bottom of the stage (19.4% longer) and whose others are
+        /// osu!'s default.
+        /// </summary>
+        [Test]
+        public void TestScrollSpeedUsesTheBeatmapsKeyCount()
+        {
+            AddStep("speed 29, no wall", speedWithoutWall);
+            AddStep("a 7K beatmap", () => Beatmap.Value = CreateWorkingBeatmap(maniaBeatmap(7)));
+            showPanel(new SevenKeyLineAtTheBottom());
+            AddUntilStep("473 ms", speedLabel, () => Is.EqualTo("473ms (speed 29.0)"));
+
+            AddStep("a 4K beatmap", () => Beatmap.Value = CreateWorkingBeatmap(maniaBeatmap(4)));
+            AddUntilStep("396 ms", speedLabel, () => Is.EqualTo("396ms (speed 29.0)"));
+
+            AddStep("an osu! beatmap with 7K selected", () =>
+            {
+                Beatmap.Value = CreateWorkingBeatmap(new Beatmap { BeatmapInfo = { Ruleset = new RulesetInfo("osu", "osu!", string.Empty, 0) } });
+                SelectedMods.Value = new Mod[] { new ManiaModKey7() };
+            });
+            AddUntilStep("473 ms", speedLabel, () => Is.EqualTo("473ms (speed 29.0)"));
+
+            static IBeatmap maniaBeatmap(int keys) => new ManiaBeatmap(new StageDefinition(keys))
+            {
+                BeatmapInfo = { Ruleset = new ManiaRuleset().RulesetInfo, Difficulty = { CircleSize = keys } },
+            };
+        }
+
+        [TearDownSteps]
+        public void TearDownSteps()
+        {
+            AddStep("default skin, highway, beatmap and mods", () =>
+            {
+                skins.CurrentSkinInfo.SetDefault();
+                gameConfig.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed).SetDefault();
+                gameConfig.Highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
+                gameConfig.Highway.GetBindable<HighwayPreset>(HighwaySetting.Preset).SetDefault();
+                Beatmap.SetDefault();
+                SelectedMods.SetDefault();
             });
         }
 
@@ -256,9 +318,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
         [Test]
         public void TestSettingsPanel()
         {
+            showPanel();
+        }
+
+        /// <param name="skin">A skin to show the panel with, in place of the game's.</param>
+        private void showPanel(ISkinSource? skin = null)
+        {
             AddStep("show settings", () =>
             {
-                Child = new Container
+                var panel = new Container
                 {
                     Anchor = Anchor.Centre,
                     Origin = Anchor.Centre,
@@ -270,9 +338,66 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                         new ManiaOrthoSettingsSubsection(new ManiaOrthoRuleset()),
                     }
                 };
+
+                Child = skin == null
+                    ? panel
+                    : new DependencyProvidingContainer
+                    {
+                        RelativeSizeAxes = Axes.Both,
+                        CachedDependencies = new (Type, object)[] { (typeof(ISkinSource), skin) },
+                        Child = panel,
+                    };
             });
 
             AddUntilStep("panel loaded", () => Child.IsLoaded);
+        }
+
+        /// <summary>
+        /// The game's config for this ruleset, which the settings panel shows.
+        /// </summary>
+        private ManiaOrthoRulesetConfigManager gameConfig => (ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(new ManiaOrthoRuleset()).AsNonNull();
+
+        private void speedWithoutWall()
+        {
+            gameConfig.SetValue(ManiaRulesetSetting.ScrollSpeed, 29.0);
+            gameConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
+            gameConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
+            gameConfig.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, false);
+        }
+
+        private string speedLabel() => this.ChildrenOfType<OsuSpriteText>().Select(t => t.Current.Value).FirstOrDefault(t => t.Contains("(speed ", StringComparison.Ordinal)) ?? string.Empty;
+
+        /// <summary>
+        /// A legacy skin's mania settings, as far as the speed label asks: HitPosition 480 (the line at the bottom) for 7K,
+        /// osu!'s default for every other key count.
+        /// </summary>
+        private class SevenKeyLineAtTheBottom : ISkinSource
+        {
+            public event Action? SourceChanged
+            {
+                add { }
+                remove { }
+            }
+
+            public IBindable<TValue>? GetConfig<TLookup, TValue>(TLookup lookup)
+                where TLookup : notnull
+                where TValue : notnull
+            {
+                if (lookup is LegacyManiaSkinConfigurationLookup { Lookup: LegacyManiaSkinConfigurationLookups.HitPosition } mania && typeof(TValue) == typeof(float))
+                    return (IBindable<TValue>)(object)new Bindable<float>(mania.TotalColumns == 7 ? 0 : LegacyManiaSkinConfiguration.DEFAULT_HIT_POSITION);
+
+                return null;
+            }
+
+            public Drawable? GetDrawableComponent(ISkinComponentLookup lookup) => null;
+
+            public Texture? GetTexture(string componentName, WrapMode wrapModeS, WrapMode wrapModeT) => null;
+
+            public ISample? GetSample(ISampleInfo sampleInfo) => null;
+
+            public ISkin? FindProvider(Func<ISkin, bool> lookupFunction) => lookupFunction(this) ? this : null;
+
+            public IEnumerable<ISkin> AllSources => new ISkin[] { this };
         }
 
         private ManiaOrthoRulesetConfigManager create() => new ManiaOrthoRulesetConfigManager(store, new ManiaOrthoRuleset().RulesetInfo);

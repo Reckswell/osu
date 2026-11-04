@@ -1,12 +1,9 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
-using System;
-using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;
-using osu.Game.Overlays;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osuTK.Input;
 
@@ -14,7 +11,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 {
     /// <summary>
     /// Gameplay hotkeys for the wall, next to mania's scroll speed keys (F3 and F4, which already work here): Shift+F3 and
-    /// Shift+F4 move it by <see cref="WALL_STEP"/>, and a toast shows the new value as it does for the scroll speed.
+    /// Shift+F4 move it by <see cref="WALL_STEP"/>, and a toast shows the new value (<see cref="HighwayToasts"/>) as it does
+    /// for the scroll speed.
     /// </summary>
     /// <remarks>
     /// It only watches the keys and never handles them, so every key press goes on to exactly what it reaches in mania (a
@@ -32,27 +30,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// </summary>
         public const float WALL_STEP = 0.05f;
 
-        private readonly HighwayConfigManager config;
         private readonly Bindable<float> wall;
-
-        private IDisposable? configTracker;
-
-        [Resolved]
-        private OnScreenDisplay? onScreenDisplay { get; set; }
 
         public HighwayHotkeys(HighwayConfigManager config)
         {
-            this.config = config;
-
             wall = config.GetBindable<float>(HighwaySetting.Wall);
-        }
-
-        protected override void LoadComplete()
-        {
-            base.LoadComplete();
-
-            // Toasts for the wall, as osu! shows for the scroll speed while a ruleset's config is tracked.
-            configTracker = onScreenDisplay?.BeginTracking(this, config);
         }
 
         protected override bool OnKeyDown(KeyDownEvent e)
@@ -75,14 +57,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             // Seen, never handled: the key goes on to everything it would reach in mania.
             return false;
-        }
-
-        protected override void Dispose(bool isDisposing)
-        {
-            configTracker?.Dispose();
-            configTracker = null;
-
-            base.Dispose(isDisposing);
         }
     }
 }

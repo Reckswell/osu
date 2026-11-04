@@ -95,7 +95,7 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 - [x] Gameplay hotkeys for wall and speed (like mania's F3/F4). Gate: input test scene.
   (Shift+F3/Shift+F4 move the wall 5% with a toast; mania's F3/F4 speed keys already worked. `TestSceneHighwayHotkeys`:
   keys still reach mania's input manager, work in a replay player, range, modifiers, no column pressed;
-  `TestWallChangesShowAToast`.)
+  toasts: `TestSceneVisibleTime.TestHotkeysShowTheToasts`.)
 - [x] **MG2**: device playtest (L3) with frame times on Alpha's PC; ask Alpha for an L4 session and replays.
   (2026-11-04, RTX 5080 + Ryzen 7 9800X3D, 1920x1080 window, D3D11, uncapped: every run at the 1000 Hz ceiling, median
   frame 0.98 ms in both rulesets; maniaortho's p99 at most 3.93 ms (synthetic 7K; mania 2.67 ms), inside 180 Hz's
@@ -126,10 +126,11 @@ From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md`
 
 - [x] A hold held past its end keeps its head on the line, as in mania (osu!mania P3). Gate: in-game test that fails
   without the fix. (`TestHoldHeldPastItsEndKeepsItsHeadOnTheLine`, `TestHoldWithNoLengthPassesTheLine`.)
-- [ ] Show the real visible time: the wall toast ("40% covered · 405 ms visible") and the speed setting's hint use the
+- [x] Show the real visible time: the wall toast ("40% covered · 405 ms visible") and the speed setting's hint use the
   highway's own time (mania's `TimeRange` after the skin's hit position, and the wall when speed is kept), not
   `11485 / speed` (osu!mania P1, covers C3). Gate: the shown ms equals the measured time a note takes from the far
-  edge or wall to the line, within 1 ms.
+  edge or wall to the line, within 1 ms. (`TestSceneVisibleTime`, `TestScrollSpeedShowsTheVisibleTime`; the speed
+  toast shows it too; DECISIONS 2026-11-04, "Speed and wall show the real visible time".)
 - [x] ~~Held Shift+F3/F4 repeats on its own 100 ms timer, not the OS key repeat (covers C4).~~ Dropped: osu-framework
   already repeats on its own real-time timer (250 ms, then 70 ms), not the OS's (DECISIONS 2026-11-04, "Held wall
   keys keep osu-framework's repeat").
