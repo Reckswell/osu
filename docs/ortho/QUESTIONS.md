@@ -1,4 +1,4 @@
-# Questions for Alpha
+﻿# Questions for Alpha
 
 The loop never waits on these: it continues with the stated default where the step can be undone, and skips to other
 tasks where it cannot. Alpha answers by editing this file (write under **Answer**) or in the project thread; the loop
@@ -14,7 +14,7 @@ ours do. Its notes get about 5× thicker towards the far end, so far notes stay 
 - **Options**: (a) the preset, with a "Far note size" setting (1-6, default 1 everywhere else) that it sets to 5;
   (b) the preset with fixed thickness; (c) no Arcaea preset.
 - **Default until answered**: (c). Nothing is built; the other presets and SPEC 6 are unchanged.
-- **Answer**:
+- **Answer** (Alpha, 2026-11-04): (c), no Arcaea preset.
 
 ### Q16. Where a ported skin's key area goes by default
 Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a

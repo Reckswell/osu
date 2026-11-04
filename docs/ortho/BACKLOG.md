@@ -185,7 +185,7 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
   playtest (DECISIONS 2026-11-04). Great (orange) and Good (green) slot lights seen in a humanised playtest; Meh (dimmer) only in tests, as seed 4 hits none.
 - [x] Optional cosmetic camera motion (kiai sway), off by default. ("Kiai sway" 0-100%: the track leans about the
   judgement line with the beat in kiai sections; DECISIONS 2026-11-04.)
-- [ ] More presets from research. (An Arcaea preset waits on Q19: `game-arcaea.md` R2, R3.)
+- [ ] More presets from research. (No Arcaea preset: Alpha, Q19.)
 - [x] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long
   (`game-djmax.md` R2). Half and Quarter measured to the wall's edge when there is one (DECISIONS 2026-11-04).
 - [ ] The beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9), only if Alpha's L4 notes say today's
