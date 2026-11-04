@@ -113,6 +113,19 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         }
 
         /// <summary>
+        /// The far fade only changes how native notes are drawn, at its longest here.
+        /// </summary>
+        [TestCase("synthetic-7k", 12)]
+        public void TestJudgementParityWithFarFade(string source, int seed)
+        {
+            AddStep("far fade 30%", () => orthoConfig.Highway.SetValue(HighwaySetting.FarFade, HighwaySettings.MAX_FAR_FADE));
+
+            testParity(source, seed, HighwayNoteStyle.Highway);
+
+            AddAssert("ortho run faded its notes", () => ortho.FarFade);
+        }
+
+        /// <summary>
         /// Whether the case's skin shows a pp counter to compare. Read while the steps are built, before any runs.
         /// </summary>
         private bool hudHasPerformanceCounter;
@@ -131,6 +144,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                 orthoConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPresets.DEFAULT);
                 orthoConfig.Highway.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                 orthoConfig.Highway.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway);
+                orthoConfig.Highway.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
                 skins.CurrentSkinInfo.SetDefault();
             });
         }
@@ -229,7 +243,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     currentPlayer.ChildrenOfType<PerformancePointsCounter>().FirstOrDefault(c => c.IsValid)?.Current.Value ?? 0,
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault() is HighwayPlayfieldAdjustmentContainer h
                     && h.Port != null && h.PortedNotesShown && h.PortedTrackShown && h.PortedLightingShown,
-                    currentPlayer.ChildrenOfType<PlayLogRecorder>().SingleOrDefault() is PlayLogRecorder recorder ? recorder.Writing == null ? "not logged" : "logged" : "none"));
+                    currentPlayer.ChildrenOfType<PlayLogRecorder>().SingleOrDefault() is PlayLogRecorder recorder ? recorder.Writing == null ? "not logged" : "logged" : "none",
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NoteLayer.FarFade.IsActive == true));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -241,6 +256,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
         private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
                                   float? LineHeight, bool HighwayTrack, int LivePerformance, bool Ported,
-                                  string PlayLog);
+                                  string PlayLog, bool FarFade);
     }
 }

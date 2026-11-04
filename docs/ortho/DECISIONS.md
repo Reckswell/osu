@@ -757,3 +757,27 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   a non-portable harness (would write to `%APPDATA%` on Alpha's PC).
 - **Gate**: `PortableMarkerTest`; a playtest run followed by a test scene keeps the folder.
 - **Reverse**: drop the `finally` in `PlaytestRunner.Run` and the line in `check.sh`.
+
+## 2026-11-04: Optional far fade, in track depth, on notes drawn on the track
+
+- **What** (research/game-yarg-clonehero.md Y3): a "Far fade" setting, 0 to 30% of the visible track, default 0 (Chunithm
+  and SDVX show notes at full strength as soon as they appear). Notes fade in linearly in track depth from nothing where
+  they appear (the far edge, or the wall's lower edge) to full at that share below it, as YARG's mask fades linearly in
+  z. With a wall the band is a share of the visible part (a 40% wall and a 30% fade span 18% of the track). Beyond where
+  notes appear nothing is drawn while it is on (the wall or the far edge hid it anyway).
+- **A preference, not part of a preset**: like lane guides, so changing it never turns the preset into Custom and
+  choosing a preset leaves it alone.
+- **How**: one more `DepthCover` (`DepthCover.FarFade`) applied by the note layer on top of each column's mania cover;
+  each quad is cut where either changes and drawn at the product of the two, so Hidden and Fade In (scored mods) still
+  hide what they hide. Applies to Highway and Skin (ported) notes, holds included. Not to Skin (warped) notes, which are
+  mania's own drawables in the warped stage, nor to mania's bar lines (drawn there too, faint; they show at full
+  strength inside the band), nor under the flat camera (no note layer). Fading the warped stage as well would fade the
+  skin's whole stage, unlike notes on the highway track; left for if Alpha asks.
+- **Gate**: `DepthCoverTest` (the fade's values with and without a wall, past the line, its cuts),
+  `TestSceneHighwayNativeNotes.TestFarFade` (every drawn note end at its depth's alpha, walls 0 and 40%, then none),
+  `TestFarFadeMultipliesFadeIn` (alpha is Fade In's times the fade's where both fade), `TestJudgementParityWithFarFade`
+  (30%, with a check that the run faded). Mutations: the fade skipped fails both scene cases; the covers combined by
+  minimum instead of product fails the Fade In case. Captures in `/mnt/project-files/ortho-agent/far-fade/` (off, 25%,
+  25% under a 30% wall, holds crossing the band, the classic skin ported); playtester: measured alpha within 0.005 of
+  the formula, notes below the band pixel-identical to the reference, alpha 0 at the wall's edge, no banding.
+- **Reverse**: drop `HighwaySetting.FarFade` and the `FarFade` cover in `HighwayNoteLayer.add`.

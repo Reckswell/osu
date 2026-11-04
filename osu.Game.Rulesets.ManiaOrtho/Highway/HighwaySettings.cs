@@ -269,6 +269,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public bool SkinNoteProportions { get; init; }
 
+        /// <summary>
+        /// The longest <see cref="FarFade"/>: 30% of the visible track (research/game-yarg-clonehero.md Y3; YARG's default is 25%).
+        /// </summary>
+        public const float MAX_FAR_FADE = 0.3f;
+
+        /// <summary>
+        /// The share of the visible track, down from the far edge or the wall's edge, over which notes fade in (YARG). 0, the
+        /// default, shows them at full opacity as soon as they appear, as Chunithm and SDVX do. Cosmetic: it multiplies
+        /// mania's own Hidden and Fade In, never replaces them. Notes drawn on the track only (Highway and Skin (ported)).
+        /// </summary>
+        public float FarFade { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -287,6 +299,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             KeyArea = SkinKeyArea.Panel;
             StageFit = SkinStageFit.SkinPosition;
             SkinNoteProportions = true;
+            FarFade = 0;
         }
 
         /// <summary>

@@ -133,6 +133,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private DepthCover cover;
 
         /// <summary>
+        /// The far fade over every column (<see cref="DepthCover.FarFade"/>), on top of each column's own cover. Cosmetic.
+        /// </summary>
+        public DepthCover FarFade { get; set; }
+
+        /// <summary>
         /// The camera this frame's notes are gathered for, and how many screen pixels one of this layer's units is.
         /// </summary>
         private HighwayProjection projection;
@@ -468,12 +473,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             => NoteGap(lanes.Y - lanes.X, projection.WidthAt(Math.Max(depth + thickness, 0)) * pixelsPerUnit);
 
         /// <summary>
-        /// Adds <paramref name="quad"/>, cut where the column's cover changes so each piece fades as mania's cover would fade
-        /// it. Fully covered pieces are left out.
+        /// Adds <paramref name="quad"/>, cut where the column's cover or the far fade changes so each piece fades as mania's
+        /// cover would fade it, and the far fade on top (the two multiply). Fully covered pieces are left out.
         /// </summary>
         private void add(in NoteQuad quad)
         {
-            if (!cover.IsActive)
+            var fade = FarFade;
+
+            if (!cover.IsActive && !fade.IsActive)
             {
                 append(quad);
                 return;
@@ -483,11 +490,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             while (from < quad.Depth1)
             {
-                float to = cover.NextCut(from, quad.Depth1);
+                // An inactive cover cuts nowhere and shows everything.
+                float to = Math.Min(cover.NextCut(from, quad.Depth1), fade.NextCut(from, quad.Depth1));
                 float middle = (from + to) / 2;
 
-                float visibleFrom = cover.VisibilityAt(from, middle);
-                float visibleTo = cover.VisibilityAt(to, middle);
+                float visibleFrom = cover.VisibilityAt(from, middle) * fade.VisibilityAt(from, middle);
+                float visibleTo = cover.VisibilityAt(to, middle) * fade.VisibilityAt(to, middle);
 
                 if (visibleFrom > 0 || visibleTo > 0)
                 {

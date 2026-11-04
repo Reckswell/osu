@@ -29,6 +29,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public static DepthCover None => default;
 
+        /// <summary>
+        /// The far fade (<see cref="HighwaySettings.FarFade"/>, research/game-yarg-clonehero.md Y3): notes fade in linearly
+        /// over the far <paramref name="share"/> of the visible track, from nothing where they appear (<paramref name="appearDepth"/>:
+        /// the far edge, or the wall's edge) to fully shown. Beyond where they appear they stay hidden. None when the share
+        /// is 0.
+        /// </summary>
+        public static DepthCover FarFade(float appearDepth, float share)
+        {
+            if (!(share > 0) || !(appearDepth > 0))
+                return None;
+
+            return new DepthCover(appearDepth, float.MaxValue, appearDepth, appearDepth * (1 - Math.Min(share, 1)), 1);
+        }
+
         private bool hasCovered => CoveredTo > CoveredFrom;
 
         private bool hasFade => FadeAlpha > 0 && FadeFrom != FadeTo;

@@ -141,7 +141,8 @@ From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md`
   (wide keys W1, W3). Gate: tests; 7K and 10K captures reviewed by the playtester. (`WideKeysTest`,
   `TestGroupDividers`, `TestGroupDividersPerStage`, `TestNotesKeepAPixelOfGap`, `TestHoldBodiesStayWithinTheirEnds`;
   captures in `/mnt/project-files/ortho-agent/wide-keys/`, playtester pass.)
-- [ ] Optional far fade (YARG), default off. Gate: capture; parity.
+- [x] Optional far fade (YARG), default off. Gate: capture; parity. (`TestFarFade`, `TestFarFadeMultipliesFadeIn`,
+  `TestJudgementParityWithFarFade`; captures in `/mnt/project-files/ortho-agent/far-fade/`, playtester pass.)
 - [ ] Playtest at 840 ms visible time too, where Chunithm and Sekai players' near-line speed is (`game-sekai.md` K3).
   Gate: the harness's default capture set includes it.
 - [ ] **[Alpha: Q17]** A Sekai preset with Sekai's eased approach (`game-sekai.md` K2).

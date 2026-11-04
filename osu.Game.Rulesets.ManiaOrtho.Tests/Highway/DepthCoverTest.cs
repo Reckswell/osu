@@ -25,6 +25,41 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         /// </summary>
         private static readonly DepthCover near_part = new DepthCover(float.MinValue, 0.2f, 0.2f, 0.45f, 1);
 
+        /// <summary>
+        /// The far fade over 25% of the visible track: from the far edge (1), or from a 40% wall's edge (0.6).
+        /// </summary>
+        [TestCase(1f, 1f, 0f)]
+        [TestCase(1f, 0.875f, 0.5f)]
+        [TestCase(1f, 0.75f, 1f)]
+        [TestCase(1f, 0.1f, 1f)]
+        [TestCase(1f, 1.2f, 0f)]
+        [TestCase(0.6f, 0.6f, 0f)]
+        [TestCase(0.6f, 0.525f, 0.5f)]
+        [TestCase(0.6f, 0.45f, 1f)]
+        [TestCase(0.6f, 0.8f, 0f)]
+        [TestCase(1f, -0.3f, 1f)]
+        public void TestFarFade(float appear, float depth, float visibility)
+            => Assert.That(DepthCover.FarFade(appear, 0.25f).VisibilityAt(depth), Is.EqualTo(visibility).Within(tolerance));
+
+        [Test]
+        public void TestFarFadeCutsWhereNotesAppear()
+        {
+            var fade = DepthCover.FarFade(0.6f, 0.25f);
+
+            // A hold body from below the band to past the wall: cut at the band's near edge, in short steps across it, and at
+            // the wall's edge, beyond which it is not drawn.
+            Assert.That(fade.NextCut(0.2f, 0.9f), Is.EqualTo(0.45f).Within(tolerance));
+            Assert.That(fade.NextCut(0.59f, 0.9f), Is.EqualTo(0.6f).Within(tolerance));
+            Assert.That(fade.VisibilityAt(0.75f, 0.75f), Is.EqualTo(0));
+        }
+
+        [Test]
+        public void TestNoFarFadeIsNoCover()
+        {
+            Assert.That(DepthCover.FarFade(1, 0), Is.EqualTo(DepthCover.None));
+            Assert.That(DepthCover.FarFade(0, 0.25f), Is.EqualTo(DepthCover.None), "a wall over the whole track leaves nothing to fade");
+        }
+
         [Test]
         public void TestNoneShowsEverything()
         {

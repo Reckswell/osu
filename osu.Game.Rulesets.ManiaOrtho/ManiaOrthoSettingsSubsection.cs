@@ -146,6 +146,19 @@ namespace osu.Game.Rulesets.ManiaOrtho
                     HintText = "On: moving the wall slows notes so they stay visible for the same time. Off: notes keep their speed.",
                     Current = highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime),
                 }),
+                new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Far fade",
+                    HintText = "Notes fade in over this share of the visible track, down from the far edge or the wall, instead of "
+                               + "appearing at full strength. Off in Chunithm and SDVX. Highway and Skin (ported) notes only, not under the "
+                               + "flat camera; Hidden and Fade In still apply on top.",
+                    Current = highway.GetBindable<float>(HighwaySetting.FarFade),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.01f,
+                })
+                {
+                    Keywords = new[] { "fade in", "appear", "yarg" },
+                },
                 new SettingsItemV2(new FormCheckBox
                 {
                     Caption = "Lane guides",

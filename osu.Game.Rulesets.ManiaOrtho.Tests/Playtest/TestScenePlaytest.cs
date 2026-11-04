@@ -399,6 +399,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         keyArea = used.KeyArea.ToString(),
                         stageFit = used.StageFit.ToString(),
                         used.SkinNoteProportions,
+                        used.FarFade,
                         ported = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Port != null,
                     }
                     : null,

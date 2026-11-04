@@ -75,6 +75,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
+                highwayConfig.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
             });
 
             base.SetUpSteps();
@@ -89,6 +90,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             {
                 highwayConfig.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).SetDefault();
                 highwayConfig.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
                 rulesetConfig.SetValue(ManiaRulesetSetting.TimingBasedNoteColouring, false);
                 skins.CurrentSkinInfo.SetDefault();
             });
@@ -330,6 +332,128 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddAssert("the note is half way to the line", () => quadsFor(note).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note).Min(q => q.Depth0),
                 () => Is.EqualTo(highway.Warp.Scroll.AppearDepth / 2).Within(depth_tolerance));
+        }
+
+        /// <summary>
+        /// The far fade (research/game-yarg-clonehero.md Y3): notes are drawn at nothing where they appear (the far edge, or the
+        /// wall's edge) and fade in linearly to full over that share of the visible track; below it they are untouched.
+        /// </summary>
+        [TestCase(0f)]
+        [TestCase(0.4f)]
+        public void TestFarFade(float wall)
+        {
+            const float share = 0.25f;
+
+            AddStep($"far fade {share:0%}, wall {wall:0%}", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.Wall, wall);
+                highwayConfig.SetValue(HighwaySetting.FarFade, share);
+            });
+            AddUntilStep("highway fades", () => highway.NoteLayer.FarFade.IsActive && Math.Abs(highway.Warp.Scroll.Wall - wall) < 1e-4f);
+
+            AddUntilStep("faded by depth: none at the wall, full a quarter of the track below it", () =>
+            {
+                float appear = highway.Warp.Scroll.AppearDepth;
+                int fading = 0, clear = 0;
+
+                foreach (var note in columns.SelectMany(c => c.HitObjectContainer.AliveObjects).OfType<DrawableNote>())
+                {
+                    if (note.Alpha < 1 || note.Judged)
+                        continue;
+
+                    foreach (var quad in quadsFor(note.HitObject).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note))
+                    {
+                        if (quad.Depth1 > appear + 1e-4f)
+                            throw new AssertionException($"note at {note.HitObject.StartTime} drawn past where notes appear ({quad.Depth1} > {appear})");
+
+                        checkEnd(quad.Depth0, quad.Near.A);
+                        checkEnd(quad.Depth1, quad.Far.A);
+
+                        float expectedNear = expected(quad.Depth0);
+
+                        if (expectedNear < 1)
+                            fading++;
+                        else if (quad.Depth0 > 0)
+                            clear++;
+                    }
+
+                    void checkEnd(float depth, float alpha)
+                    {
+                        if (Math.Abs(alpha - expected(depth)) > 0.01f)
+                            throw new AssertionException($"note at {note.HitObject.StartTime} drawn at {alpha} at depth {depth}, expected {expected(depth)}");
+                    }
+                }
+
+                return fading > 0 && clear > 0;
+
+                float expected(float depth) => Math.Clamp((appear - depth) / (appear * share), 0, 1);
+            });
+
+            AddStep("no far fade", () => highwayConfig.SetValue(HighwaySetting.FarFade, 0f));
+            AddUntilStep("notes appear at full strength", () =>
+            {
+                var notes = Enumerable.Range(0, highway.NoteLayer.Count).Select(highway.NoteLayer.GetQuad)
+                                      .Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note && q.Depth1 > highway.Warp.Scroll.AppearDepth * 0.8f)
+                                      .ToArray();
+
+                return !highway.NoteLayer.FarFade.IsActive && notes.Length > 0 && notes.All(q => q.Near.A > 0.99f && q.Far.A > 0.99f);
+            });
+        }
+
+        /// <summary>
+        /// The far fade multiplies mania's own covers (scored mods), never replaces them: with Fade In, a note where both fade
+        /// is drawn at the product of the two, and one Fade In hides stays hidden.
+        /// </summary>
+        [Test]
+        public void TestFarFadeMultipliesFadeIn()
+        {
+            AddStep("far fade 30%", () => highwayConfig.SetValue(HighwaySetting.FarFade, HighwaySettings.MAX_FAR_FADE));
+            AddStep("load with Fade In", () => LoadPlayer(new Mod[] { new ManiaModFadeIn() }));
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1);
+            AddUntilStep("notes gathered under both", () => highway.NoteLayer.Count > 0 && highway.NoteLayer.FarFade.IsActive && highway.ColumnCovers[0].IsActive);
+
+            AddUntilStep("each note at Fade In's visibility times the far fade's, both fading somewhere", () =>
+            {
+                var farFade = highway.NoteLayer.FarFade;
+                var allColumns = columns;
+                int both = 0;
+
+                for (int c = 0; c < allColumns.Length; c++)
+                {
+                    var cover = highway.ColumnCovers[c];
+
+                    foreach (var note in allColumns[c].HitObjectContainer.AliveObjects.OfType<DrawableNote>())
+                    {
+                        if (note.Alpha < 1 || note.Judged)
+                            continue;
+
+                        foreach (var quad in quadsFor(note.HitObject).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note))
+                        {
+                            // Each piece lies within one part of each cover; its ends are drawn at that part's visibility.
+                            float middle = (quad.Depth0 + quad.Depth1) / 2;
+
+                            checkEnd(quad.Depth0, quad.Near.A);
+                            checkEnd(quad.Depth1, quad.Far.A);
+
+                            float byCover = cover.VisibilityAt(middle);
+                            float byFade = farFade.VisibilityAt(middle);
+
+                            if (byCover > 0 && byCover < 1 && byFade > 0 && byFade < 1)
+                                both++;
+
+                            void checkEnd(float depth, float alpha)
+                            {
+                                float expected = cover.VisibilityAt(depth, middle) * farFade.VisibilityAt(depth, middle);
+
+                                if (Math.Abs(alpha - expected) > 0.01f)
+                                    throw new AssertionException($"note at {note.HitObject.StartTime} drawn at {alpha} at depth {depth}, expected {expected}");
+                            }
+                        }
+                    }
+                }
+
+                return both > 0;
+            });
         }
 
         /// <summary>

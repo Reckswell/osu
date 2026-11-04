@@ -466,6 +466,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 NoteLayer.NoteThickness = Settings.NoteThickness;
                 NoteLayer.SnapColours = timingBasedColouring.Value;
                 NoteLayer.Ported = PortedNotesShown ? portedNotes : null;
+                NoteLayer.FarFade = DepthCover.FarFade(Warp.Scroll.AppearDepth, Settings.FarFade);
                 measureCovers(stage);
                 NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
                     Time.Current);

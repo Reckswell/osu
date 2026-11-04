@@ -130,6 +130,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.KeyArea, defaults.KeyArea);
             SetDefault(HighwaySetting.StageFit, defaults.StageFit);
             SetDefault(HighwaySetting.SkinNoteProportions, defaults.SkinNoteProportions);
+            SetDefault(HighwaySetting.FarFade, defaults.FarFade, 0f, HighwaySettings.MAX_FAR_FADE, 0.01f);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
         }
 
@@ -154,13 +155,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             KeyArea = Get<SkinKeyArea>(HighwaySetting.KeyArea),
             StageFit = Get<SkinStageFit>(HighwaySetting.StageFit),
             SkinNoteProportions = Get<bool>(HighwaySetting.SkinNoteProportions),
+            FarFade = Get<float>(HighwaySetting.FarFade),
         };
 
         /// <summary>
         /// Writes a preset's values into the individual settings. Leaves <see cref="HighwaySetting.WallKeepsVisibleTime"/>,
         /// <see cref="HighwaySetting.LaneGuides"/>, <see cref="HighwaySetting.SkinHitTarget"/>,
-        /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/>, <see cref="HighwaySetting.Track"/>
-        /// and the skin porter's settings alone (preferences, not part of a camera).
+        /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/>, <see cref="HighwaySetting.Track"/>,
+        /// <see cref="HighwaySetting.FarFade"/> and the skin porter's settings alone (preferences, not part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
         {
@@ -226,6 +228,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         KeyArea,
         StageFit,
         SkinNoteProportions,
+        FarFade,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.
