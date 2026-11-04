@@ -20,7 +20,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
         private static IEnumerable<float> farWidthRatios() => new[] { 1f, 0.8f, 0.5f, 0.3f, 0.1f };
 
-        private static HighwayProjection create(float farWidthRatio, float judgementY = 0.88f, float farY = 0f, float nearWidth = 0.5f)
+        private static HighwayProjection create(float farWidthRatio, float judgementY = 0.88f, float farY = 0f, float nearWidth = 0.5f, float sway = 0)
             => new HighwayProjection(new HighwayLayout
             {
                 JudgementY = judgementY,
@@ -28,6 +28,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 NearWidth = nearWidth,
                 FarWidthRatio = farWidthRatio,
                 CentreX = 0.5f,
+                Sway = sway,
             }, screen);
 
         [TestCaseSource(nameof(farWidthRatios))]
@@ -155,6 +156,51 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             Assert.That(p.Layout.FarWidthRatio, Is.EqualTo(HighwayLayout.MIN_FAR_WIDTH_RATIO));
             Assert.That(p.Layout.NearWidth, Is.EqualTo(1));
             Assert.That(float.IsFinite(p.YAt(1)) && float.IsFinite(p.ScaleAt(1)));
+        }
+
+        /// <summary>
+        /// The kiai sway (SPEC 2) leans the track about the judgement line: the line and everything below it stay, the far edge
+        /// moves by the whole sway, and lanes stay straight and still meet at one (moved) vanishing point.
+        /// </summary>
+        [TestCaseSource(nameof(farWidthRatios))]
+        public void TestSwayLeansTheTrackAboutTheLine(float ratio)
+        {
+            var still = create(ratio, judgementY: 0.926f, farY: 0.05f);
+            var swayed = create(ratio, judgementY: 0.926f, farY: 0.05f, sway: -0.03f);
+
+            foreach (float lane in new[] { 0f, 0.3f, 1f })
+            {
+                Vector2 near = swayed.ToScreen(lane, 0);
+                Vector2 far = swayed.ToScreen(lane, 1);
+
+                Assert.That(near, Is.EqualTo(still.ToScreen(lane, 0)), "the judgement line stays");
+                Assert.That(swayed.XAt(lane, near.Y + 60), Is.EqualTo(still.XAt(lane, near.Y + 60)), "below the line stays");
+                Assert.That(far.X - still.ToScreen(lane, 1).X, Is.EqualTo(-0.03f * screen.X).Within(tolerance), "the far edge moves");
+                Assert.That(far.Y, Is.EqualTo(still.ToScreen(lane, 1).Y), "only sideways");
+
+                for (float d = 0.1f; d < 1; d += 0.1f)
+                {
+                    Vector2 point = swayed.ToScreen(lane, d);
+                    Vector2 expected = Vector2.Lerp(near, far, (point.Y - near.Y) / (far.Y - near.Y));
+                    Assert.That(point.X, Is.EqualTo(expected.X).Within(0.01f), $"lane {lane} bends at depth {d}");
+                    Assert.That(swayed.XAt(lane, point.Y), Is.EqualTo(point.X).Within(tolerance));
+                }
+
+                if (ratio < 1)
+                {
+                    Vector2 vp = swayed.VanishingPoint!.Value;
+                    float xAtVanishingPoint = near.X + (far.X - near.X) * (vp.Y - near.Y) / (far.Y - near.Y);
+                    Assert.That(xAtVanishingPoint, Is.EqualTo(vp.X).Within(0.05f), "lanes meet at the vanishing point");
+                }
+            }
+        }
+
+        [Test]
+        public void TestSwayIsSanitised()
+        {
+            Assert.That(create(0.5f, sway: 5).Layout.Sway, Is.EqualTo(HighwayLayout.MAX_SWAY));
+            Assert.That(create(0.5f, sway: -5).Layout.Sway, Is.EqualTo(-HighwayLayout.MAX_SWAY));
+            Assert.That(create(0.5f, sway: float.NaN).Layout.Sway, Is.Zero);
         }
 
         [TestCaseSource(nameof(farWidthRatios))]

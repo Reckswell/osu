@@ -333,6 +333,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public KeyBeamLength KeyBeam { get; init; }
 
+        /// <summary>
+        /// How far the far edge swings at <see cref="KiaiSway"/> 100%, as a fraction of the screen width.
+        /// </summary>
+        public const float MAX_KIAI_SWAY = 0.03f;
+
+        /// <summary>
+        /// How strongly the track sways with the beat in kiai sections (<see cref="Highway.KiaiSway"/>), from 0 (off, the
+        /// default) to 1 (the far edge swinging <see cref="MAX_KIAI_SWAY"/> of the screen width either way). Cosmetic; the
+        /// judgement line never moves (SPEC 2). Tilted cameras only.
+        /// </summary>
+        public float KiaiSway { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -355,6 +367,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             HoldOpacity = 1;
             TrackOpacity = 1;
             KeyBeam = KeyBeamLength.Long;
+            KiaiSway = 0;
         }
 
         /// <summary>

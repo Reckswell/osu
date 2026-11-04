@@ -868,3 +868,41 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   clearer hint; all fixed.
 - **Reverse**: drop `HighwaySetting.KeyBeam`, `KeyBeamLength`, `HighwayTrack.KeyBeam`/`BeamDepth`/`GetBeamDepth`, and
   draw the beam to `BEAM_LENGTH` again.
+
+## 2026-11-04: Kiai sway leans the track about the judgement line, with the beat, off by default
+
+- **What**: a "Kiai sway" setting (0-100%, default 0, outside the presets; tilted cameras only). In kiai sections the far
+  end of the track swings from side to side with the beat. SPEC 2 allows optional cosmetic motion that never moves the
+  judgement line; no reference game does this (SDVX's roll is chart-driven and tilts the line, so `game-sdvx.md` P5
+  rules it out), so the values below are our own.
+- **A shear, not a rotation**: `HighwayLayout.Sway` shifts the track sideways in proportion to the height above the
+  judgement line (`HighwayProjection.SwayAtY`), nothing on or below it. The line, the judgements, the key area, a ported
+  skin's key panel and everything else below the line stay still, and lanes stay straight with one vanishing point (a
+  shear composed with the homography is a homography). Everything on the track already draws through the projection,
+  so the track, notes, warp, guides, lane lines and lights follow without changes. The wall, an upright panel, is
+  sheared about its lower edge to keep covering the leaning lanes behind it. Accepted: the floor and rails below the
+  line do not lean, so the track's edges bend slightly at the line (hidden under the line's glow at these sizes), and the
+  top edge of bands centred on the line (glow, slot lights) leans by up to ~1 px.
+- **Motion**: the far end is at one side on each beat and passes the middle between beats (cos of the swings since the
+  first timing point, with the count carried across red lines so an off-beat or gimmick red line never snaps it). One
+  swing is the beat, doubled until it is at least 300 ms (above 200 BPM two beats; gimmick timing never shakes). It grows
+  over one swing from a section's start and settles over one swing after its end (smoothstep); sections closer than that
+  are merged, as are consecutive kiai points. A pure function of the frame-stable time: seeks and captures are exact.
+- **Size**: 100% moves the far edge 3% of the screen width (58 px at 1920), about a fifth of the Chunithm preset's
+  far-edge width. Visible without hiding where a far note's lane is; tune after Alpha tries it.
+- **Test chart**: the synthetic charts gain a kiai section (bars 8-12). Kiai does not touch judgement (only the legacy
+  convert generators read it, and these charts are native mania); parity tests are unchanged and pass.
+- **Gate**: `KiaiSwayTest` (still outside kiai, sides on the beats, smooth fades, kiai points in a row, merged sections,
+  red lines off the beat and gimmick timing without a jump, swing lengths), `HighwayProjectionTest.TestSwayLeansTheTrack
+  AboutTheLine` (line and below unchanged, far edge moved by the sway, lanes straight, vanishing point) and
+  `TestSwayIsSanitised`, `TestSceneHighwaySettings.TestKiaiSwayIsOffByDefault`, `TestSceneHighwayTrack.TestKiaiSway`
+  (none by default; with it, the sway the formula gives, shared by track, warp, guides, notes and slot lights; the line
+  unchanged; the wall's corners leaning with the track; still after the section). A flipped wall shear fails the scene
+  test. Playtest (synthetic-7k, 1280x720, Chunithm): on two consecutive beats the lane lines moved +37/-36 px at y=40,
+  21 px at y=300 and 4 px at y=600 (36.1, 21.0, 3.7 computed), nothing below the line moved, and the score matched the
+  run without sway; with the classic skin ported, the key panel stayed still while the stage leaned. Review (approve
+  with fixes): the phase restarted at every red line (now carried on), gimmick timing could shake and pop (swing and fade
+  at least 300 ms), the wall stayed upright (now sheared), close sections could still jump (merged), more layers in the
+  scene test; all fixed. The 1 px band lean is accepted (above).
+- **Reverse**: drop `HighwaySetting.KiaiSway`, `KiaiSway`, `HighwayLayout.Sway` and `SwayAtY` (and its three uses in the
+  projection), and the wall's shear and bottom-left origin.

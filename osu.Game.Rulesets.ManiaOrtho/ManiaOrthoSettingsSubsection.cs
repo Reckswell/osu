@@ -287,6 +287,18 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "note height", "note size", "thickness" },
                 },
+                new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Kiai sway",
+                    HintText = "Off by default. In kiai sections the far end of the track swings from side to side with the beat; the "
+                               + "judgement line and everything below it stay still. Purely cosmetic.",
+                    Current = highway.GetBindable<float>(HighwaySetting.KiaiSway),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.01f,
+                })
+                {
+                    Keywords = new[] { "camera motion", "sway", "kiai", "shake", "movement" },
+                },
             };
         }
 

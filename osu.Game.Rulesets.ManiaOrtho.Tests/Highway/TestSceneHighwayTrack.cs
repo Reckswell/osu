@@ -22,6 +22,7 @@ using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Osu;
 using osu.Game.Tests.Beatmaps;
 using osu.Game.Tests.Visual;
+using osuTK;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 {
@@ -72,6 +73,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                 highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                 highwayConfig.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
             });
 
             base.SetUpSteps();
@@ -85,6 +87,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                 highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                 highwayConfig.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
             });
             base.TearDownSteps();
         }
@@ -156,6 +159,47 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddStep("long beam", () => highwayConfig.SetValue(HighwaySetting.KeyBeam, KeyBeamLength.Long));
             AddUntilStep("half the track's depth again", () => track.BeamDepth, () => Is.EqualTo(HighwayTrack.BEAM_LENGTH));
+        }
+
+        /// <summary>
+        /// The optional kiai sway (SPEC 2): off by default, and when on only in kiai sections (bars 8-12 of the synthetic chart),
+        /// leaning the whole track, notes and warp alike, about a judgement line that never moves.
+        /// </summary>
+        [Test]
+        public void TestKiaiSway()
+        {
+            AddStep("seek into the kiai section", () => Player.GameplayClockContainer.Seek(13000));
+            AddUntilStep("playfield there", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.GreaterThan(13000));
+            AddWaitStep("play on", 5);
+            AddAssert("off by default: no sway", () => highway.Projection.Layout.Sway, () => Is.Zero);
+
+            AddStep("kiai sway 100%", () => highwayConfig.SetValue(HighwaySetting.KiaiSway, 1f));
+            AddUntilStep("the track leans with the beat", () => Math.Abs(highway.Projection.Layout.Sway), () => Is.GreaterThan(0.9f * HighwaySettings.MAX_KIAI_SWAY));
+            AddAssert("by the beat's sway at this time", () => highway.Projection.Layout.Sway,
+                () => Is.EqualTo(HighwaySettings.MAX_KIAI_SWAY * new KiaiSway(drawableRuleset.Beatmap.ControlPointInfo).At(highway.Time.Current)).Within(1e-5f));
+            AddAssert("the track, warp, guides, notes and lights lean together",
+                () => new[] { track.Layout.Sway, highway.Warp.Layout.Sway, highway.Guides.Layout.Sway, highway.NoteLayer.Layout.Sway, highway.SlotLights.Layout.Sway },
+                () => Has.All.EqualTo(highway.Projection.Layout.Sway));
+            AddAssert("the judgement line stays", () => highway.Projection.ToScreen(0, 0),
+                () => Is.EqualTo(new HighwayProjection(highway.Projection.Layout with { Sway = 0 }, highway.Projection.Size).ToScreen(0, 0)));
+
+            AddStep("wall at 30%", () => highwayConfig.SetValue(HighwaySetting.Wall, 0.3f));
+            AddUntilStep("the track leans fully again", () => Math.Abs(highway.Projection.Layout.Sway), () => Is.GreaterThan(0.9f * HighwaySettings.MAX_KIAI_SWAY));
+            AddAssert("the wall leans with the track, about its lower edge", () =>
+            {
+                var p = highway.Projection;
+                float depth = highway.Warp.Scroll.AppearDepth;
+                float bottom = p.YAt(depth);
+                var quad = highway.Wall.ScreenSpaceDrawQuad;
+                var expectedTop = new Vector2(p.ToScreen(0, depth).X + p.SwayAtY(0) - p.SwayAtY(bottom), 0);
+
+                return Vector2.Distance(highway.ToLocalSpace(quad.BottomLeft), p.ToScreen(0, depth)) < 0.5f
+                       && Vector2.Distance(highway.ToLocalSpace(quad.TopLeft), expectedTop) < 0.5f;
+            });
+
+            AddStep("seek past the kiai section", () => Player.GameplayClockContainer.Seek(19000));
+            AddUntilStep("playfield there", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.GreaterThan(19000));
+            AddUntilStep("still again", () => highway.Projection.Layout.Sway, () => Is.Zero);
         }
 
         /// <summary>

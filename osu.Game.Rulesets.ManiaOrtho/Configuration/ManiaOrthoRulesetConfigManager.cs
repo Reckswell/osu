@@ -134,6 +134,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.HoldOpacity, defaults.HoldOpacity, HighwaySettings.MIN_HOLD_OPACITY, 1f, 0.01f);
             SetDefault(HighwaySetting.TrackOpacity, defaults.TrackOpacity, 0f, 1f, 0.01f);
             SetDefault(HighwaySetting.KeyBeam, defaults.KeyBeam);
+            SetDefault(HighwaySetting.KiaiSway, defaults.KiaiSway, 0f, 1f, 0.01f);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
         }
 
@@ -162,6 +163,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             HoldOpacity = Get<float>(HighwaySetting.HoldOpacity),
             TrackOpacity = Get<float>(HighwaySetting.TrackOpacity),
             KeyBeam = Get<KeyBeamLength>(HighwaySetting.KeyBeam),
+            KiaiSway = Get<float>(HighwaySetting.KiaiSway),
         };
 
         /// <summary>
@@ -169,7 +171,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         /// <see cref="HighwaySetting.LaneGuides"/>, <see cref="HighwaySetting.SkinHitTarget"/>,
         /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/>, <see cref="HighwaySetting.Track"/>,
         /// <see cref="HighwaySetting.FarFade"/>, <see cref="HighwaySetting.HoldOpacity"/>, <see cref="HighwaySetting.TrackOpacity"/>,
-        /// <see cref="HighwaySetting.KeyBeam"/> and the
+        /// <see cref="HighwaySetting.KeyBeam"/>, <see cref="HighwaySetting.KiaiSway"/> and the
         /// skin porter's settings alone (preferences, not part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
@@ -240,6 +242,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         HoldOpacity,
         TrackOpacity,
         KeyBeam,
+        KiaiSway,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.

@@ -183,7 +183,8 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
 - [x] Optional "Hold opacity" 10-100% and "Track opacity" 0-100% settings, and the judgement line lit per lane on a hit
   in the result's colour (`game-sekai.md` K6, K7, K9). Multipliers, default 100%; slot lights retuned after the
   playtest (DECISIONS 2026-11-04). Great (orange) and Good (green) slot lights seen in a humanised playtest; Meh (dimmer) only in tests, as seed 4 hits none.
-- [ ] Optional cosmetic camera motion (kiai sway), off by default.
+- [x] Optional cosmetic camera motion (kiai sway), off by default. ("Kiai sway" 0-100%: the track leans about the
+  judgement line with the beat in kiai sections; DECISIONS 2026-11-04.)
 - [ ] More presets from research. (An Arcaea preset waits on Q19: `game-arcaea.md` R2, R3.)
 - [x] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long
   (`game-djmax.md` R2). Half and Quarter measured to the wall's edge when there is one (DECISIONS 2026-11-04).

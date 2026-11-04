@@ -46,6 +46,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         private readonly float farY;
         private readonly float nearWidth;
         private readonly float centreX;
+        private readonly float sway;
 
         public HighwayProjection(HighwayLayout layout, Vector2 size)
         {
@@ -57,6 +58,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             farY = Layout.FarY * size.Y;
             nearWidth = Layout.NearWidth * size.X;
             centreX = Layout.CentreX * size.X;
+            sway = Layout.Sway * size.X;
         }
 
         /// <summary>
@@ -98,17 +100,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// <summary>
         /// The screen x (pixels) of <paramref name="lane"/> at screen y <paramref name="y"/>.
         /// </summary>
-        public float XAt(float lane, float y) => centreX + (lane - 0.5f) * WidthAtY(y);
+        public float XAt(float lane, float y) => centreX + SwayAtY(y) + (lane - 0.5f) * WidthAtY(y);
+
+        /// <summary>
+        /// How far <see cref="HighwayLayout.Sway"/> moves the track sideways at screen y <paramref name="y"/>, in pixels: in
+        /// proportion to the height above the judgement line (the full sway at the far edge), nothing on or below it.
+        /// </summary>
+        public float SwayAtY(float y) => y >= judgementY ? 0 : sway * (judgementY - y) / (judgementY - farY);
 
         /// <summary>
         /// The screen position (pixels) of the track point (<paramref name="lane"/>, <paramref name="depth"/>).
         /// </summary>
-        public Vector2 ToScreen(float lane, float depth) => new Vector2(centreX + (lane - 0.5f) * WidthAt(depth), YAt(depth));
+        public Vector2 ToScreen(float lane, float depth)
+        {
+            float y = YAt(depth);
+            return new Vector2(centreX + SwayAtY(y) + (lane - 0.5f) * WidthAt(depth), y);
+        }
 
         /// <summary>
         /// The screen quad of the track rectangle spanning lanes <paramref name="lane0"/>..<paramref name="lane1"/> and
         /// depths <paramref name="depth0"/> (near) .. <paramref name="depth1"/> (far).
-        /// Straight edges stay straight under a homography, so the four projected corners describe the whole rectangle.
+        /// Straight edges stay straight under a homography (and under the sway's shear, on or above the judgement line), so the
+        /// four projected corners describe the whole rectangle.
         /// </summary>
         public Quad ToScreen(float lane0, float lane1, float depth0, float depth1)
             => new Quad(ToScreen(lane0, depth1), ToScreen(lane1, depth1), ToScreen(lane0, depth0), ToScreen(lane1, depth0));
@@ -116,8 +129,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// <summary>
         /// Where lanes converge on screen, or <c>null</c> when they are parallel.
         /// </summary>
-        public Vector2? VanishingPoint => Compression <= 0
-            ? null
-            : new Vector2(centreX, judgementY + (farY - judgementY) * (1 + Compression) / Compression);
+        public Vector2? VanishingPoint
+        {
+            get
+            {
+                if (Compression <= 0)
+                    return null;
+
+                float y = judgementY + (farY - judgementY) * (1 + Compression) / Compression;
+                return new Vector2(centreX + SwayAtY(y), y);
+            }
+        }
     }
 }

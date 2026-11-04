@@ -60,6 +60,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     config.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
                     config.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                     config.Highway.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
+                    config.Highway.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
                 }
             });
         }
@@ -140,6 +141,32 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     return config.Highway.Current.KeyBeam;
                 }
             }, () => Is.EqualTo(KeyBeamLength.Quarter));
+        }
+
+        /// <summary>
+        /// SPEC 2: cosmetic camera motion is off by default, and a preference outside the presets.
+        /// </summary>
+        [Test]
+        public void TestKiaiSwayIsOffByDefault()
+        {
+            AddAssert("off", () =>
+            {
+                using (var config = create())
+                    return new[] { new HighwaySettings().KiaiSway, config.Highway.Current.KiaiSway };
+            }, () => Is.EqualTo(new[] { 0f, 0f }));
+
+            AddAssert("kept, keeps the preset, and a preset leaves it", () =>
+            {
+                using (var config = create())
+                    config.Highway.SetValue(HighwaySetting.KiaiSway, 0.5f);
+
+                using (var config = create())
+                {
+                    var kept = (config.Highway.Current.KiaiSway, config.Highway.Get<HighwayPreset>(HighwaySetting.Preset));
+                    config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex);
+                    return (kept, config.Highway.Current.KiaiSway);
+                }
+            }, () => Is.EqualTo(((0.5f, HighwayPreset.Chunithm), 0.5f)));
         }
 
         [Test]

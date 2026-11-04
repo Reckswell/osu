@@ -22,7 +22,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
     /// A source is one of:
     /// <list type="bullet">
     /// <item><c>real-4k</c>: a real ranked 4K map from the mania test resources (1419 objects, no audio).</item>
-    /// <item><c>synthetic-NK</c> (e.g. <c>synthetic-7k</c>): a generated ~40s chart covering stairs, chords, jacks, long notes and SV changes.</item>
+    /// <item><c>synthetic-NK</c> (e.g. <c>synthetic-7k</c>): a generated ~40s chart covering stairs, chords, jacks, long notes, SV changes and a kiai section.</item>
     /// <item>A path to any <c>.osu</c> file, e.g. one from a local osu! Songs folder.</item>
     /// </list>
     /// </remarks>
@@ -129,6 +129,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             const double lead_in = 1000;
 
             beatmap.ControlPointInfo.Add(0, new TimingControlPoint { BeatLength = beat });
+            // A kiai section (bars 8-12), for the optional kiai sway.
+            beatmap.ControlPointInfo.Add(lead_in + bar * 8, new EffectControlPoint { KiaiMode = true });
+            beatmap.ControlPointInfo.Add(lead_in + bar * 12, new EffectControlPoint());
             beatmap.ControlPointInfo.Add(lead_in + bar * 16, new EffectControlPoint { ScrollSpeed = 0.5 });
             beatmap.ControlPointInfo.Add(lead_in + bar * 20, new EffectControlPoint { ScrollSpeed = 1.75 });
             beatmap.ControlPointInfo.Add(lead_in + bar * 24, new EffectControlPoint { ScrollSpeed = 1 });

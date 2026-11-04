@@ -269,6 +269,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public HighwayProjection Projection { get; private set; }
 
         private readonly DrawableManiaOrthoRuleset drawableRuleset;
+
+        private KiaiSway? kiaiSway;
         private readonly ManiaPlayfieldAdjustmentContainer mania;
 
         private HighwayConfigManager? config;
@@ -341,6 +343,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             // The playfield (and so its stages) is created with this container, before it loads.
             Overlay.Add(HitEffects = new HighwayHitEffectLayer(drawableRuleset.Playfield, drawableRuleset.Beatmap.ControlPointInfo));
+            kiaiSway = new KiaiSway(drawableRuleset.Beatmap.ControlPointInfo);
             Overlay.Add(PortedLighting = new PortedLighting(drawableRuleset.Playfield) { Alpha = 0 });
 
             foreach (var stage in drawableRuleset.Playfield.Stages)
@@ -373,6 +376,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             // The skin's layout moves the camera's track: its line lifted for the key area, its stage's position and width.
             if (PortedTrackShown && Port != null)
                 layout = SkinPortLayout.Adjust(layout, Settings.KeyArea, Settings.StageFit, FlatStage, Port.Stages.Length > 0 ? Port.Stages[0].ColumnStart : null);
+
+            // Cosmetic only, and a function of the (frame-stable) time, so a seek shows the same pose as playing through.
+            if (!flat && Settings.KiaiSway > 0 && kiaiSway != null)
+                layout = layout with { Sway = Settings.KiaiSway * HighwaySettings.MAX_KIAI_SWAY * kiaiSway.At(Time.Current) };
 
             Projection = new HighwayProjection(layout, DrawSize);
 

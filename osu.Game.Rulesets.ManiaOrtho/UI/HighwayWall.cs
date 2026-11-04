@@ -18,6 +18,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
     /// <remarks>
     /// Drawn as a vertical panel, as in the arcade (research/game-chunithm.md). Its image is a rectangle as wide as the track
     /// at the wall's depth, reaching up to the top of the screen; the track only narrows beyond it, so the rectangle covers it.
+    /// Under the kiai sway it leans with the track, sheared about its lower edge.
     /// </remarks>
     public partial class HighwayWall : CompositeDrawable
     {
@@ -29,6 +30,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public HighwayWall()
         {
             Alpha = 0;
+            // Placed by its lower edge, the one on the track, so a lean (the kiai sway) shears it about that edge.
+            Origin = Anchor.BottomLeft;
 
             InternalChildren = new Drawable[]
             {
@@ -64,8 +67,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             float depth = scroll.AppearDepth;
             float bottom = projection.YAt(depth);
 
-            Position = new Vector2(projection.ToScreen(0, depth).X, 0);
+            Position = new Vector2(projection.ToScreen(0, depth).X, bottom);
             Size = new Vector2(projection.WidthAt(depth), bottom);
+            // The track behind it leans with the kiai sway: lean with it, so the lanes beyond stay covered.
+            Shear = new Vector2(bottom > 0 ? (projection.SwayAtY(0) - projection.SwayAtY(bottom)) / bottom : 0, 0);
             Alpha = 1;
         }
     }

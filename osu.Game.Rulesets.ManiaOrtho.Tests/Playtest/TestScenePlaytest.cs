@@ -181,6 +181,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     ortho.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
                     ortho.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                     ortho.Highway.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
+                    ortho.Highway.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
 
                     options.ApplyHighwayValues(ortho.Highway);
                 }
@@ -430,6 +431,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         used.HoldOpacity,
                         used.TrackOpacity,
                         keyBeam = used.KeyBeam.ToString(),
+                        used.KiaiSway,
                         ported = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Port != null,
                     }
                     : null,

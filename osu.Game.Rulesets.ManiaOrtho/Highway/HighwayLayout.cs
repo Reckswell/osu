@@ -38,6 +38,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public float CentreX { get; init; }
 
+        /// <summary>
+        /// How far the track above the judgement line leans sideways: the far edge's shift as a fraction of the playfield
+        /// width, positive to the right. A shear in screen space about the judgement line, so the line, everything on it and
+        /// everything below it stay where they are, and lanes stay straight. 0 (the default) is the camera at rest.
+        /// </summary>
+        public float Sway { get; init; }
+
+        /// <summary>
+        /// The largest <see cref="Sway"/> either way.
+        /// </summary>
+        public const float MAX_SWAY = 0.2f;
+
         public HighwayLayout()
         {
             JudgementY = 0.88f;
@@ -67,6 +79,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
                 NearWidth = Math.Clamp(NearWidth, 0.05f, 1f),
                 FarWidthRatio = Math.Clamp(FarWidthRatio, MIN_FAR_WIDTH_RATIO, 1f),
                 CentreX = Math.Clamp(CentreX, 0f, 1f),
+                Sway = float.IsFinite(Sway) ? Math.Clamp(Sway, -MAX_SWAY, MAX_SWAY) : 0,
             };
         }
     }
