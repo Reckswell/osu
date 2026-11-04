@@ -319,7 +319,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 // when there is no wall).
                 float noteY = highway.Projection.YAt(quadsFor(note).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note).Min(q => q.Depth0));
                 float edgeY = wall > 0
-                    ? highway.ToLocalSpace(highway.Wall.ScreenSpaceDrawQuad.BottomLeft).Y
+                    ? highway.ToLocalSpace(highway.Wall.GetScreenSpaceCover(0).BottomLeft).Y
                     : highway.Projection.Layout.FarY * highway.Projection.Size.Y;
 
                 return Math.Abs(noteY - edgeY);

@@ -168,9 +168,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         [Test]
         public void TestKiaiSway()
         {
-            AddStep("seek into the kiai section", () => Player.GameplayClockContainer.Seek(13000));
-            AddUntilStep("playfield there", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.GreaterThan(13000));
-            AddWaitStep("play on", 5);
+            double peak = 0;
+
+            // Stopped on a beat inside the section, where the sway is at a side: a running clock could leave the section
+            // between steps on a slow runner.
+            AddStep("stop on a beat in the kiai section", () =>
+            {
+                var sway = new KiaiSway(drawableRuleset.Beatmap.ControlPointInfo);
+
+                for (double t = 13000; t < 18000; t++)
+                {
+                    if (Math.Abs(sway.At(t)) > Math.Abs(sway.At(peak)))
+                        peak = t;
+                }
+
+                Player.GameplayClockContainer.Stop();
+                Player.GameplayClockContainer.Seek(peak);
+            });
+            AddUntilStep("playfield there", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(peak).Within(1));
+            AddWaitStep("let the highway gather", 2);
             AddAssert("off by default: no sway", () => highway.Projection.Layout.Sway, () => Is.Zero);
 
             AddStep("kiai sway 100%", () => highwayConfig.SetValue(HighwaySetting.KiaiSway, 1f));
@@ -185,20 +201,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddStep("wall at 30%", () => highwayConfig.SetValue(HighwaySetting.Wall, 0.3f));
             AddUntilStep("the track leans fully again", () => Math.Abs(highway.Projection.Layout.Sway), () => Is.GreaterThan(0.9f * HighwaySettings.MAX_KIAI_SWAY));
-            AddAssert("the wall leans with the track, about its lower edge", () =>
+            AddAssert("the wall has the track's sway", () => highway.Wall.Layout.Sway, () => Is.EqualTo(highway.Projection.Layout.Sway));
+            AddAssert("the wall leans with the lanes it covers", () =>
             {
                 var p = highway.Projection;
+                var still = new HighwayProjection(p.Layout with { Sway = 0 }, p.Size);
                 float depth = highway.Warp.Scroll.AppearDepth;
-                float bottom = p.YAt(depth);
-                var quad = highway.Wall.ScreenSpaceDrawQuad;
-                var expectedTop = new Vector2(p.ToScreen(0, depth).X + p.SwayAtY(0) - p.SwayAtY(bottom), 0);
+                var stage = highway.Wall.Stages[0];
+                var quad = highway.Wall.GetScreenSpaceCover(0);
 
-                return Vector2.Distance(highway.ToLocalSpace(quad.BottomLeft), p.ToScreen(0, depth)) < 0.5f
-                       && Vector2.Distance(highway.ToLocalSpace(quad.TopLeft), expectedTop) < 0.5f;
-            });
+                // Its corners move as the lanes' corners do: its lower edge by the sway there, its far edge by the whole sway
+                // (less the few pixels it is widened by to cover the edge lines).
+                float lower = highway.ToLocalSpace(quad.BottomLeft).X - still.ToScreen(stage.X, depth).X;
+                float far = highway.ToLocalSpace(quad.TopLeft).X - still.ToScreen(stage.X, 1).X;
 
-            AddStep("seek past the kiai section", () => Player.GameplayClockContainer.Seek(19000));
-            AddUntilStep("playfield there", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.GreaterThan(19000));
+                return new[] { lower - p.SwayAtY(p.YAt(depth)), far - p.SwayAtY(p.YAt(1)) };
+            }, () => Has.All.InRange(-3f, 0f));
+
+            AddStep("seek well past the kiai section", () => Player.GameplayClockContainer.Seek(25000));
+            AddUntilStep("playfield there", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(25000).Within(1));
             AddUntilStep("still again", () => highway.Projection.Layout.Sway, () => Is.Zero);
         }
 
@@ -256,6 +277,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddAssert("a floor under each", () => track.StageLanes.Length, () => Is.EqualTo(2));
             AddAssert("two stage parts per stage and two per column", () => highway.SkinStageParts.Count, () => Is.EqualTo(2 * 2 + 2 * columns.Length));
             AddAssert("all hidden", () => highway.SkinStageParts.All(p => p.Alpha == 0));
+
+            AddStep("wall at 30%", () => highwayConfig.SetValue(HighwaySetting.Wall, 0.3f));
+            AddUntilStep("the wall covers each stage", () => highway.Wall.Stages.ToArray(), () => Is.EqualTo(track.StageLanes.ToArray()));
+            AddAssert("from its first column's left edge to its last column's right edge", () => highway.Wall.Stages.ToArray(), () =>
+            {
+                var lanes = highway.ColumnLanes;
+                int first = drawableRuleset.Playfield.Stages[0].Columns.Length;
+                return Is.EqualTo(new[] { new Vector2(lanes[0].X, lanes[first - 1].Y), new Vector2(lanes[first].X, lanes[^1].Y) });
+            });
+            AddAssert("their lanes, not the gap between them", () =>
+            {
+                var p = highway.Projection;
+                var stages = highway.Wall.Stages;
+                var covers = new[] { highway.Wall.GetScreenSpaceCover(0), highway.Wall.GetScreenSpaceCover(1) };
+                bool covered(float lane, float depth) => covers.Any(c => c.Contains(highway.ToScreenSpace(p.ToScreen(lane, depth))));
+
+                float gap = (stages[0].Y + stages[1].X) / 2;
+                return covered((stages[0].X + stages[0].Y) / 2, 0.9f) && covered((stages[1].X + stages[1].Y) / 2, 0.9f) && !covered(gap, 0.9f);
+            });
 
             AddAssert("no rail covers the other stage", () =>
             {

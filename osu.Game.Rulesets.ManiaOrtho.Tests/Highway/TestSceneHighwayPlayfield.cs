@@ -194,22 +194,53 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddUntilStep("wall shown", () => highway.Wall.IsPresent);
 
-            AddAssert("lower edge at 70% of the track", () =>
+            AddAssert("one cover, from the first column's left edge to the last column's right edge", () => highway.Wall.Stages.ToArray(),
+                () => Is.EqualTo(new[] { new Vector2(highway.ColumnLanes[0].X, highway.ColumnLanes[^1].Y) }));
+
+            AddAssert("lower edge at 70% of the track, on the stage's left edge", () =>
             {
                 var projection = highway.Projection;
-                var wall = highway.ToLocalSpace(highway.Wall.ScreenSpaceDrawQuad.BottomLeft);
-                var corner = projection.ToScreen(0, 0.7f);
+                var wall = highway.ToLocalSpace(highway.Wall.GetScreenSpaceCover(0).BottomLeft);
+                var corner = projection.ToScreen(highway.Wall.Stages[0].X, 0.7f);
 
-                return Vector2.Distance(wall, corner) < 1;
+                return Vector2.Distance(wall, corner) < 3;
             });
 
-            AddAssert("covers the track beyond it", () =>
+            AddAssert("covers the lanes beyond it", () =>
             {
                 var projection = highway.Projection;
-                var wall = highway.Wall.ScreenSpaceDrawQuad;
+                var stage = highway.Wall.Stages[0];
+                var wall = highway.Wall.GetScreenSpaceCover(0);
 
-                return wall.Contains(highway.ToScreenSpace(projection.ToScreen(0.01f, 0.71f)))
-                       && wall.Contains(highway.ToScreenSpace(projection.ToScreen(0.99f, 0.99f)));
+                return wall.Contains(highway.ToScreenSpace(projection.ToScreen(stage.X + 0.01f, 0.71f)))
+                       && wall.Contains(highway.ToScreenSpace(projection.ToScreen(stage.Y - 0.01f, 0.99f)));
+            });
+
+            AddAssert("and the stage's edge lines", () =>
+            {
+                var projection = highway.Projection;
+                var stage = highway.Wall.Stages[0];
+                var wall = highway.Wall.GetScreenSpaceCover(0);
+
+                // The outer edges of the stage's edge lines (as wide as the guides draw them, at least a pixel), at and
+                // beyond the wall's lower edge.
+                return new[] { 0.72f, 0.85f, 0.99f }.All(depth =>
+                {
+                    float half = Math.Max(HighwayGuides.LINE_WIDTH * projection.WidthAt(depth), 1) / 2;
+                    return wall.Contains(highway.ToScreenSpace(projection.ToScreen(stage.X, depth) - new Vector2(half, 0)))
+                           && wall.Contains(highway.ToScreenSpace(projection.ToScreen(stage.Y, depth) + new Vector2(half, 0)));
+                });
+            });
+
+            AddAssert("but nothing beside or above them", () =>
+            {
+                var projection = highway.Projection;
+                var stage = highway.Wall.Stages[0];
+                var wall = highway.Wall.GetScreenSpaceCover(0);
+
+                return !wall.Contains(highway.ToScreenSpace(projection.ToScreen(stage.X, 0.95f) - new Vector2(10, 0)))
+                       && !wall.Contains(highway.ToScreenSpace(projection.ToScreen(stage.Y, 0.95f) + new Vector2(10, 0)))
+                       && !wall.Contains(highway.ToScreenSpace(projection.ToScreen(0.5f * (stage.X + stage.Y), 1) - new Vector2(0, 5)));
             });
 
             AddAssert("notes enter at the wall", () =>
