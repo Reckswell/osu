@@ -2,10 +2,16 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using osu.Framework.Bindables;
+using osu.Framework.Configuration;
+using osu.Game.Configuration;
 using osu.Game.Rulesets.Mania;
+using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.Mods;
@@ -34,6 +40,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_MODS = "ORTHO_PLAYTEST_MODS";
         public const string ENV_PORT = "ORTHO_PLAYTEST_PORT";
         public const string ENV_HUMANISED = "ORTHO_PLAYTEST_HUMANISED";
+        public const string ENV_GAME_SET = "ORTHO_PLAYTEST_GAME_SET";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -106,6 +113,83 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// <see cref="HighwaySetting"/>, e.g. <c>JudgementLineHeight=0.3</c>.
         /// </summary>
         public string[] HighwayValues { get; init; } = Array.Empty<string>();
+
+        /// <summary>
+        /// osu!'s own settings and osu!mania's ruleset settings to set before the player loads, in both rulesets (the parity
+        /// checks of docs/ortho/SETTINGS-PARITY.md), as <c>Name=value</c> with names from <see cref="OsuSetting"/> or
+        /// <see cref="ManiaRulesetSetting"/> and values as osu! writes them to its settings, e.g.
+        /// <c>KeyOverlay=true,HUDVisibilityMode=Never,TimingBasedNoteColouring=true</c>.
+        /// </summary>
+        public string[] GameValues { get; init; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Sets <see cref="GameValues"/>. A ruleset setting the ruleset fixes (maniaortho's scroll direction, which its camera
+        /// sets) keeps its value, so one list serves both rulesets.
+        /// </summary>
+        public void ApplyGameValues(OsuConfigManager game, ManiaRulesetConfigManager ruleset)
+        {
+            foreach (string assignment in GameValues)
+            {
+                (string name, string value) = parseGameValue(assignment);
+
+                if (Enum.TryParse(name, true, out ManiaRulesetSetting maniaSetting) && Enum.IsDefined(maniaSetting))
+                    setFromText(ruleset, maniaSetting, value);
+                else
+                    setFromText(game, Enum.Parse<OsuSetting>(name, true), value);
+            }
+        }
+
+        /// <summary>
+        /// Splits <paramref name="assignment"/> and checks its name, so a typo fails before any run starts.
+        /// </summary>
+        private static (string name, string value) parseGameValue(string assignment)
+        {
+            string[] parts = assignment.Split('=', 2, StringSplitOptions.TrimEntries);
+
+            bool known = parts.Length == 2
+                         && ((Enum.TryParse(parts[0], true, out ManiaRulesetSetting mania) && Enum.IsDefined(mania))
+                             || (Enum.TryParse(parts[0], true, out OsuSetting osu) && Enum.IsDefined(osu)));
+
+            if (!known)
+                throw new ArgumentException($"\"{assignment}\" is not Name=value with a name from {nameof(OsuSetting)} or {nameof(ManiaRulesetSetting)}.");
+
+            return (parts[0], parts[1]);
+        }
+
+        /// <summary>
+        /// Puts every osu!mania ruleset setting but the scroll speed back to its default (those the ruleset fixes excepted),
+        /// so values a <see cref="GameValues"/> run set do not carry into the next: the ruleset's settings are kept between
+        /// runs, unlike osu!'s own.
+        /// </summary>
+        public static void ResetRulesetValues(ManiaRulesetConfigManager ruleset)
+        {
+            foreach (var (lookup, bindable) in storeOf(ruleset))
+            {
+                if (lookup == ManiaRulesetSetting.ScrollSpeed || bindable.Disabled)
+                    continue;
+
+                bindable.GetType().GetMethod(nameof(Bindable<int>.SetDefault), Type.EmptyTypes)?.Invoke(bindable, null);
+            }
+        }
+
+        /// <summary>
+        /// Sets a setting from text as osu! reads its settings files, through its bindable, whatever its type. A setting its
+        /// config fixes keeps its value.
+        /// </summary>
+        private static void setFromText<TLookup>(ConfigManager<TLookup> config, TLookup lookup, string value)
+            where TLookup : struct, Enum
+        {
+            if (!storeOf(config).TryGetValue(lookup, out var bindable) || bindable is not IParseable parseable)
+                throw new ArgumentException($"{lookup} is not a setting {config.GetType().Name} can set from text.");
+
+            if (!bindable.Disabled)
+                parseable.Parse(value, CultureInfo.InvariantCulture);
+        }
+
+        private static IDictionary<TLookup, IBindable> storeOf<TLookup>(ConfigManager<TLookup> config)
+            where TLookup : struct, Enum
+            => typeof(ConfigManager<TLookup>).GetField("ConfigStore", BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(config) as IDictionary<TLookup, IBindable>
+               ?? throw new InvalidOperationException($"Cannot read the settings of {config.GetType().Name}.");
 
         public void ApplyHighwayValues(HighwayConfigManager config)
         {
@@ -240,7 +324,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 Mods = get(ENV_MODS)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.Mods,
                 Port = get(ENV_PORT) == "1",
                 HumanisedSeed = get(ENV_HUMANISED) is string seed ? int.Parse(seed, CultureInfo.InvariantCulture) : null,
+                GameValues = get(ENV_GAME_SET)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.GameValues,
             };
+
+            foreach (string assignment in options.GameValues)
+                parseGameValue(assignment);
 
             // Fail on a bad --set in every run, including the mania baseline that comes first.
             foreach (string assignment in options.HighwayValues)

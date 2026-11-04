@@ -157,6 +157,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 if (options.ScrollSpeed is double speed)
                     config.SetValue(ManiaRulesetSetting.ScrollSpeed, speed);
 
+                // osu!'s settings start fresh in each run's storage; the ruleset's are kept between runs, so a --game-set from an
+                // earlier run is reset first.
+                PlaytestOptions.ResetRulesetValues(config);
+                options.ApplyGameValues(LocalConfig, config);
+
                 if (config is ManiaOrthoRulesetConfigManager ortho)
                 {
                     // Set the preset twice so its values are re-applied even if it is already selected.
@@ -451,6 +456,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? (options.Port ? HighwayNoteStyle.Ported : options.NoteStyle).ToString() : null,
                 mods = Player.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
                 replay = options.HumanisedSeed is int humanisedSeed ? $"humanised {humanisedSeed}" : "autoplay",
+                // osu!'s and osu!mania's own settings given with --game-set, as given (both rulesets).
+                game = options.GameValues,
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),
                 clockAtCapture,

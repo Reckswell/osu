@@ -1083,3 +1083,37 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Supersedes** the "Note gap floor" part of "Hand-group dividers from 6K, and a pixel of gap between notes" wherever
   lines are drawn.
 - **Reverse**: pass an empty span of lines to `HighwayNoteLayer.Gather`.
+
+## 2026-11-04: Settings consistent with osu!mania (Alpha)
+
+- **Alpha asked** that every lazer setting that affects gameplay works as in osu!mania, hit lighting and key bindings
+  named, "as extensive with each lazer setting as possible". Every setting is listed with where it acts and how it was
+  checked in `SETTINGS-PARITY.md`. Most act outside the playfield and run the same code in both modes.
+- **maniaortho plays with osu!mania's keys** (`DrawableManiaOrthoRuleset.CreateInputManager` gives mania's input manager
+  mania's ruleset info, which is only where it looks its bindings up). Keys map to the same actions, so judgement and
+  replays are untouched (invariant 1); `TestSceneKeyBindings` presses a rebound key in both modes. Asked on a decision
+  card (Q21); this is its recommended option, easily undone.
+- **The maniaortho key section stays, mirrored.** It cannot be hidden without patching osu!: the settings list every
+  ruleset, and an empty variant list would also drop song select's key-count grouping for maniaortho. `KeyBindingMirror`
+  keeps the stored keys equal to osu!mania's both ways. It lives with `ManiaOrthoSettingsSubsection`, the ruleset's only
+  part of the game that exists while keys are changed (settings sections load when the settings first open), and writes
+  with `WriteAsync`, which does not need the subsection to be updated while the key binding panel covers it.
+  - After the first sync it copies only the columns (variant, action) a change touched, so the echo of its own copy
+    finds both sides equal and writes nothing, and an older key is never carried back over one changed meanwhile (review:
+    copying the whole side lost a second quick edit). A removed key copies the whole side.
+  - The first sync (`Merge`) runs when the settings open and as every maniaortho play loads, so keys set for maniaortho
+    before the change reach gameplay without the settings ever opening. Per key count, the side changed from osu!mania's
+    defaults wins; when both were changed osu!mania's win (what the player last played osu!mania with) and maniaortho's
+    are written to osu!'s log first, so they can be found again.
+  - osu!'s key binding panel reads its keys once, so a change copied from the other side shows there after osu!
+    restarts. Gameplay uses it at once. Refreshing the panel would need a patch to osu!.
+- **Wall keys follow the scroll speed bindings** (Shift with them), read from realm as they change, instead of a fixed
+  Shift+F3/F4, and the wall's toast names the keys bound now. Matching uses the binding's own modifiers exactly, so
+  Ctrl+Shift+F4 still leaves the wall alone, and a scroll speed binding that itself includes Shift cannot move the wall.
+  An action with no key stored keeps osu!'s default.
+- **Touch overlay** added to maniaortho's settings (mania shows it on every platform; the config already had it).
+- **Hit lighting** is left alone: osu!mania never reads it (only osu! and osu!catch do), so the highway does not either.
+  The highway's own effects have "Hit effects".
+- **Harness**: `playtest.sh --game-set Name=value,...` sets osu!'s and osu!mania's own settings in both modes, through
+  each setting's bindable as osu! reads its settings files; the summary records them.
+- **Not changed** (Q22): HUD layouts per mode, the fail animation's tumbling notes, touching lanes directly.

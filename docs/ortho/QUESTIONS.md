@@ -6,6 +6,26 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q22. Three differences from osu!mania that are not settings
+Found during the settings check (`SETTINGS-PARITY.md`, last section): a HUD layout customised for osu!mania in the skin
+editor does not carry over to maniaortho; when you fail, mania's notes tumble while the highway's slow to a stop; and
+tapping a lane on a touch screen without the touch overlay can press the wrong column.
+- **Options**: make any of them match osu!mania (each is its own task), or leave them.
+- **Default until answered**: leave them; listed in `SETTINGS-PARITY.md`.
+- **Answer**:
+
+### Q21. Share osu!mania's key bindings
+maniaortho kept its own keys (osu! stores them per mode), so keys changed under osu!mania did not carry over. Asked on a
+decision card (share / keep separate).
+- **Default until answered**: share. Gameplay reads osu!mania's keys; maniaortho's section in the key binding settings
+  stays listed (osu! lists every mode, hiding one needs a patch to osu!) and is kept equal to osu!mania's both ways (a
+  change from the other side shows in the panel after a restart). Keys set for maniaortho while osu!mania's were at their
+  defaults moved to osu!mania; where both had been changed, osu!mania's were kept and maniaortho's are in osu!'s log
+  ("its own for variant N are replaced").
+  Undo: drop `DrawableManiaOrthoRuleset.CreateInputManager`, its `Merge` call and the mirror; maniaortho then plays with
+  its section's keys, which equal osu!mania's at that point.
+- **Answer**:
+
 ### Q20. How a side-placed skin stage is made easier to play
 Some skins put their stage to one side with `ColumnStart` (R Skin's stages at 29-38% of the screen width, Aristia's at
 52-54%; an IIDX 1P layout would be near 17%). The tilted track keeps the skin's centre exactly at the judgement line

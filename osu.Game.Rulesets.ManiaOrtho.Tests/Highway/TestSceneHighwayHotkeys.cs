@@ -5,10 +5,12 @@ using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
+using osu.Framework.Input.Bindings;
 using osu.Framework.Input.Events;
 using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Game.Beatmaps;
+using osu.Game.Input.Bindings;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
@@ -40,6 +42,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         private ManiaOrthoRulesetConfigManager config => (ManiaOrthoRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull();
 
         private float wall => config.Highway.Get<float>(HighwaySetting.Wall);
+
+        private HighwayHotkeys hotkeys => drawableRuleset.ChildrenOfType<HighwayHotkeys>().Single();
 
         private double scrollSpeed => config.Get<double>(ManiaRulesetSetting.ScrollSpeed);
 
@@ -119,6 +123,70 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 InputManager.ReleaseKey(Key.ControlLeft);
             });
             AddAssert("no wall", () => wall, () => Is.Zero);
+        }
+
+        /// <summary>
+        /// The wall keys follow osu!'s scroll speed bindings as they change (Alpha 2026-11-04): with "Increase scroll speed" on
+        /// F6, Shift+F6 raises the wall and Shift+F4 no longer does.
+        /// </summary>
+        [Test]
+        public void TestKeysFollowTheScrollSpeedBindings()
+        {
+            AddStep("bind Increase scroll speed to F6", () => Realm.Write(r =>
+            {
+                var binding = increaseBinding(r);
+
+                if (binding == null)
+                    r.Add(new RealmKeyBinding(GlobalAction.IncreaseScrollSpeed, new KeyCombination(InputKey.F6)));
+                else
+                {
+                    storedIncrease = binding.KeyCombinationString;
+                    binding.KeyCombination = new KeyCombination(InputKey.F6);
+                }
+
+                increaseRebound = true;
+            }));
+            AddUntilStep("the wall keys follow", () => hotkeys.RaiseKeys.Select(k => k.ToString()), () => Is.EqualTo(new[] { new KeyCombination(InputKey.F6).ToString() }));
+            AddAssert("the wall's toast names them", () => drawableRuleset.Toasts.AsNonNull().DescribeWall(0.1f).Shortcut.ToString(), () => Is.EqualTo("Shift+F3 / Shift+F6"));
+
+            pressWithShift(Key.F6);
+            AddAssert("Shift+F6 raised the wall", () => wall, () => Is.EqualTo(HighwayHotkeys.WALL_STEP).Within(1e-4f));
+
+            pressWithShift(Key.F4);
+            AddAssert("Shift+F4 no longer does", () => wall, () => Is.EqualTo(HighwayHotkeys.WALL_STEP).Within(1e-4f));
+        }
+
+        private bool increaseRebound;
+        private string? storedIncrease;
+
+        [TearDownSteps]
+        public override void TearDownSteps()
+        {
+            AddStep("restore Increase scroll speed's keys", () =>
+            {
+                if (!increaseRebound)
+                    return;
+
+                Realm.Write(r =>
+                {
+                    var binding = increaseBinding(r).AsNonNull();
+
+                    if (storedIncrease == null)
+                        r.Remove(binding);
+                    else
+                        binding.KeyCombinationString = storedIncrease;
+                });
+
+                increaseRebound = false;
+                storedIncrease = null;
+            });
+            base.TearDownSteps();
+        }
+
+        private static RealmKeyBinding? increaseBinding(Realms.Realm realm)
+        {
+            int increase = (int)GlobalAction.IncreaseScrollSpeed;
+            return realm.All<RealmKeyBinding>().FirstOrDefault(b => b.RulesetName == null && b.Variant == null && b.ActionInt == increase);
         }
 
         [Test]

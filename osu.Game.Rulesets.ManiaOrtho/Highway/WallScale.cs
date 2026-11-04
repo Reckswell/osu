@@ -177,7 +177,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         public static int MaxUnits(WallScale scale, float farWidthRatio) => ToUnits(scale, HighwayScroll.MAX_WALL, farWidthRatio);
 
         /// <summary>
-        /// How far one press of the gameplay keys (Shift+F3, Shift+F4) moves the wall, in <paramref name="scale"/>'s units.
+        /// How far one press of the gameplay keys (Shift with the scroll speed keys) moves the wall, in <paramref name="scale"/>'s units.
         /// </summary>
         public static int KeyStep(WallScale scale)
         {

@@ -8,6 +8,8 @@
 #   scripts/ortho/playtest.sh --preset Voltex --wall 0.3   (maniaortho highway settings; mania ignores them)
 #   scripts/ortho/playtest.sh --wall 0.4 --speed-lock      (the wall keeps the note speed instead of the visible time)
 #   scripts/ortho/playtest.sh --set JudgementLineHeight=0.3,TrackWidth=0.7   (any highway setting, after the preset)
+#   scripts/ortho/playtest.sh --game-set KeyOverlay=true,TimingBasedNoteColouring=true   (osu!'s and osu!mania's own
+#                                                            settings, both rulesets; docs/ortho/SETTINGS-PARITY.md)
 #   scripts/ortho/playtest.sh --skin classic                (built-in skin: argon, argon-pro, triangles, classic)
 #   scripts/ortho/playtest.sh --skin "path/to/Skins/My Skin" --port   (a stable skin folder, drawn by the skin porter)
 #   scripts/ortho/playtest.sh --notes skin                  (maniaortho notes: highway, the default, or skin)
@@ -36,7 +38,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --beatmap) beatmaps+=("$2"); shift ;;
     --scroll-speed) speed="$2"; shift ;;
-    --times|--preset|--wall|--skin|--notes|--mods|--set|--humanised) extra+=("$1" "$2"); shift ;;
+    --times|--preset|--wall|--skin|--notes|--mods|--set|--game-set|--humanised) extra+=("$1" "$2"); shift ;;
     --size) size="$2"; shift ;;
     --play-to-end|--speed-lock|--port) extra+=("$1") ;;
     --no-baseline) baseline=0 ;;
