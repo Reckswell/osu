@@ -46,16 +46,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
         /// <summary>
         /// The camera's <paramref name="layout"/>, changed for the skin: the judgement line lifted to the skin's hit position
         /// when <paramref name="keyArea"/> asks for it and the skin's line is the higher, the track moved (and sized) as
-        /// <paramref name="fit"/> asks, and a track the skin puts to one side converging as <paramref name="convergence"/> asks.
+        /// <paramref name="fit"/> asks, and a track the skin puts to one side pulled and leaning towards the screen's centre as
+        /// <paramref name="pull"/> and <paramref name="lean"/> ask.
         /// </summary>
         /// <param name="layout">The camera's layout.</param>
         /// <param name="keyArea">Where the key area goes.</param>
         /// <param name="fit">How the track is fitted across the screen.</param>
         /// <param name="stage">The skin's flat stage.</param>
         /// <param name="columnStart">The skin's <c>ColumnStart</c> (stable units), or null when it centres its stage.</param>
-        /// <param name="convergence">Where the lanes of a stage put to one side converge.</param>
+        /// <param name="pull">How far a stage put to one side moves towards the screen's centre (0 to 1). 0, the skin's x, unless given.</param>
+        /// <param name="lean">
+        /// How far its far end leans towards the screen's centre (0 to 1): where its lanes converge. 0, upright, unless given; the
+        /// setting's default is <see cref="HighwaySettings.DEFAULT_SIDE_STAGE_LEAN"/>.
+        /// </param>
         public static HighwayLayout Adjust(HighwayLayout layout, SkinKeyArea keyArea, SkinStageFit fit, in FlatStage stage, float? columnStart,
-                                           SkinConvergence convergence = SkinConvergence.Stage)
+                                           float pull = 0, float lean = 0)
         {
             if (!stage.IsValid)
                 return layout;
@@ -76,30 +81,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
                 // row is the widest one drawn.
                 float widening = keyArea == SkinKeyArea.Panel ? 1 : WideningToBottom(new HighwayProjection(layout, stage.Size));
 
-                layout = CentreOn(layout, StableCentre(stage, start), stage.Width / stage.Size.X, widening);
-                layout = Converge(layout, convergence);
+                float centre = StableCentre(stage, start);
+                centre += (0.5f - centre) * Math.Clamp(pull, 0, 1);
+
+                layout = CentreOn(layout, centre, stage.Width / stage.Size.X, widening);
+                layout = layout.LeanTowards(layout.CentreX + (0.5f - layout.CentreX) * Math.Clamp(lean, 0, 1));
             }
 
             return layout;
-        }
-
-        /// <summary>
-        /// <paramref name="layout"/> leaning so that its lanes converge where <paramref name="convergence"/> asks: above the
-        /// track's own centre (no lean), above the screen's centre, or halfway between.
-        /// </summary>
-        public static HighwayLayout Converge(HighwayLayout layout, SkinConvergence convergence)
-        {
-            switch (convergence)
-            {
-                case SkinConvergence.Screen:
-                    return layout.LeanTowards(0.5f);
-
-                case SkinConvergence.Halfway:
-                    return layout.LeanTowards((layout.CentreX + 0.5f) / 2);
-
-                default:
-                    return layout with { Lean = 0 };
-            }
         }
 
         /// <summary>

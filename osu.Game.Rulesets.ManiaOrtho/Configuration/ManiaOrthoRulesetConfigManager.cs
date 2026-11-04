@@ -87,6 +87,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             };
 
             ApplySkinPortDefaults();
+            applySkinLayoutDefault();
         }
 
         /// <summary>
@@ -108,6 +109,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
                 SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Ported);
             if (Get<HighwayTrackStyle>(HighwaySetting.Track) == HighwayTrackStyle.Highway)
                 SetValue(HighwaySetting.Track, HighwayTrackStyle.Ported);
+
+            applied.Value = true;
+        }
+
+        /// <summary>
+        /// Once per install, for the same reason as the styles above: the stage fit's default moved from the camera's width
+        /// ("Skin position") to the skin's own ("Skin position and width"), so an install still on the old default moves; a
+        /// fit chosen afterwards sticks.
+        /// </summary>
+        private void applySkinLayoutDefault()
+        {
+            var applied = GetOriginalBindable<bool>(HighwaySetting.SkinLayoutDefaultApplied);
+
+            if (applied.Value)
+                return;
+
+            if (Get<SkinStageFit>(HighwaySetting.StageFit) == SkinStageFit.SkinPosition)
+                SetValue(HighwaySetting.StageFit, SkinStageFit.SkinLayout);
 
             applied.Value = true;
         }
@@ -138,7 +157,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.Track, defaults.Track);
             SetDefault(HighwaySetting.KeyArea, defaults.KeyArea);
             SetDefault(HighwaySetting.StageFit, defaults.StageFit);
-            SetDefault(HighwaySetting.Convergence, defaults.Convergence);
+            SetDefault(HighwaySetting.SideStagePull, defaults.SideStagePull, 0f, 1f, 0.01f);
+            SetDefault(HighwaySetting.SideStageLean, defaults.SideStageLean, 0f, 1f, 0.01f);
+            SetDefault(HighwaySetting.SkinLayoutDefaultApplied, false);
             SetDefault(HighwaySetting.SkinNoteProportions, defaults.SkinNoteProportions);
             SetDefault(HighwaySetting.FarFade, defaults.FarFade, 0f, HighwaySettings.MAX_FAR_FADE, 0.01f);
             SetDefault(HighwaySetting.HoldOpacity, defaults.HoldOpacity, HighwaySettings.MIN_HOLD_OPACITY, 1f, 0.01f);
@@ -169,7 +190,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             Track = Get<HighwayTrackStyle>(HighwaySetting.Track),
             KeyArea = Get<SkinKeyArea>(HighwaySetting.KeyArea),
             StageFit = Get<SkinStageFit>(HighwaySetting.StageFit),
-            Convergence = Get<SkinConvergence>(HighwaySetting.Convergence),
+            SideStagePull = Get<float>(HighwaySetting.SideStagePull),
+            SideStageLean = Get<float>(HighwaySetting.SideStageLean),
             SkinNoteProportions = Get<bool>(HighwaySetting.SkinNoteProportions),
             FarFade = Get<float>(HighwaySetting.FarFade),
             HoldOpacity = Get<float>(HighwaySetting.HoldOpacity),
@@ -257,11 +279,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         KeyBeam,
         KiaiSway,
         WallScale,
-        Convergence,
+        SideStagePull,
+        SideStageLean,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.
         /// </summary>
         SkinPortDefaultsApplied,
+
+        /// <summary>
+        /// Not shown: whether the one-time move of a stored "Skin position" stage fit to the skin's own width
+        /// (<c>applySkinLayoutDefault</c>, Alpha 2026-11-04) has run on this install.
+        /// </summary>
+        SkinLayoutDefaultApplied,
     }
 }

@@ -6,16 +6,16 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
-### Q20. Where a side-placed skin stage's lanes converge
+### Q20. How a side-placed skin stage is made easier to play
 Some skins put their stage to one side with `ColumnStart` (R Skin's stages at 29-38% of the screen width, Aristia's at
-52-54%; an IIDX 1P layout would be near 17%). The tilted track now keeps the skin's centre exactly at the judgement line
-in every case (a track too wide for that spot is narrowed, never moved). Where its lanes meet in the distance is a
-camera choice (`research/topic-off-centre-fields.md` O2), built as "Skin stage lanes converge": Above the stage (the
-centre line stays upright at the skin's x all the way up; StepMania's Hallway/Distant), Halfway, or Screen centre (the
-stage leans in towards the middle, as StepMania's Incoming, YARG's multiplayer highways and Rock Band). Screenshots:
-`/mnt/project-files/ortho-agent/skin-port/off-centre/`. Asked on a decision card.
-- **Default until answered**: Above the stage, the literal reading of "the angled lane should have the same x
-  coordinates for the centering of the lane". Switching is one default value.
+52-54%; an IIDX 1P layout would be near 17%). The tilted track keeps the skin's centre exactly at the judgement line
+(a track too wide for that spot is narrowed, never moved). First asked as three convergence choices (above the stage,
+halfway, screen centre; `research/topic-off-centre-fields.md` O2). Alpha (2026-11-04) worried that the upright stage may
+hurt gameplay and asked to "change the scaling at which the lanes are offset so that its easier for gameplay, rather
+than a complete shift". Now two sliders: "Side stage lean" (the far end leans towards the screen's centre, 0-100%) and
+"Side stage pull" (the whole stage moves towards it, 0-100%). Screenshots:
+`/mnt/project-files/ortho-agent/skin-port/lanes-and-lean/`. Asked on a decision card (lean less / pull in / both).
+- **Default until answered**: lean 50%, pull 0% (the stage stays at the skin's x, its far lanes come halfway in).
 - **Answer**:
 
 ### Q19. An "Arcaea" camera preset, with notes that grow with distance

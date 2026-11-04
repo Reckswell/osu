@@ -163,11 +163,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, fit);
                     break;
 
-                case HighwaySetting.Convergence:
-                    var convergence = Enum.Parse<SkinConvergence>(value, true);
-                    config?.SetValue(setting, convergence);
-                    break;
-
                 case HighwaySetting.KeyBeam:
                     var beam = Enum.Parse<KeyBeamLength>(value, true);
                     config?.SetValue(setting, beam);
@@ -182,6 +177,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:
                 case HighwaySetting.SkinNoteProportions:
+                case HighwaySetting.SkinPortDefaultsApplied:
+                case HighwaySetting.SkinLayoutDefaultApplied:
                     bool flag = bool.Parse(value);
                     config?.SetValue(setting, flag);
                     break;

@@ -177,7 +177,8 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormSliderBar<float>
                 {
                     Caption = "Track width",
-                    HintText = "Width of the track at the judgement line, as a share of the screen width.",
+                    HintText = "Width of the track at the judgement line, as a share of the screen width. A ported skin at \"Skin position "
+                               + "and width\" uses the skin's own width instead.",
                     Current = highway.GetBindable<float>(HighwaySetting.TrackWidth),
                     DisplayAsPercentage = true,
                     KeyboardStep = 0.01f,
@@ -348,23 +349,38 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormEnumDropdown<SkinStageFit>
                 {
                     Caption = "Skin stage position",
-                    HintText = "Camera: the preset's track, centred. Skin position: centred exactly where the skin puts its stage "
-                               + "(narrowed if it would not fit there). Skin position and width: the skin's own stage width too.",
+                    HintText = "Camera: the preset's track, centred. Skin position: the preset's width, centred where the skin puts "
+                               + "its stage (narrowed if it would not fit there). Skin position and width (default): the skin's own stage, "
+                               + "each lane as wide at the judgement line as the skin draws it.",
                     Current = highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit),
                 })
                 {
                     Keywords = new[] { "column start", "stage width", "centre", "center", "left" },
                 },
-                new SettingsItemV2(new FormEnumDropdown<SkinConvergence>
+                new SettingsItemV2(new FormSliderBar<float>
                 {
-                    Caption = "Skin stage lanes converge",
-                    HintText = "For a skin that puts its stage to one side (with either skin stage position): where its lanes meet in "
-                               + "the distance. Above the stage keeps it upright; screen centre leans it in towards the middle, more the "
-                               + "further out the stage is. The judgement line stays put.",
-                    Current = highway.GetBindable<SkinConvergence>(HighwaySetting.Convergence),
+                    Caption = "Side stage lean",
+                    HintText = "For a skin that puts its stage to one side: how far its far end leans in towards the screen's centre. "
+                               + "0% keeps it upright above the stage, 100% makes its lanes meet above the screen's centre. The judgement "
+                               + "line stays where the skin puts it. Ported skins at either skin stage position, perspective cameras only.",
+                    Current = highway.GetBindable<float>(HighwaySetting.SideStageLean),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.05f,
                 })
                 {
-                    Keywords = new[] { "vanishing point", "perspective", "lean", "skew", "iidx", "stepmania", "side" },
+                    Keywords = new[] { "vanishing point", "perspective", "lean", "skew", "converge", "iidx", "stepmania", "side" },
+                },
+                new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Side stage pull",
+                    HintText = "For a skin that puts its stage to one side: how far the whole stage moves towards the screen's centre. "
+                               + "0% keeps it exactly where the skin puts it, 100% centres it. Ported skins at either skin stage position only.",
+                    Current = highway.GetBindable<float>(HighwaySetting.SideStagePull),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.05f,
+                })
+                {
+                    Keywords = new[] { "column start", "position", "centre", "center", "offset", "side" },
                 },
                 new SettingsItemV2(new FormCheckBox
                 {

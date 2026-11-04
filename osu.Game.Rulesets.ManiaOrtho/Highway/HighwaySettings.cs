@@ -185,37 +185,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
 
         /// <summary>
         /// The skin's own stage width at the judgement line and its position, so narrow, wide and off-centre stages keep their
-        /// layout.
+        /// layout and every lane is as wide at the line as the skin draws it (the default, Alpha 2026-11-04).
         /// </summary>
         [Description("Skin position and width")]
         SkinLayout,
-    }
-
-    /// <summary>
-    /// Where the lanes of a ported stage converge when the skin puts its stage to one side (research/topic-off-centre-fields.md).
-    /// The judgement line stays where the skin puts it either way; only the far end of the track moves.
-    /// </summary>
-    public enum SkinConvergence
-    {
-        /// <summary>
-        /// Above the stage's own centre: the stage's centre line stays upright at the skin's x all the way up, as a
-        /// side-placed playfield in StepMania (skew 0), IIDX or a single-player rhythm-game highway.
-        /// </summary>
-        [Description("Above the stage")]
-        Stage,
-
-        /// <summary>
-        /// Halfway between the stage's centre and the screen's.
-        /// </summary>
-        [Description("Halfway")]
-        Halfway,
-
-        /// <summary>
-        /// Above the screen's centre: the stage leans in towards the middle, as StepMania's Incoming and Space perspectives
-        /// (skew 1) draw a side-placed playfield.
-        /// </summary>
-        [Description("Screen centre")]
-        Screen,
     }
 
     public enum HighwayPreset
@@ -324,9 +297,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         public SkinStageFit StageFit { get; init; }
 
         /// <summary>
-        /// Where a ported stage the skin puts to one side converges (<see cref="HighwayTrackStyle.Ported"/> only).
+        /// How far a ported stage the skin puts to one side moves towards the screen's centre, from 0 (exactly where the skin
+        /// puts it) to 1 (centred) (<see cref="HighwayTrackStyle.Ported"/> only).
         /// </summary>
-        public SkinConvergence Convergence { get; init; }
+        public float SideStagePull { get; init; }
+
+        /// <summary>
+        /// The default <see cref="SideStageLean"/>: halfway, so a side stage's far lanes come in towards the middle without the
+        /// whole stage leaning as far as a camera centred on the screen would draw it (Alpha 2026-11-04, "rather than a
+        /// complete shift").
+        /// </summary>
+        public const float DEFAULT_SIDE_STAGE_LEAN = 0.5f;
+
+        /// <summary>
+        /// How far the far end of a ported stage the skin puts to one side leans towards the screen's centre: where its lanes
+        /// converge, from 0 (above the stage, upright) to 1 (above the screen's centre). The judgement line stays put
+        /// (research/topic-off-centre-fields.md O2; <see cref="HighwayTrackStyle.Ported"/> only).
+        /// </summary>
+        public float SideStageLean { get; init; }
 
         /// <summary>
         /// Whether ported notes keep the skin's proportions (as tall at the judgement line, relative to their lane, as the skin
@@ -399,8 +387,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             HitEffects = HighwayHitEffectStyle.Ported;
             Track = HighwayTrackStyle.Ported;
             KeyArea = SkinKeyArea.Panel;
-            StageFit = SkinStageFit.SkinPosition;
-            Convergence = SkinConvergence.Stage;
+            StageFit = SkinStageFit.SkinLayout;
+            SideStagePull = 0;
+            SideStageLean = DEFAULT_SIDE_STAGE_LEAN;
             SkinNoteProportions = true;
             FarFade = 0;
             HoldOpacity = 1;

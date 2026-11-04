@@ -77,7 +77,8 @@ Requirements:
 
 - 1K-10K single stage are required. Dual stage (mania's 2x stages) is drawn as two highways side by side *(tune)*.
 - The track keeps one width for every key count, as Chunithm's field does: more keys means narrower lanes, and the
-  outermost lanes lean the same at 4K and 10K (Alpha, QUESTIONS Q10). Each preset sets the width.
+  outermost lanes lean the same at 4K and 10K (Alpha, QUESTIONS Q10). Each preset sets the width, except under a
+  ported skin at "Skin position and width" (§8), where the skin's own lane widths set it.
 - Fixed lanes, one key per lane, same default bindings as mania. Key presses light the lane (SDVX-style beam rising
   from the judgement line) and the receptor at the line.
 
@@ -108,9 +109,11 @@ Requirements:
   target, lane lights, keys, the stage bottom, and hit and hold lighting. The skin's own files are never changed.
 - Skins whose hit position sits above the camera's judgement line (keys or an IIDX-style panel below it) choose where
   the key area goes ("Skin key area"); the skin's stage position (`ColumnStart`) moves the track sideways by default.
-  The track's centre at the judgement line is then exactly the skin's stage centre (as stable places it); a track too
-  wide to fit around it is narrowed, never moved. Where a side-placed stage's lanes converge is a setting: above the
-  stage (default, the centre line stays upright at the skin's x), halfway, or above the screen's centre.
+  By default every lane is as wide at the judgement line as the skin draws it ("Skin position and width"), and the
+  track's centre there is exactly the skin's stage centre (as stable places it); a wider camera track that would not fit
+  around it is narrowed, never moved. A side-placed stage's far end leans in towards the screen's centre ("Side stage
+  lean", default 50%: its lanes meet halfway between the stage's centre and the screen's), and the whole stage can be
+  pulled towards the centre ("Side stage pull", default 0%).
   Skins without legacy mania images (argon, triangles) keep the built-in highway look.
 
 ## 9. Mods

@@ -65,6 +65,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     config.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                     config.Highway.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
                     config.Highway.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
+                    config.Highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit).SetDefault();
                 }
             });
         }
@@ -404,6 +405,64 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                 using (var config = create())
                     return config.Highway.Get<HighwayNoteStyle>(HighwaySetting.NoteStyle);
             }, () => Is.EqualTo(HighwayNoteStyle.Highway));
+        }
+
+        /// <summary>
+        /// Ported lanes default to the skin's own width (Alpha 2026-11-04); an install that stored the earlier default ("Skin
+        /// position", the camera's width) moves once, and choosing it again afterwards sticks.
+        /// </summary>
+        [Test]
+        public void TestStageFitMovesToTheSkinsWidthOnce()
+        {
+            AddAssert("skin's width by default", () => HighwayPresets.Get(HighwayPresets.DEFAULT).StageFit, () => Is.EqualTo(SkinStageFit.SkinLayout));
+
+            AddStep("store the old default", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.StageFit, SkinStageFit.SkinPosition);
+                    config.Highway.SetValue(HighwaySetting.SkinLayoutDefaultApplied, false);
+                }
+            });
+
+            AddAssert("moved", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Current.StageFit;
+            }, () => Is.EqualTo(SkinStageFit.SkinLayout));
+
+            AddAssert("only once", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Get<bool>(HighwaySetting.SkinLayoutDefaultApplied);
+            });
+
+            AddStep("store camera before the move", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.StageFit, SkinStageFit.Camera);
+                    config.Highway.SetValue(HighwaySetting.SkinLayoutDefaultApplied, false);
+                }
+            });
+
+            AddAssert("a fit other than the old default is kept", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Current.StageFit;
+            }, () => Is.EqualTo(SkinStageFit.Camera));
+
+            AddStep("choose skin position again", () =>
+            {
+                using (var config = create())
+                    config.Highway.SetValue(HighwaySetting.StageFit, SkinStageFit.SkinPosition);
+            });
+
+            AddAssert("kept", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Current.StageFit;
+            }, () => Is.EqualTo(SkinStageFit.SkinPosition));
         }
 
         /// <summary>

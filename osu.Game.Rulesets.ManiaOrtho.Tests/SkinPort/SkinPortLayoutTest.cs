@@ -127,13 +127,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
         }
 
         /// <summary>
-        /// Above the stage (the default): the stage's centre line stays upright at the skin's centre, from the judgement line to
-        /// the far edge.
+        /// No lean: the stage's centre line stays upright at the skin's centre, from the judgement line to the far edge.
         /// </summary>
         [TestCase(HighwayPreset.Chunithm)]
         [TestCase(HighwayPreset.Voltex)]
         [TestCase(HighwayPreset.Parallel)]
-        public void TestStageConvergenceKeepsTheCentreLineUpright(HighwayPreset preset)
+        public void TestNoLeanKeepsTheCentreLineUpright(HighwayPreset preset)
         {
             var stage = minty();
             var camera = HighwayPresets.Get(preset).ToLayout();
@@ -149,15 +148,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
         }
 
         /// <summary>
-        /// Screen centre and halfway lean the stage in towards the middle, but its judgement line and key area stay where the
-        /// skin puts them, and the lanes still meet in one point.
+        /// A lean brings the stage's far end in towards the middle, but its judgement line and key area stay where the skin puts
+        /// them, and the lanes still meet in one point: that much of the way to the screen's centre.
         /// </summary>
-        [TestCase(SkinConvergence.Screen, 1f)]
-        [TestCase(SkinConvergence.Halfway, 0.5f)]
-        public void TestLeaningConvergenceKeepsTheLine(SkinConvergence convergence, float towardsScreen)
+        [TestCase(1f)]
+        [TestCase(0.5f)]
+        [TestCase(0.25f)]
+        public void TestLeanKeepsTheLine(float towardsScreen)
         {
             var stage = minty();
-            var projection = new HighwayProjection(SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, stage, 40, convergence), size);
+            var projection = new HighwayProjection(SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, stage, 40, lean: towardsScreen), size);
             float centre = SkinPortLayout.StableCentre(stage, 40) * size.X;
             float lineY = projection.YAt(0);
 
@@ -183,7 +183,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
         public void TestParallelLanesDoNotLean()
         {
             var parallel = HighwayPresets.Get(HighwayPreset.Parallel).ToLayout();
-            var layout = SkinPortLayout.Adjust(parallel, SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), 40, SkinConvergence.Screen);
+            var layout = SkinPortLayout.Adjust(parallel, SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), 40, lean: 1);
 
             Assert.That(layout.Lean, Is.Zero);
         }
@@ -191,10 +191,72 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
         [Test]
         public void TestCentredSkinDoesNotLean()
         {
-            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), null, SkinConvergence.Screen);
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), null, 1, 1);
 
             Assert.That(layout.CentreX, Is.EqualTo(0.5f));
             Assert.That(layout.Lean, Is.Zero);
+        }
+
+        [TestCase(0f)]
+        [TestCase(0.5f)]
+        [TestCase(1f)]
+        public void TestPullMovesTheStageTowardsTheCentre(float pull)
+        {
+            var stage = minty();
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinLayout, stage, 40, pull);
+            float centre = SkinPortLayout.StableCentre(stage, 40);
+
+            Assert.That(layout.CentreX, Is.EqualTo(centre + (0.5f - centre) * pull).Within(1e-5f));
+            Assert.That(layout.NearWidth, Is.EqualTo(stage.Width / size.X).Within(1e-5f), "the skin's width either way");
+        }
+
+        /// <summary>
+        /// Pull and lean together: the lean is measured from where the pull put the stage, so a full lean still meets above the
+        /// screen's centre, and a fully pulled stage is centred and has nothing to lean towards.
+        /// </summary>
+        [TestCase(0.5f, 1f)]
+        [TestCase(0.25f, 0.5f)]
+        [TestCase(1f, 1f)]
+        public void TestPullThenLean(float pull, float lean)
+        {
+            var stage = minty();
+            var projection = new HighwayProjection(SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinLayout, stage, 40, pull, lean), size);
+            float centre = SkinPortLayout.StableCentre(stage, 40);
+            float pulled = (centre + (0.5f - centre) * pull) * size.X;
+
+            Assert.That(projection.ToScreen(0.5f, 0).X, Is.EqualTo(pulled).Within(0.01f), "the line's centre is where the pull put it");
+            Assert.That(projection.VanishingPoint!.Value.X, Is.EqualTo(pulled + (size.X / 2 - pulled) * lean).Within(0.05f));
+
+            if (pull == 1)
+                Assert.That(projection.Layout.Lean, Is.EqualTo(0).Within(1e-6f));
+        }
+
+        /// <summary>
+        /// Out-of-range values (a hand-edited config) act as the nearest end of the slider.
+        /// </summary>
+        [TestCase(2f, 1f)]
+        [TestCase(-1f, 0f)]
+        public void TestPullAndLeanAreClamped(float value, float clamped)
+        {
+            var stage = minty();
+            var outside = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinLayout, stage, 40, value, value);
+            var inside = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinLayout, stage, 40, clamped, clamped);
+
+            Assert.That(outside.CentreX, Is.EqualTo(inside.CentreX));
+            Assert.That(outside.Lean, Is.EqualTo(inside.Lean));
+        }
+
+        [Test]
+        public void TestSkinLayoutLanesAreAsWideAsTheSkinsAtTheLine()
+        {
+            // Off-centre and leaning, every lane still spans the skin's own column width at the judgement line.
+            var stage = minty();
+            var projection = new HighwayProjection(SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Panel, SkinStageFit.SkinLayout, stage, 40, lean: 0.5f), size);
+            float left = SkinPortLayout.StableCentre(stage, 40) * size.X - stage.Width / 2;
+
+            Assert.That(projection.ToScreen(0, 0).X, Is.EqualTo(left).Within(0.05f));
+            Assert.That(projection.ToScreen(0.25f, 0).X - projection.ToScreen(0, 0).X, Is.EqualTo(stage.Width / 4).Within(0.05f));
+            Assert.That(projection.ToScreen(1, 0).X, Is.EqualTo(left + stage.Width).Within(0.05f));
         }
 
         [Test]

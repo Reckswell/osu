@@ -993,3 +993,28 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Not changed**: judgements, scoring, input; the porter still never writes to a skin.
 - **Reverse**: `SkinPortLayout.CentreOn` back to the clamp, drop `SkinConvergence`, `HighwaySetting.Convergence`,
   `HighwayLayout.Lean`/`LeanTowards`, and `HITS_PER_COLUMN` (back to one slot).
+
+## 2026-11-04: Ported lanes at the skin's own width; side stages lean and pull by sliders (Alpha)
+
+- **Alpha asked** (after the off-centre screenshots) for thinner lanes, "more consistent with the original skin lane
+  width", with the classic skin's look as the reference, and for side stages to be "easier for gameplay, rather than a
+  complete shift".
+- **Width**: the stage fit's default moves from "Skin position" (the preset's track width, 0.61 of the screen on
+  Chunithm) to "Skin position and width": every lane is exactly as wide at the judgement line as the skin draws it flat,
+  and the key panel matches the flat one pixel for pixel. The preset's far/near ratio still shapes the far end, so a
+  4K classic stage is about 3% of the screen wide at the top. Installs that stored the old default move once
+  (`SkinLayoutDefaultApplied`, as `SkinPortDefaultsApplied` did for the styles); choosing "Skin position" again sticks.
+- **Side stages**: the three-way convergence choice becomes two sliders. "Side stage lean" (0-100%, default 50%) puts
+  the vanishing point that far from the stage's centre to the screen's (0% upright, 100% the old "screen centre"),
+  still as the shear about the judgement line, so the line and key area stay at the skin's x. "Side stage pull" (0-100%,
+  default 0%) moves the whole stage that far towards the screen's centre, for players who prefer it nearer the middle;
+  it is the only setting that gives up the exact x Alpha asked for earlier, so it is off by default. Q20 asks which of the
+  two Alpha meant; the default is lean only.
+- **Accepted, now at the default**: the lean artefacts the convergence entry accepted for non-default options now show
+  for every side-placed skin (lean 50%): in Panel (the default key area) key images reaching above the line stay
+  upright while the lanes behind them lean; with Floor and Squeezed the lane edges bend at the line; upright images
+  spanning the line (the stage hint) shear above it. At half the old Screen centre lean they are half as large, all
+  cosmetic, and lean 0% removes them. Centred skins and parallel cameras do not lean at all.
+- **Superseded**: `SkinConvergence` and `HighwaySetting.Convergence` (one hour old, never packaged) are replaced by
+  `SideStageLean` and `SideStagePull`.
+- **Reverse**: set the fit default back to `SkinPosition` and drop `applySkinLayoutDefault`; set the lean default to 0.
