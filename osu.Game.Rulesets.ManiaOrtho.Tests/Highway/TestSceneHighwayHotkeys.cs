@@ -6,6 +6,7 @@ using NUnit.Framework;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;
+using osu.Framework.Screens;
 using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Rulesets.Mania;
@@ -167,7 +168,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
                 LoadScreen(replay = new TestReplayPlayer(false));
             });
-            AddUntilStep("replay playing", () => replay.IsLoaded && replay.DrawableRuleset is DrawableManiaOrthoRuleset { Highway: not null });
+            // Shown and running, as the player tests wait for: while the player still fades in, its content is not present
+            // and gets no key presses (seen once in check.sh, the press landing in the frame the replay player entered).
+            AddUntilStep("replay playing", () => replay.IsLoaded && replay.IsCurrentScreen() && replay.Alpha == 1
+                                                  && replay.GameplayClockContainer.IsRunning
+                                                  && replay.DrawableRuleset is DrawableManiaOrthoRuleset { Highway: not null });
 
             // osu! takes Shift itself while watching a replay (holding it fast-forwards), so the wall keys must not wait for
             // Shift's own key event.
