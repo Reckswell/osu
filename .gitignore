@@ -344,3 +344,7 @@ FodyWeavers.xsd
 
 .idea/.idea.osu.Desktop/.idea/misc.xml
 .idea/.idea.osu.Android/.idea/deploymentTargetDropDown.xml
+
+# maniaortho playtest harness: screenshots and the contained package/temp cache (scripts/ortho/playtest.ps1)
+playtest-output/
+.ortho-cache/

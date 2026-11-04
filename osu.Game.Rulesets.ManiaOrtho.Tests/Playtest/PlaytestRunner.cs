@@ -62,7 +62,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
 
             int[] size = parsed.GetValueOrDefault("size", "1280x720").Split('x').Select(int.Parse).ToArray();
 
-            using (var host = Host.GetSuitableDesktopHost(@"ortho-playtest", new HostOptions { FriendlyGameName = "ortho playtest" }))
+            // Portable: the harness keeps its settings and database next to its build output, inside the clone, never in the
+            // user's application data (where the real osu! lives).
+            using (var host = Host.GetSuitableDesktopHost(@"ortho-playtest", new HostOptions { FriendlyGameName = "ortho playtest", PortableInstallation = true }))
             {
                 var game = new PlaytestGame(sceneType, parsed.GetValueOrDefault("method"), new Size(size[0], size[1]), parsed.GetValueOrDefault("screenshot"),
                     int.Parse(parsed.GetValueOrDefault("case", "0")));

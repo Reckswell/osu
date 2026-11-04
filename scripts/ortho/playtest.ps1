@@ -14,7 +14,22 @@ param(
     [string]$Out
 )
 $ErrorActionPreference = "Stop"
+# Windows PowerShell 5.1 turns a native command's redirected stderr into errors, which "Stop" makes fatal; the dotnet
+# calls below relax it and check exit codes instead.
 Set-Location (git rev-parse --show-toplevel)
+
+# Keep what a run writes inside the clone, away from the user's profile: NuGet packages, the .NET CLI's home and temp
+# files go to .ortho-cache (gitignored). The harness keeps its own settings next to its build output (portable).
+$cache = Join-Path (Get-Location) ".ortho-cache"
+$env:NUGET_PACKAGES = Join-Path $cache "nuget-packages"
+$env:NUGET_HTTP_CACHE_PATH = Join-Path $cache "nuget-http"
+$env:NUGET_PLUGINS_CACHE_PATH = Join-Path $cache "nuget-plugins"
+$env:DOTNET_CLI_HOME = Join-Path $cache "dotnet-home"
+$env:TEMP = Join-Path $cache "temp"
+$env:TMP = $env:TEMP
+$env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+$env:DOTNET_NOLOGO = "1"
+New-Item -ItemType Directory -Force -Path $env:TEMP, $env:DOTNET_CLI_HOME | Out-Null
 
 if (-not $Out) {
     $Out = "playtest-output\$(Get-Date -Format yyyyMMdd-HHmmss)"
@@ -24,7 +39,11 @@ if (-not $Out) {
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
 Write-Host "== build"
-dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Release -v q -nologo | Out-Null
+$ErrorActionPreference = "Continue"
+dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Release -v q -nologo 2>&1 | Out-Null
+$buildExit = $LASTEXITCODE
+$ErrorActionPreference = "Stop"
+if ($buildExit -ne 0) { Write-Host "build FAILED (run: dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Release)"; exit 1 }
 $dll = "osu.Game.Rulesets.ManiaOrtho.Tests\bin\Release\net10.0\osu.Game.Rulesets.ManiaOrtho.Tests.dll"
 
 $rulesets = if ($NoBaseline) { @("maniaortho") } else { @("mania", "maniaortho") }
@@ -42,7 +61,9 @@ foreach ($map in $Beatmap) {
         if ($Wall) { $runArgs += @("--wall", $Wall) }
         if ($PlayToEnd) { $runArgs += "--play-to-end" }
         $log = "$dir-$ruleset.log"
+        $ErrorActionPreference = "Continue"
         & dotnet @runArgs *> $log
+        $ErrorActionPreference = "Stop"
         if ($LASTEXITCODE -ne 0) { $failed = $true; Write-Host "   FAILED, see $log"; Get-Content $log -Tail 5 }
         Select-String -Path $log -Pattern "PLAYTEST (PASSED|FAILED)" | ForEach-Object { "   " + $_.Line }
     }
