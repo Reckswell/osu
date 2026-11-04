@@ -195,8 +195,8 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
 - [x] "Wall scale": set and step the wall in Chunithm's 0-14, IIDX's white number or osu!mania / Quaver's share of the
   lane, or a flat percent (Alpha, 2026-11-04). Choosing a game gives the wall its speed behaviour. Gate: unit tests per
   scale, panel and hotkey scenes. (DECISIONS 2026-11-04, "Wall scale".)
-- [ ] **After skin integration is finished** (Alpha, 2026-11-04): the wall covers only the lanes, not the screen around
+- [x] **After skin integration is finished** (Alpha, 2026-11-04): the wall covers only the lanes, not the screen around
   them, and finds where the lanes are, including a ported skin's stage (its column widths, spacing and position), dual
-  stages and the kiai sway. Today it is an upright rectangle as wide as the track at its base, so above the base it also
-  covers the background beside the converging lanes. Gate: captures with the default and a ported legacy skin at 4K and
-  7K, the wall's edges on the lanes' outer edges within 1 px; notes still covered.
+  stages and the kiai sway. Gate: captures with the default and a ported legacy skin at 4K and 7K, the wall's edges on the
+  lanes' outer edges within 1 px; notes still covered. (A trapezoid per stage on the measured column spans, edge lines
+  included; DECISIONS 2026-11-04, "The wall covers only the lanes".)

@@ -1018,3 +1018,39 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Superseded**: `SkinConvergence` and `HighwaySetting.Convergence` (one hour old, never packaged) are replaced by
   `SideStageLean` and `SideStagePull`.
 - **Reverse**: set the fit default back to `SkinPosition` and drop `applySkinLayoutDefault`; set the lean default to 0.
+
+## 2026-11-04: The wall covers only the lanes, found from the columns as laid out
+
+- **What**: Alpha asked (2026-11-04), for once skin integration was done, that the wall "covers only the lanes, rather
+  than the entire screen, and that it can identify where the lanes are effectively". The skin porter's thread called the
+  porter done (lane positions final; Q16 and Q20 are only defaults). This replaces "The field wall is a vertical panel"
+  (2026-11-03): the wall was a rectangle as wide as the track at its depth, up to the top of the screen, so above its base
+  it also covered the background beside the converging lanes and, with Voltex's lower far edge, above them.
+- **Shape**: per stage, the track between its outer columns' edges from the wall's depth to the far edge: a trapezoid on
+  the lanes (like IIDX's SUDDEN+ and Quaver's cover, in the lane plane) with the teal edge at its base. It is widened by
+  half the guides' edge line (at least half a pixel) and half a pixel, so the stage's edge lines go under it.
+- **Where the lanes are**: the stage spans the container already measures each frame from mania's own columns
+  (`stageLanes`, the same spans the floor, rails and guides use). So it follows a ported skin's stage position, column
+  widths and spacing, `StageFit`, a side stage's lean (Convergence), the kiai sway and dual stages (one cover per stage,
+  the gap left open), without code of its own for any of them.
+- **What shows now**: the background beside and above the lanes. The highway's floor and rails already ended at the
+  wall's base. A ported skin's stage (borders, lane backgrounds, column lines) is drawn up to mania's scrolling area: with
+  the default "Wall keeps visible time" that ends at the wall's base too, so the wall stands above the lanes alone; when
+  keeping the speed it is the whole track, so the skin's borders run on beside the wall to the far edge. Both kept as
+  they are (the porter's layout, not the wall's). Nothing that moves in the lanes runs past the far edge (native and
+  ported notes are clipped at depth 1; the warp maps only mania's scrolling area).
+- **Gate**: `HighwayWallTest` (lanes and edge lines covered from the wall to the far edge, nothing 2 px beside them, before
+  the wall or above the far edge, under Chunithm, Voltex, parallel, a side stage and the sway; the edge band),
+  `TestSceneHighwayPlayfield.TestWallStandsWhereNotesAppear` (one cover per stage on the measured lanes, edge lines under
+  it, nothing beside or above), `TestSceneHighwayTrack.TestDualStages` (each stage covered, not the gap) and `TestKiaiSway`
+  (the cover's corners move with the lanes'). Playtests at wall 40%: synthetic-7k and real-4k with the default skin and
+  with the classic skin ported (Chunithm), keeping the speed and (synthetic-7k) the visible time, synthetic-7k under
+  Voltex; the wall sits on the lanes only, the rails end at its base, the classic skin's grey borders run on beside it
+  only when keeping the speed (`/mnt/project-files/ortho-agent/lane-wall/`). Review (approve with fixes): the default
+  mode had not been playtested with a ported skin and this entry overstated the borders (fixed above), the rubric still
+  said nothing is drawn beyond the wall (PLAYTESTING item 8 updated), the scene tests compared the wall's stages with the
+  same array (now with the first and last columns' edges), the sway check mixed units; all fixed.
+- **Also**: `TestKiaiSway` now stops the clock on a beat inside the kiai section. With a running clock it timed out on this
+  runner, on the committed code too (the frame-stable clock was past the chart when the first steps ran).
+- **Reverse**: restore the 2026-11-03 rectangle (`HighwayWall` as a composite of two boxes, placed by its lower-left corner
+  and sheared by the sway) and drop `SetStages`.

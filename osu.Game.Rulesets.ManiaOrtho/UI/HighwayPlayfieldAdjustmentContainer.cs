@@ -451,6 +451,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             updateGuideLines(stage);
 
             Track.SetLanes(stageLanes, columnLanes);
+            Wall.SetStages(stageLanes);
             Track.FarDepth = Warp.Scroll.AppearDepth;
             Track.FloorOpacity = Settings.TrackOpacity;
             Track.KeyBeam = Settings.KeyBeam;

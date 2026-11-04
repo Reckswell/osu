@@ -71,7 +71,8 @@ back to the implementer.
    specified.
 6. **Holds**: head, body and tail aligned at every depth; body width matches the lane at each depth; no gaps.
 7. **Readability**: at 7K the outer lanes are still readable; far notes are distinguishable from each other.
-8. **Wall**: when on, notes appear exactly at its edge and nothing is drawn beyond it.
+8. **Wall**: when on, notes appear exactly at its edge (or, when it keeps the speed, come out from under it) and nothing
+   in the lanes is drawn beyond it. It covers only the lanes: the background beside and above them stays visible.
 9. **HUD**: score, combo, judgement text and progress are visible and not covered by the track.
 10. **Parity of state**: the mania and maniaortho frames show the same combo and score at the same time.
 
