@@ -493,3 +493,18 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   and never while paused (`SubmittingPlayer.AllowCriticalSettingsAdjustment`; `research/game-osu-mania.md`).
 - SPEC 3 said mania has "settings for constant / overlapping / sequential" scrolling. It has none: always sequential,
   constant only with the Constant Speed mod. SPEC 3 now says so; the highway already followed mania.
+
+## 2026-11-04: A hold held past its end keeps its head on the line
+
+- **Decision**: as in mania (`DrawableHoldNote.Update`: the sizing container keeps the head at the hit target until the
+  hold is judged), a native hold note held past its end keeps its head on the judgement line with no body until the
+  release is judged (up to 1.5x the Meh window after the end). It used to follow the tail below the line and vanish at
+  the end. Found by the osu!mania research note (`research/game-osu-mania.md`, finding 3). The condition is mania's
+  own (`Head.IsHit && !DroppedHoldAfter(StartTime)`, from the head's time on), not the note's `IsHolding` proposal, and
+  like mania it skips holds with no drawn length (converted maps clamp a hold's end to its start), whose head passes
+  the line like a tap's. Tests: `TestHoldHeldPastItsEndKeepsItsHeadOnTheLine` and `TestHoldWithNoLengthPassesTheLine`
+  (each fails without its part of the fix), played by a replay so the checks see exact times.
+- **Overrides** the 2026-11-03 "Native notes" entry's "follow the tail below it when held past the end".
+- **Alternatives**: keep following the tail (looks like the hold ended early, unlike mania); pin while `IsHolding` (also
+  pins a hold re-pressed after a drop, which mania does not).
+- **How to reverse**: drop the `Math.Max(headDepth, 0)` clamp's past-the-end case in `HighwayNoteLayer.addHold`.

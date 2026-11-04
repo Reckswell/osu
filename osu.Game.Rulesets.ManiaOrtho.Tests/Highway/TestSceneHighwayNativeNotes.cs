@@ -10,10 +10,14 @@ using osu.Framework.Graphics.Containers;
 using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
+using osu.Game.Replays;
+using osu.Game.Rulesets.Mania;
+using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Mods;
 using osu.Game.Rulesets.Mania.Objects;
 using osu.Game.Rulesets.Mania.Objects.Drawables;
+using osu.Game.Rulesets.Mania.Replays;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
@@ -22,6 +26,7 @@ using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.UI.Scrolling;
+using osu.Game.Scoring;
 using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 using osuTK.Graphics;
@@ -36,11 +41,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
     {
         private const float depth_tolerance = 0.003f;
 
-        protected override bool Autoplay => true;
+        private bool autoplay = true;
+
+        /// <summary>
+        /// A beatmap to play instead of synthetic-4k.
+        /// </summary>
+        private IBeatmap? customBeatmap;
+
+        protected override bool Autoplay => autoplay;
 
         protected override Ruleset CreatePlayerRuleset() => new ManiaOrthoRuleset();
 
-        protected override IBeatmap CreateBeatmap(RulesetInfo ruleset) => PlaytestBeatmaps.Load("synthetic-4k");
+        protected override IBeatmap CreateBeatmap(RulesetInfo ruleset) => customBeatmap ?? PlaytestBeatmaps.Load("synthetic-4k");
 
         private HighwayPlayfieldAdjustmentContainer highway => ((DrawableManiaOrthoRuleset)Player.DrawableRuleset).Highway.AsNonNull();
 
@@ -56,6 +68,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         {
             AddStep("Chunithm preset, native notes, default skin", () =>
             {
+                autoplay = true;
+                customBeatmap = null;
                 skins.CurrentSkinInfo.SetDefault();
                 rulesetConfig.SetValue(ManiaRulesetSetting.TimingBasedNoteColouring, false);
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
@@ -371,6 +385,93 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 return Math.Abs(tail - warpedDepth(held.Tail)) < depth_tolerance;
             });
         }
+
+        [Test]
+        public void TestHoldHeldPastItsEndKeepsItsHeadOnTheLine()
+        {
+            const double start = 4000;
+            const double end = 4500;
+
+            // Pressed on its time and released 150 ms after its end, inside the tail's late window (226 ms at OD 0).
+            playOneHold(start, end, end + 150);
+            seekTo(end + 50);
+
+            AddAssert("its head was hit", () => onlyHold.Head.IsHit);
+            AddAssert("it is still held", () => onlyHold.IsHolding.Value);
+            AddAssert("its release is not judged yet", () => onlyHold.Judged, () => Is.False);
+            AddAssert("its head sits on the line", () => holdHeadDepth, () => Is.EqualTo(0).Within(1e-4));
+            AddAssert("no body is left", () => quadsFor(onlyHold.HitObject).Count(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody), () => Is.Zero);
+        }
+
+        [Test]
+        public void TestHoldWithNoLengthPassesTheLine()
+        {
+            // Converted maps clamp a hold's end to its start; mania draws such a hold with no height and lets its head pass
+            // the line like a tap's, held or not.
+            const double time = 4000;
+
+            playOneHold(time, time, time + 150);
+            seekTo(time + 50);
+
+            AddAssert("its head was hit", () => onlyHold.Head.IsHit);
+            AddAssert("it is still held", () => onlyHold.IsHolding.Value);
+            AddAssert("its head has passed the line", () => holdHeadDepth, () => Is.LessThan(-0.01f));
+        }
+
+        /// <summary>
+        /// Loads a 4K chart with one hold note in the first column, played by a replay that presses it at its start and
+        /// releases it at <paramref name="releaseAt"/>. With a replay attached the playfield follows seeks of a stopped clock,
+        /// so the checks see exact times whatever the test host's frame times are.
+        /// </summary>
+        private void playOneHold(double start, double end, double releaseAt)
+        {
+            AddStep("play one hold note", () =>
+            {
+                autoplay = false;
+                customBeatmap = new ManiaBeatmap(new StageDefinition(4))
+                {
+                    BeatmapInfo = new BeatmapInfo
+                    {
+                        Ruleset = new ManiaRuleset().RulesetInfo,
+                        // The widest windows: the release is judged until 226 ms after the end.
+                        Difficulty = new BeatmapDifficulty { CircleSize = 4, OverallDifficulty = 0 },
+                    },
+                    HitObjects = { new HoldNote { StartTime = start, Duration = end - start, Column = 0 } },
+                };
+                LoadPlayer();
+            });
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1);
+
+            AddStep("attach the replay", () =>
+            {
+                Player.GameplayClockContainer.Stop();
+
+                ManiaAction action = columns[0].Action.Value;
+                drawableRuleset.SetReplayScore(new Score
+                {
+                    Replay = new Replay
+                    {
+                        Frames =
+                        {
+                            new ManiaReplayFrame(0),
+                            new ManiaReplayFrame(start, action),
+                            new ManiaReplayFrame(releaseAt),
+                        }
+                    }
+                });
+            });
+        }
+
+        private void seekTo(double time)
+        {
+            AddStep($"seek to {time}", () => Player.GameplayClockContainer.Seek(time));
+            AddUntilStep("playfield at that time", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(time).Within(1));
+            AddWaitStep("let the highway gather", 2);
+        }
+
+        private DrawableHoldNote onlyHold => columns[0].HitObjectContainer.AliveObjects.OfType<DrawableHoldNote>().Single();
+
+        private float holdHeadDepth => quadsFor(onlyHold.HitObject).Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldHead).Min(q => q.Depth0);
 
         private DrawableManiaOrthoRuleset drawableRuleset => (DrawableManiaOrthoRuleset)Player.DrawableRuleset;
 

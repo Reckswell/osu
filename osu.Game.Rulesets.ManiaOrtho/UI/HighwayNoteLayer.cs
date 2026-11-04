@@ -213,9 +213,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             float tailDepth = headDepth + scroll.LengthBetween(algorithm, startTime, hold.HitObject.EndTime, timeRange);
 
             // As in mania, a held note's head stops at the judgement line and the body shortens from there, unless it was hit
-            // early (it waits for its time) or the hold was dropped. Held past its end, the head follows the tail below the line.
-            if (currentTime >= startTime && hold.Head.IsHit && !hold.Result.DroppedHoldAfter(startTime))
-                headDepth = Math.Max(headDepth, Math.Min(0, tailDepth));
+            // early (it waits for its time) or the hold was dropped. Held past its end, the head stays on the line (with no
+            // body left) until the release is judged, up to the tail's late window after the end. A hold with no length
+            // passes the line like a tap, as mania only pins heads of holds it draws with a height.
+            if (tailDepth > headDepth && currentTime >= startTime && hold.Head.IsHit && !hold.Result.DroppedHoldAfter(startTime))
+                headDepth = Math.Max(headDepth, 0);
 
             bool broken = hold.MissingStartTime.Value != null;
             Color4 colour = broken ? broken_colour : noteColour(hold.Head, columnColour);

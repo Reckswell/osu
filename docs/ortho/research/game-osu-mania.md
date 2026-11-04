@@ -331,6 +331,9 @@ Checked against `SPEC.md` and `DECISIONS.md` (as of 2026-11-04).
    below the line (`O/UI/HighwayNoteLayer.cs:216-218`), so it disappears at the tail's time. Proposal: clamp the head
    at depth 0 while `IsHolding` is true, whatever the tail depth, and draw no body; confirm mania's behaviour with a
    capture first (it is read from code).
+   **Resolved 2026-11-04** (DECISIONS, "A hold held past its end keeps its head on the line"): the highway now uses
+   mania's own condition rather than `IsHolding`, and skips zero-length holds as mania does. Confirmed from code by
+   review (the sizing container's bottom stays at the hit target past the end), not by capture.
 4. **Missed notes stop at the line** (recorded as a Chunithm choice). In mania a missed note visibly slides past the
    line for 150 ms while fading, which is the "late" cue mania players read. Proposal: under tilted cameras let missed
    notes (alpha < 1 after a miss) continue into the flat below-line area for their 150 ms fade instead of being clipped;
@@ -371,8 +374,8 @@ playtest speeds 29 (Alpha), 16.7 and 12.6 (Chunithm-like) with argon, noting the
   kept; stable's source was not reachable).
 - The classic skin's skin.ini mania values (column widths, hit position) in the resources package.
 - The Flashlight shader's exact band extent (taken from our port's reading).
-- Behaviours read from code but not captured: head pinned on the line while held past the tail, frozen length after a
-  drop, missed notes sliding under the key area.
+- Behaviours read from code but not captured: frozen length after a drop, missed notes sliding under the key area.
+  (The head pinned on the line while held past the tail was checked again in code review and is now copied, finding 3.)
 
 ## Sources
 

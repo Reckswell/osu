@@ -116,8 +116,8 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md` C3-C4, `topic-wide-keys.md` W1-W3,
 `game-yarg-clonehero.md`). All visual: settings, not mods.
 
-- [ ] A hold held past its end keeps its head on the line, as in mania (osu!mania P3). Gate: in-game test that fails
-  without the fix.
+- [x] A hold held past its end keeps its head on the line, as in mania (osu!mania P3). Gate: in-game test that fails
+  without the fix. (`TestHoldHeldPastItsEndKeepsItsHeadOnTheLine`, `TestHoldWithNoLengthPassesTheLine`.)
 - [ ] Show the real visible time: the wall toast ("40% covered · 405 ms visible") and the speed setting's hint use the
   highway's own time (mania's `TimeRange` after the skin's hit position, and the wall when speed is kept), not
   `11485 / speed` (osu!mania P1, covers C3). Gate: the shown ms equals the measured time a note takes from the far
