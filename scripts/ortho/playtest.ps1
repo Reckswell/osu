@@ -18,22 +18,9 @@ $ErrorActionPreference = "Stop"
 # calls below relax it and check exit codes instead.
 Set-Location (git rev-parse --show-toplevel)
 
-# Keep what a run writes inside the clone, away from the user's profile: NuGet packages, the .NET CLI's home and temp
-# files go to .ortho-cache (gitignored). The harness keeps its own settings next to its build output (portable).
-$cache = Join-Path (Get-Location) ".ortho-cache"
-$env:NUGET_PACKAGES = Join-Path $cache "nuget-packages"
-$env:NUGET_HTTP_CACHE_PATH = Join-Path $cache "nuget-http"
-$env:NUGET_PLUGINS_CACHE_PATH = Join-Path $cache "nuget-plugins"
-$env:DOTNET_CLI_HOME = Join-Path $cache "dotnet-home"
-$env:TEMP = Join-Path $cache "temp"
-$env:TMP = $env:TEMP
-$env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
-$env:DOTNET_NOLOGO = "1"
-# The .NET CLI's first run would otherwise add its tools folder to the user's PATH and a development certificate to the
-# user's certificate store.
-$env:DOTNET_ADD_GLOBAL_TOOLS_TO_PATH = "0"
-$env:DOTNET_GENERATE_ASPNET_CERTIFICATE = "0"
-New-Item -ItemType Directory -Force -Path $env:TEMP, $env:DOTNET_CLI_HOME | Out-Null
+# Keep what a run writes inside the clone (NuGet caches, the .NET CLI home, temp files: .ortho-cache). The harness keeps
+# its own settings next to its build output (portable).
+. (Join-Path $PSScriptRoot "windows-env.ps1")
 
 if (-not $Out) {
     $Out = "playtest-output\$(Get-Date -Format yyyyMMdd-HHmmss)"

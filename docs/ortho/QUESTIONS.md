@@ -92,6 +92,23 @@ Each is a default-feel choice, so it is yours; nothing changes until you answer.
 
 ## Answered
 
+### Q15. How maniaortho gets mania maps inside official lazer
+Alpha (2026-11-04): the mod has to install on lazer, sharing files the way lazer does with stable. Lazer loads a
+custom ruleset as a DLL from its data folder's `rulesets` directory and shares stable's files through its "Import from
+osu!stable" (hard links on the same drive). But official lazer offers a custom ruleset only its own maps and
+osu!standard converts (`BeatmapInfoExtensions.AllowGameplayWithRuleset`, unchanged on ppy's master); our fork's three
+core patches (README "Core patches") are what show mania maps under maniaortho. Upstream request: ppy/osu#9263
+("allow conversion of non-osu! beatmaps"; #12662 closed as its duplicate). Asked on a decision card in the thread.
+- **Options**: (a) a small general hook as a pull request to ppy (Alpha approves it before it goes out); until merged,
+  Alpha plays the fork build, which imports from stable the same way; (b) the DLL patches lazer in memory (Harmony):
+  works now, may break on each lazer update, and a modified client while logged in risks Alpha's account; (c) both,
+  the patch removed once ppy merges the hook.
+- **Default until answered**: (a); keep the fork build (`scripts/ortho/play.ps1`) for playing meanwhile.
+- **Answer** (2026-11-04, in the thread): keep it an isolated project for now; do not involve peppy or other osu!
+  developers. So no upstream pull request, and the card was withdrawn. Alpha plays the fork build, which shares
+  stable's files through lazer's own import; mania maps inside official lazer are parked (only (b) is left, and it
+  needs Alpha again). Map downloads stay external (osu! website), see PLAYTESTING L4.
+
 ### Q13. Where the full game keeps its data on Alpha's PC (for the L4 session)
 Alpha wants every file kept inside `Documents\Projects\osu!`. The playtest harness is portable now, but the full game
 (`osu.Desktop`, needed for Alpha to play: song select, settings, replays) keeps its data in `%APPDATA%\osu-development`.

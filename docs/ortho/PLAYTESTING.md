@@ -79,8 +79,8 @@ powershell -ExecutionPolicy Bypass -File scripts\ortho\playtest.ps1    # same ha
 powershell -ExecutionPolicy Bypass -File scripts\ortho\playtest.ps1 -Beatmap "playtest-output\maps\<set>\<map>.osu" -PlayToEnd
 ```
 
-The full game (`osu.Desktop`) keeps its data in `%APPDATA%\osu-development`, outside the folder: run it there only
-with Alpha's say-so.
+The full game runs through `scripts\ortho\play.ps1` (L4 below), which keeps its data inside the folder too. Run
+`osu.Desktop` any other way only with Alpha's say-so: on its own it keeps its data in `%APPDATA%\osu-development`.
 
 Report: the compare sheets, the `fps` and `frameTimeMs` blocks of each summary, and anything that differs from the
 cloud screenshots. The harness measures uncapped (frame sync unlimited, 1000 Hz even when its window lacks focus,
@@ -94,6 +94,37 @@ Keep everything inside the clone: the harness is portable (settings and realm ne
 metadata cache download, no online images).
 
 ## L4: Alpha plays
+
+Alpha plays the full game (menus, song select, settings, replays) built from the clone:
+
+```powershell
+# in C:\Users\alpha\Documents\Projects\osu!\ortho
+git pull
+powershell -ExecutionPolicy Bypass -File scripts\ortho\play.ps1          # build, then start osu!
+powershell -ExecutionPolicy Bypass -File scripts\ortho\play.ps1 -NoBuild # start without building
+```
+
+- **Data**: `Documents\Projects\osu!\ortho-data`, next to the clone, so a fresh clone or `git clean` keeps it. The
+  script writes `framework.ini` (portable: the profile's data folders are never opened) and `storage.ini` (osu!'s own
+  custom data location) next to the Debug build. No core patch.
+- **Stable's files**: on the first start, osu!'s first-run setup offers "Import from osu!stable" (later: Settings >
+  Maintenance). On the same drive it hard-links maps, skins and scores instead of copying them, and never changes
+  stable's files (it only writes and deletes a `_hard_link_test` file in stable's folder to check that links work).
+- **New maps**: download them from the osu! website and open them in stable as usual, then run Settings > Maintenance >
+  "Import from osu!stable" again (already imported maps are skipped). Dragging an `.osz` onto the window also works but
+  keeps a separate copy. Lazer's in-game beatmap listing does not need supporter (in the client only the listing's
+  "played" and "rank achieved" filters do), but it needs a login to osu!'s servers, which this build does not use.
+- **Screenshots** land in `ortho-data\screenshots` and the script moves them into stable's `Screenshots` folder when
+  the game closes (and at the next start). Moved, not linked: PowerShell 5.1's `Remove-Item -Recurse` follows a
+  junction and would empty stable's folder, and osu!'s own "move data folder" would copy all of it.
+- **Servers**: the Debug build only knows osu!'s development server (dev.ppy.sh); Alpha should not log in. Like every
+  lazer it downloads osu!'s public beatmap metadata file (`online.db`) from assets.ppy.sh, for ranked status. No update
+  checks (`OSU_EXTERNAL_UPDATE_PROVIDER`), no crash reports (`OSU_DISABLE_ERROR_REPORTING`, and Sentry is off in
+  local builds anyway). maniaortho scores are never submittable (invariant 2).
+- **Outside the folder**, as with release lazer: osu.Desktop resets the NVIDIA driver's "threaded optimisation" for
+  `osu!.exe` to Auto on start (stable sets it Off for itself).
+- `-QuitAfter 30` closes the game after 30 s, for a remote check. The script fails if `%APPDATA%\osu-development`
+  changed during the run.
 
 Only Alpha can judge feel. When asking for an L4 session, give Alpha a short list of what to try (for example "7K at
 your usual speed, wall at 30%, tell me if outer lanes are readable") and ask for:

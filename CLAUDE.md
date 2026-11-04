@@ -31,6 +31,7 @@ scripts/ortho/check.sh --mania          # also run osu!mania's own suite; requir
 scripts/ortho/playtest.sh               # autoplay real + synthetic charts in a real window, mania vs maniaortho screenshots side by side
 scripts/ortho/playtest.sh --beatmap path/to/map.osu --times 5000,20000 --scroll-speed 24
 scripts/ortho/cloud-setup.sh --force    # install .NET 10, Mesa, Xvfb, ImageMagick on a fresh Linux container
+scripts/ortho/play.ps1                  # Windows: the full game with maniaortho, data kept next to the clone (PLAYTESTING L4)
 dotnet run --project osu.Game.Rulesets.ManiaOrtho.Tests   # interactive visual test browser (needs a display)
 ```
 

@@ -508,3 +508,35 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Alternatives**: keep following the tail (looks like the hold ended early, unlike mania); pin while `IsHolding` (also
   pins a hold re-pressed after a drop, which mania does not).
 - **How to reverse**: drop the `Math.Max(headDepth, 0)` clamp's past-the-end case in `HighwayNoteLayer.addHold`.
+
+## 2026-11-04: Full game on Alpha's PC: a launcher script, no core patch
+
+- **Context**: Alpha then said the mod has to install on official lazer, sharing files the way lazer does with stable
+  (QUESTIONS Q15). Alpha's PC has stable but no lazer (no `%APPDATA%\osu`, no `%LOCALAPPDATA%\osulazer`; names
+  listed, nothing opened). Alpha also wants the project kept isolated, with no upstream pull request (Q15 answer), so
+  mania maps inside official lazer are parked and this build is how Alpha plays; it shares stable's files through
+  exactly lazer's own import.
+- **Decision**: `scripts/ortho/play.ps1` builds `osu.Desktop` (Debug) and starts it with its data in
+  `Documents\Projects\osu!\ortho-data`. It writes `framework.ini` next to `osu!.exe`, which osu-framework already
+  reads as "portable install" (`DesktopGameHost.GetDefaultGameStorage`: storage in the startup folder, so
+  `%APPDATA%\osu` and `%APPDATA%\osu-development` are never opened), and `storage.ini` there, osu!'s own custom data
+  location (`OsuStorage`), pointing at `ortho-data`. A note file in `ortho-data` keeps osu! from asking about an empty
+  data folder (`PlayScriptDataFolderTest`). This replaces the planned portable switch in `osu.Desktop` (Q13 option a):
+  same result, no core patch.
+- **Data next to the clone, not inside it**: a fresh clone or `git clean -xdf` keeps Alpha's imports, settings and
+  replays.
+- **Stable's files** come in through osu!'s first-run "Import from osu!stable", which hard-links on the same drive
+  (`LegacyModelImporter.PreferHardLinks`) and never changes stable's files. No code of ours.
+- **Screenshots are moved, not linked**: PowerShell 5.1's `Remove-Item -Recurse` follows a junction, so removing
+  `ortho-data` that way would empty stable's `Screenshots` folder through one, and osu!'s own "move data folder"
+  (`MigratableStorage`) would copy all of stable's screenshots into the new folder. The script moves new screenshots
+  there when the game closes and at the next start, never replacing a file.
+- **Debug, not Release**: a Debug build uses osu!'s development endpoints (`OsuGameBase.UseDevelopmentServer`), so
+  no login or score can reach osu.ppy.sh, even if Alpha logs in by mistake (it still downloads osu!'s public beatmap
+  metadata file, `online.db`, from assets.ppy.sh, as every lazer does); Release would also refuse to start
+  beside a running release lazer (single instance through IPC). The harness's frame times were Release builds of the
+  rulesets; if Debug feels slower on Alpha's PC, revisit (Release plus our own endpoints would need a core patch).
+- **Environment**: `OSU_EXTERNAL_UPDATE_PROVIDER` (no Velopack hooks, no update checks) and
+  `OSU_DISABLE_ERROR_REPORTING`. Known effect outside the folder, as with release lazer: the NVIDIA "threaded
+  optimisation" setting for `osu!.exe` is reset to Auto on start.
+- **How to reverse**: delete the two ini files next to the build; the game then uses `%APPDATA%\osu-development`.

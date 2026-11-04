@@ -104,11 +104,12 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 
 ## M2.5: Alpha plays (L4)
 
-- [ ] Portable full game: `osu.Desktop` keeps its data next to the build when asked (core patch, README). Gate: test that
-  the portable switch puts storage under the build folder; nothing written to `%APPDATA%` in a PC run.
-- [ ] Alpha's files from stable: first-run import of maps and skins from `AppData\Local\osu!` by hard links, screenshots
-  saved to stable's `Screenshots` folder; never open `%APPDATA%\osu`. Gate: on Alpha's PC the import reports hard links,
-  stable's files unchanged (sizes and times), a screenshot lands in stable's folder.
+- [ ] Portable full game: `scripts/ortho/play.ps1` keeps the data next to the clone (framework.ini and storage.ini, no
+  core patch; DECISIONS 2026-11-04 "Full game"). Gate: `PlayScriptDataFolderTest`; a PC run leaves
+  `%APPDATA%\osu-development` unchanged and fills `ortho-data`.
+- [ ] Alpha's files from stable: osu!'s first-run import of maps, skins and scores from `AppData\Local\osu!` by hard
+  links; screenshots moved into stable's `Screenshots` folder; never open `%APPDATA%\osu`. Gate: on Alpha's PC the
+  import reports hard links, stable's files unchanged (sizes and times), a screenshot lands in stable's folder.
 - [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays.
 
 ## M2.6: Feel follow-ups from the research baseline
