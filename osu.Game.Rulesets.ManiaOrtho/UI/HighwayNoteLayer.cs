@@ -90,6 +90,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// </summary>
         public bool SnapColours { get; set; }
 
+        /// <summary>
+        /// Hold bodies' opacity, times their state's (<see cref="HighwaySettings.HoldOpacity"/>). Heads and tails keep theirs.
+        /// </summary>
+        public float HoldOpacity { get; set; } = 1;
+
         private HighwayLayout layout = new HighwayLayout();
 
         public HighwayLayout Layout
@@ -301,7 +306,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             if (tailDepth > bodyStart)
             {
-                Color4 body = colour.Opacity(bodyAlpha * hold.Alpha);
+                Color4 body = colour.Opacity(bodyAlpha * HoldOpacity * hold.Alpha);
                 add(new NoteQuad(hold.HitObject, NoteQuadKind.HoldBody, lanes.X + bodyInset, lanes.Y - bodyInset, bodyStart, tailDepth, body, body));
             }
 
@@ -372,7 +377,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             if (body != null && bodyEnd > bodyStart)
             {
                 float anchor = ported.BodyFromTail ? bodyEnd : scrollingHeadDepth + headThickness / 2;
-                addBody(hold.HitObject, body, lanes, bodyStart, bodyEnd, ported.BodyTile[column], anchor, tint.Opacity(hold.Alpha));
+                addBody(hold.HitObject, body, lanes, bodyStart, bodyEnd, ported.BodyTile[column], anchor, tint.Opacity(HoldOpacity * hold.Alpha));
             }
 
             var tail = PortedNoteShapes.FrameAt(images.Tail, ported.NoteFrameLength, currentTime);

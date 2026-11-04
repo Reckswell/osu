@@ -70,6 +70,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
+                highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
             });
 
             base.SetUpSteps();
@@ -78,7 +79,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         [TearDownSteps]
         public override void TearDownSteps()
         {
-            AddStep("restore highway track", () => highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway));
+            AddStep("restore highway track", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
+                highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
+            });
             base.TearDownSteps();
         }
 
@@ -109,6 +114,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddStep("back to the highway's", () => highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway));
             AddUntilStep("the skin's stage is hidden again", () => highway.TrackShown && highway.SkinStageParts.All(p => p.Alpha == 0));
+        }
+
+        /// <summary>
+        /// Sekai's Lane Transparency (research game-sekai.md K9): the floor fades, the rails and beams do not.
+        /// </summary>
+        [Test]
+        public void TestTrackOpacity()
+        {
+            AddUntilStep("the floor is as designed", () => highway.TrackShown && track.FloorAlpha == HighwayTrack.FLOOR_ALPHA);
+
+            AddStep("track opacity 50%", () => highwayConfig.SetValue(HighwaySetting.TrackOpacity, 0.5f));
+            AddUntilStep("the floor is half as opaque", () => track.FloorAlpha, () => Is.EqualTo(HighwayTrack.FLOOR_ALPHA / 2).Within(1e-4f));
+
+            AddStep("track opacity 0%", () => highwayConfig.SetValue(HighwaySetting.TrackOpacity, 0f));
+            AddUntilStep("no floor", () => track.FloorAlpha, () => Is.Zero);
+            AddAssert("the track is still shown (rails, beams)", () => highway.TrackShown && track.Alpha == 1);
         }
 
         [Test]

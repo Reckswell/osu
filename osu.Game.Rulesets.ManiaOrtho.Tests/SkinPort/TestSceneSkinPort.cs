@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using osu.Framework.Allocation;
@@ -49,6 +51,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
                 highwayConfig.SetValue(HighwaySetting.KeyArea, SkinKeyArea.Panel);
                 highwayConfig.SetValue(HighwaySetting.StageFit, SkinStageFit.SkinPosition);
                 highwayConfig.SetValue(HighwaySetting.SkinNoteProportions, true);
+                highwayConfig.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                 skins.CurrentSkinInfo.Value = DefaultLegacySkin.CreateInfo().ToLiveUnmanaged();
             });
 
@@ -64,6 +68,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
             {
                 skins.CurrentSkinInfo.SetDefault();
                 highwayConfig.SetValue(HighwaySetting.KeyArea, SkinKeyArea.Panel);
+                highwayConfig.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
             });
         }
 
@@ -90,6 +96,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
                 return false;
             });
         }
+
+        /// <summary>
+        /// Track and hold opacity reach the skin's own lane colours and hold bodies (research game-sekai.md K6, K9).
+        /// </summary>
+        [Test]
+        public void TestOpacitiesReachTheSkinsTrackAndHolds()
+        {
+            AddUntilStep("ported track and notes shown", () => highway.PortedTrackShown && highway.PortedNotesShown);
+            AddAssert("lane colours as the skin sets them", () => highway.PortedTrack.BackgroundOpacity, () => Is.EqualTo(1));
+            AddUntilStep("hold bodies at full strength", () => portedHoldBodies().Any() && portedHoldBodies().All(q => q.Near.A > 0.999f));
+
+            AddStep("track 30%, holds 40%", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.TrackOpacity, 0.3f);
+                highwayConfig.SetValue(HighwaySetting.HoldOpacity, 0.4f);
+            });
+
+            AddUntilStep("lane colours at 30%", () => highway.PortedTrack.BackgroundOpacity, () => Is.EqualTo(0.3f).Within(1e-4f));
+            AddUntilStep("hold bodies at 40%", () => portedHoldBodies().Any() && portedHoldBodies().All(q => Math.Abs(q.Near.A - 0.4f) < 1e-3f && Math.Abs(q.Far.A - 0.4f) < 1e-3f));
+        }
+
+        private IEnumerable<HighwayNoteLayer.NoteQuad> portedHoldBodies() => Enumerable.Range(0, highway.NoteLayer.Count).Select(highway.NoteLayer.GetQuad)
+                                                                                         .Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody && q.Texture != null);
 
         [Test]
         public void TestPanelLiftsTheLineToTheSkinsHitPosition()

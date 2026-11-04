@@ -56,6 +56,40 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
             }
         }
 
+        private float backgroundOpacity = 1;
+
+        /// <summary>
+        /// The lane backgrounds' opacity, times the skin's own (<see cref="HighwaySettings.TrackOpacity"/>). The stage's sides,
+        /// lines, hit target and lights keep theirs.
+        /// </summary>
+        public float BackgroundOpacity
+        {
+            get => backgroundOpacity;
+            set
+            {
+                value = Math.Clamp(value, 0, 1);
+
+                if (backgroundOpacity == value)
+                    return;
+
+                backgroundOpacity = value;
+                Invalidate(Invalidation.DrawNode);
+            }
+        }
+
+        /// <summary>
+        /// A lane background as drawn: the skin's colour with its alpha doubled as stable does
+        /// (<c>LegacyColourCompatibility.ApplyWithDoubledAlpha</c>), times <see cref="BackgroundOpacity"/> and the drawable's
+        /// own alpha.
+        /// </summary>
+        public static Color4 LaneBackground(Color4 skinColour, float opacity, float drawAlpha) => DoubledAlpha(skinColour, opacity * drawAlpha);
+
+        /// <summary>
+        /// <paramref name="colour"/> as stable draws a skin colour: its alpha, then the drawable's alpha set to it too (alpha
+        /// squared), times <paramref name="alpha"/>.
+        /// </summary>
+        public static Color4 DoubledAlpha(Color4 colour, float alpha) => new Color4(colour.R, colour.G, colour.B, colour.A * colour.A * alpha);
+
         private PortPlacement placement;
 
         private Vector2[] columnLanes = Array.Empty<Vector2>();
@@ -168,6 +202,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
             private PortedSkin? skin;
             private PortPlacement placement;
             private float alpha;
+            private float backgroundOpacity;
             private double time;
 
             private Vector2[] columnLanes = Array.Empty<Vector2>();
@@ -189,6 +224,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
                 skin = Source.skin;
                 placement = Source.placement;
                 alpha = DrawColourInfo.Colour.MaxAlpha;
+                backgroundOpacity = Source.backgroundOpacity;
                 time = Source.Time.Current;
 
                 columnCount = Source.columnCount;
@@ -233,7 +269,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
                     for (int c = 0; c < ported.Columns.Length && columnIndex < columnCount; c++, columnIndex++)
                     {
                         var column = ported.Columns[c];
-                        Color4 background = doubledAlpha(column.Background);
+                        Color4 background = LaneBackground(column.Background, backgroundOpacity, alpha);
 
                         if (background.A > 0)
                         {
@@ -251,7 +287,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
                     {
                         var column = ported.Columns[c];
                         var columnLane = columnLanes[first + c];
-                        Color4 line = doubledAlpha(column.LineColour);
+                        Color4 line = DoubledAlpha(column.LineColour, alpha);
 
                         if (line.A <= 0)
                             continue;
@@ -353,13 +389,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
                     PortDrawing.DrawUpright(renderer, white, new RectangleF(0, 0, white.DisplayWidth, white.DisplayHeight), placement.Projection, DrawInfo.Matrix,
                         lanes.X, lanes.Y, lineY, lineY + thickness, vertical, colour.Opacity(colour.A * 0.9f * alpha));
                 }
-            }
-
-            private Color4 doubledAlpha(Color4 colour)
-            {
-                // LegacyColourCompatibility.ApplyWithDoubledAlpha: the colour's alpha, then the drawable's alpha set to it too.
-                float a = colour.A == 0 ? 0 : colour.A * colour.A;
-                return new Color4(colour.R, colour.G, colour.B, a * alpha);
             }
         }
     }

@@ -281,6 +281,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public float FarFade { get; init; }
 
+        /// <summary>
+        /// The faintest <see cref="HoldOpacity"/>: Sekai's Long Note Transparency stops at 10% (research/game-sekai.md K6).
+        /// </summary>
+        public const float MIN_HOLD_OPACITY = 0.1f;
+
+        /// <summary>
+        /// How solid hold bodies are, times the opacity of their state (idle, held, dropped). 1, the default, draws them as
+        /// designed. Heads and tails keep their strength. Notes drawn on the track only (Highway and Skin (ported)), as Sekai's
+        /// Long Note Transparency (research/game-sekai.md K6).
+        /// </summary>
+        public float HoldOpacity { get; init; }
+
+        /// <summary>
+        /// How solid the lanes' background is, times its own opacity: the highway's floor, or a ported skin's lane colours. 1,
+        /// the default, draws it as designed; 0 shows the beatmap's background through the lanes. Rails, lines, beams and
+        /// lighting keep their strength (Sekai's Lane Transparency, research/game-sekai.md K9).
+        /// </summary>
+        public float TrackOpacity { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -300,6 +319,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             StageFit = SkinStageFit.SkinPosition;
             SkinNoteProportions = true;
             FarFade = 0;
+            HoldOpacity = 1;
+            TrackOpacity = 1;
         }
 
         /// <summary>

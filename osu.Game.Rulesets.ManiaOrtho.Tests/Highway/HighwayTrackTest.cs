@@ -3,14 +3,17 @@
 
 using NUnit.Framework;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.SkinPort;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 {
     /// <summary>
-    /// L0 checks for the highway's track (research game-chunithm-feedback P5): how a lane beam fades in and out, and where
-    /// the track continues below the judgement line.
+    /// L0 checks for the highway's track (research game-chunithm-feedback P5): how a lane beam fades in and out, where
+    /// the track continues below the judgement line, how track opacity reaches the lanes' background, and where a hit
+    /// lights the line.
     /// </summary>
     [TestFixture]
     public class HighwayTrackTest
@@ -112,6 +115,106 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             // Each side continues the lane edge's straight line on the track.
             Assert.That(cross(p.ToScreen(lane0, 0.5f), p.ToScreen(lane0, 0), quad.BottomLeft), Is.LessThan(1e-3f));
             Assert.That(cross(p.ToScreen(lane1, 0.5f), p.ToScreen(lane1, 0), quad.BottomRight), Is.LessThan(1e-3f));
+        }
+
+        /// <summary>
+        /// The band a lane lights at the judgement line (above it and below it) keeps to the lane's edges.
+        /// </summary>
+        [TestCase(0f, 1f)]
+        [TestCase(3 / 7f, 4 / 7f)]
+        public void TestBandAcrossLanesFollowsTheLaneEdges(float lane0, float lane1)
+        {
+            var p = new HighwayProjection(new HighwayLayout
+            {
+                JudgementY = 0.926f,
+                FarY = 0,
+                NearWidth = 0.61f,
+                FarWidthRatio = 0.24f,
+                CentreX = 0.5f,
+            }, new Vector2(1920, 1080));
+
+            float line = p.YAt(0);
+            var quad = TrackDrawing.GetAcrossLanes(p, lane0, lane1, line - 30, line + 30);
+
+            Assert.That(quad.TopLeft.Y, Is.EqualTo(line - 30).Within(1e-3f));
+            Assert.That(quad.BottomRight.Y, Is.EqualTo(line + 30).Within(1e-3f));
+
+            // Above the line its sides are the lane edges on the track; below it they continue them.
+            float above = p.DepthAtY(line - 30);
+            Assert.That(Vector2.Distance(quad.TopLeft, p.ToScreen(lane0, above)), Is.LessThan(1e-2f));
+            Assert.That(Vector2.Distance(quad.TopRight, p.ToScreen(lane1, above)), Is.LessThan(1e-2f));
+            Assert.That(cross(p.ToScreen(lane0, 0.5f), p.ToScreen(lane0, 0), quad.BottomLeft), Is.LessThan(1e-3f));
+            Assert.That(cross(p.ToScreen(lane1, 0.5f), p.ToScreen(lane1, 0), quad.BottomRight), Is.LessThan(1e-3f));
+
+            Assert.That(TrackDrawing.GetAcrossTrack(p, line - 30, line + 30), Is.EqualTo(TrackDrawing.GetAcrossLanes(p, 0, 1, line - 30, line + 30)));
+        }
+
+        /// <summary>
+        /// Track opacity (research game-sekai.md K9) scales the highway floor from its designed 90%.
+        /// </summary>
+        [TestCase(1f, 0.9f)]
+        [TestCase(0.5f, 0.45f)]
+        [TestCase(0f, 0f)]
+        [TestCase(2f, 0.9f)]
+        [TestCase(-1f, 0f)]
+        public void TestFloorOpacity(float opacity, float alpha)
+        {
+            var track = new HighwayTrack { FloorOpacity = opacity };
+
+            Assert.That(track.FloorAlpha, Is.EqualTo(alpha).Within(tolerance));
+            Assert.That(HighwayTrack.FloorColour(track.FloorAlpha, 0.5f).A, Is.EqualTo(alpha / 2).Within(tolerance), "times the drawable's alpha");
+            Assert.That(HighwayTrack.FloorColour(track.FloorAlpha, 1).R, Is.EqualTo(HighwayTrack.FLOOR_COLOUR.R));
+        }
+
+        /// <summary>
+        /// ... and a ported skin's lane colours from the alpha stable gives them (the skin's alpha, squared).
+        /// </summary>
+        [Test]
+        public void TestPortedLaneBackgroundOpacity()
+        {
+            var skinColour = new Color4(0.1f, 0.2f, 0.3f, 0.8f);
+
+            Assert.That(PortedTrack.LaneBackground(skinColour, 1, 1).A, Is.EqualTo(0.64f).Within(tolerance));
+            Assert.That(PortedTrack.LaneBackground(skinColour, 0.5f, 1).A, Is.EqualTo(0.32f).Within(tolerance));
+            Assert.That(PortedTrack.LaneBackground(skinColour, 0.5f, 0.5f).A, Is.EqualTo(0.16f).Within(tolerance));
+            Assert.That(PortedTrack.LaneBackground(skinColour, 0, 1).A, Is.Zero);
+            Assert.That(PortedTrack.LaneBackground(skinColour, 0.5f, 1).B, Is.EqualTo(0.3f));
+        }
+
+        /// <summary>
+        /// A hit lights its lane's piece of the judgement line (research game-sekai.md K7): a band centred on the line, at the
+        /// camera's height or a ported skin's lifted one.
+        /// </summary>
+        [TestCase(0.926f)]
+        [TestCase(0.65f)]
+        public void TestSlotBandsSitOnTheLine(float judgementY)
+        {
+            var p = new HighwayProjection(new HighwayLayout
+            {
+                JudgementY = judgementY,
+                FarY = 0,
+                NearWidth = 0.61f,
+                FarWidthRatio = 0.24f,
+                CentreX = 0.5f,
+            }, new Vector2(1920, 1080));
+
+            var lane = new Vector2(3 / 7f, 4 / 7f);
+            HighwaySlotLights.GetBands(p, lane, out var above, out var solid, out var below);
+
+            float line = p.YAt(0);
+            float half = HighwaySlotLights.SOLID_HEIGHT * 1080 / 2;
+            float fade = HighwaySlotLights.FADE_HEIGHT * 1080;
+
+            Assert.That(solid.TopLeft.Y, Is.EqualTo(line - half).Within(1e-3f));
+            Assert.That(solid.BottomLeft.Y, Is.EqualTo(line + half).Within(1e-3f));
+            Assert.That(above.TopLeft.Y, Is.EqualTo(line - half - fade).Within(1e-3f));
+            Assert.That(above.BottomRight, Is.EqualTo(solid.TopRight));
+            Assert.That(below.TopLeft, Is.EqualTo(solid.BottomLeft));
+            Assert.That(below.BottomLeft.Y, Is.EqualTo(line + half + fade).Within(1e-3f));
+
+            // Its sides lie on the lane's edges, above the line and below it.
+            Assert.That(cross(p.ToScreen(lane.X, 0.5f), p.ToScreen(lane.X, 0), solid.BottomLeft), Is.LessThan(1e-3f));
+            Assert.That(cross(p.ToScreen(lane.Y, 0.5f), p.ToScreen(lane.Y, 0), solid.TopRight), Is.LessThan(1e-3f));
         }
 
         /// <summary>

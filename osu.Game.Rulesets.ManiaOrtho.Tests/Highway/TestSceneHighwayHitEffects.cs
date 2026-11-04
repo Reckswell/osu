@@ -17,12 +17,14 @@ using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Tests.Visual;
 using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 {
     /// <summary>
-    /// Hit lighting at the judgement line (SPEC 5 and 7): bursts in the hit lane's projected position, the skin's explosions
-    /// hidden only while the highway's are shown, a glow while a hold is held, and nothing on a miss.
+    /// Hit lighting at the judgement line (SPEC 5 and 7): bursts in the hit lane's projected position, the lane's piece of the
+    /// line lit in the result's colour, the skin's explosions hidden only while the highway's are shown, a glow while a hold
+    /// is held, and nothing on a miss.
     /// </summary>
     public partial class TestSceneHighwayHitEffects : PlayerTestScene
     {
@@ -127,6 +129,77 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             }));
         }
 
+        /// <summary>
+        /// Sekai's slot lights (research game-sekai.md K7): each hit lights its lane's piece of the judgement line in the
+        /// result's colour, fading over 300 ms.
+        /// </summary>
+        [Test]
+        public void TestHitsLightTheirLanesPieceOfTheLine()
+        {
+            var lastHit = new Dictionary<int, double>();
+
+            AddStep("record when each column is hit", () =>
+            {
+                lastHit.Clear();
+
+                for (int i = 0; i < columns.Length; i++)
+                {
+                    int index = i;
+
+                    columns[i].NewResult += (judgedObject, result) =>
+                    {
+                        if (result.IsHit && judgedObject.DisplayResult)
+                            lastHit[index] = columns[index].Time.Current;
+                    };
+                }
+            });
+
+            AddUntilStep("a few slots lit", () => effects.SlotsLit >= 2 && litSlots().Any());
+            AddStep("freeze", () => Player.GameplayClockContainer.Stop());
+            AddWaitStep("let the highway place them", 2);
+
+            AddAssert("exactly the lanes hit in the last 300 ms are lit", () => litSlots(), () => Is.EquivalentTo(lastHit
+                .Where(h => effects.Time.Current - h.Value < HighwayHitEffectLayer.SLOT_DURATION)
+                .Select(h => h.Key)));
+
+            AddAssert("each in a Perfect's pale gold, as strong as its age allows", () => litSlots().All(i =>
+            {
+                Color4 light = effects.SlotLights[i];
+                Color4 perfect = HighwayHitEffectLayer.PERFECT_SLOT_COLOUR;
+                float expected = HighwayHitEffectLayer.SLOT_ALPHA * HighwayHitEffectLayer.SlotLevel(effects.Time.Current - lastHit[i]);
+
+                return light.R == perfect.R && light.G == perfect.G && light.B == perfect.B && Math.Abs(light.A - expected) < 1e-4f;
+            }));
+
+            AddAssert("drawn as set", () => highway.SlotLights.Lights.ToArray(), () => Is.EqualTo(effects.SlotLights.ToArray()));
+            AddAssert("shown", () => highway.SlotLights.Alpha, () => Is.EqualTo(1));
+            AddAssert("over the judgement line, under the notes", () =>
+            {
+                int slots = highway.Overlay.IndexOf(highway.SlotLights);
+                return highway.Overlay.IndexOf(highway.Guides) < slots && slots < highway.Overlay.IndexOf(highway.NoteLayer);
+            });
+        }
+
+        [Test]
+        public void TestSlotsGoDarkWhenTheEffectsAreSwitchedOff()
+        {
+            AddUntilStep("a slot is lit", () => litSlots().Any());
+            AddStep("freeze", () => Player.GameplayClockContainer.Stop());
+            AddWaitStep("let the highway place them", 2);
+            AddAssert("still lit", () => litSlots().Any());
+
+            // Time stands still, so a light kept from before would still be lit.
+            AddStep("use the skin's effects", () => highwayConfig.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Skin));
+            AddUntilStep("the highway's are off", () => !effects.Active);
+            AddStep("back to the highway's", () => highwayConfig.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Highway));
+            AddUntilStep("the highway's are on", () => effects.Active);
+            AddWaitStep("let the highway place them", 2);
+            AddAssert("no light kept from before", () => litSlots(), () => Is.Empty);
+            AddAssert("none drawn", () => highway.SlotLights.Lights.ToArray().All(c => c.A == 0));
+        }
+
+        private int[] litSlots() => Enumerable.Range(0, effects.SlotLights.Length).Where(i => effects.SlotLights[i].A > 0).ToArray();
+
         [Test]
         public void TestSkinEffects()
         {
@@ -137,6 +210,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddStep("use the skin's effects", () => highwayConfig.SetValue(HighwaySetting.HitEffects, HighwayHitEffectStyle.Skin));
             AddUntilStep("the skin's explosions are back", () => columns.All(c => c.HitObjectArea.Explosions.Alpha == 1));
             AddUntilStep("the bursts are gone", () => effects.Bursts.Count == 0);
+            AddAssert("so are the slot lights", () => litSlots().Length == 0 && highway.SlotLights.Alpha == 0);
             AddUntilStep("the skin shows an explosion", () => columns.Any(c => c.HitObjectArea.Explosions.Count > 0));
             AddAssert("and no new bursts", () => effects.Bursts.Count, () => Is.Zero);
 
@@ -150,7 +224,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         {
             AddStep("flat camera", () => highwayConfig.SetValue(HighwaySetting.CameraMode, HighwayCameraMode.Flat));
             AddUntilStep("the skin's explosions are shown", () => columns.All(c => c.HitObjectArea.Explosions.Alpha == 1));
-            AddAssert("the highway's are off", () => !effects.Active && effects.Alpha == 0);
+            AddAssert("the highway's are off", () => !effects.Active && effects.Alpha == 0 && highway.SlotLights.Alpha == 0);
             AddUntilStep("the skin shows an explosion", () => columns.Any(c => c.HitObjectArea.Explosions.Count > 0));
             AddAssert("and no bursts", () => effects.Bursts.Count, () => Is.Zero);
         }
@@ -200,6 +274,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddUntilStep("notes are missed", () => misses.Count(r => r == HitResult.Miss) >= 3);
             AddAssert("the highway's effects are on", () => effects.Active);
             AddAssert("no bursts", () => effects.Bursts.Count, () => Is.Zero);
+            AddAssert("no slot lit", () => effects.SlotsLit, () => Is.Zero);
         }
     }
 }

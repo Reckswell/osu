@@ -114,6 +114,37 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             }
         }
 
+        private float floorOpacity = 1;
+
+        /// <summary>
+        /// The floor's opacity, times <see cref="FLOOR_ALPHA"/> (<see cref="HighwaySettings.TrackOpacity"/>). The rails and beams
+        /// keep theirs.
+        /// </summary>
+        public float FloorOpacity
+        {
+            get => floorOpacity;
+            set
+            {
+                value = Math.Clamp(value, 0, 1);
+
+                if (floorOpacity == value)
+                    return;
+
+                floorOpacity = value;
+                Invalidate(Invalidation.DrawNode);
+            }
+        }
+
+        /// <summary>
+        /// The floor's alpha before the drawable's own: <see cref="FLOOR_ALPHA"/> times <see cref="FloorOpacity"/>.
+        /// </summary>
+        public float FloorAlpha => FLOOR_ALPHA * floorOpacity;
+
+        /// <summary>
+        /// The floor's colour as drawn, given <see cref="FloorAlpha"/> and the drawable's own alpha.
+        /// </summary>
+        public static Color4 FloorColour(float floorAlpha, float drawAlpha) => FLOOR_COLOUR.Opacity(floorAlpha * drawAlpha);
+
         private Vector2[] stageLanes = Array.Empty<Vector2>();
         private int stageCount;
 
@@ -254,6 +285,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             private IShader shader = null!;
             private HighwayProjection projection;
             private float alpha;
+            private float floorAlpha;
             private float farDepth;
 
             private Vector2[] stageLanes = Array.Empty<Vector2>();
@@ -275,6 +307,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 shader = Source.shader;
                 projection = new HighwayProjection(Source.layout, Source.DrawSize);
                 alpha = DrawColourInfo.Colour.MaxAlpha;
+                floorAlpha = Source.FloorAlpha;
                 farDepth = Source.farDepth;
 
                 stageCount = Source.stageCount;
@@ -305,7 +338,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
                 float belowHeight = Math.Max(0, projection.Size.Y - projection.YAt(0));
 
-                Color4 floor = FLOOR_COLOUR.Opacity(FLOOR_ALPHA * alpha);
+                Color4 floor = FloorColour(floorAlpha, alpha);
                 Color4 railNear = RAIL_COLOUR.Opacity(RAIL_ALPHA * alpha);
                 var railColour = ColourInfo.GradientVertical(RAIL_FAR_COLOUR.Opacity(RAIL_ALPHA * alpha), railNear);
 
@@ -319,8 +352,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     GetRailWidths(stages, i, out float leftRail, out float rightRail);
 
                     // One colour: an exact projected quad needs no subdivision.
-                    draw(renderer, projection.ToScreen(left, right, 0, farDepth), floor);
-                    draw(renderer, TrackDrawing.GetBelowLine(projection, left, right, belowHeight), floor);
+                    if (floor.A > 0)
+                    {
+                        draw(renderer, projection.ToScreen(left, right, 0, farDepth), floor);
+                        draw(renderer, TrackDrawing.GetBelowLine(projection, left, right, belowHeight), floor);
+                    }
 
                     // A gradient in depth: subdivided, so it stays straight in perspective.
                     TrackDrawing.DrawTrackRectangle(renderer, renderer.WhitePixel, projection, DrawInfo.Matrix, left - leftRail, left, 0, farDepth, railColour);

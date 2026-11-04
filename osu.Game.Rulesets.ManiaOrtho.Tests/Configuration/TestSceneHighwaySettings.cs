@@ -57,8 +57,57 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                 {
                     config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                     config.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, true);
+                    config.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
+                    config.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
                 }
             });
+        }
+
+        /// <summary>
+        /// Sekai's Long Note Transparency and Lane Transparency (research/game-sekai.md K6, K9): preferences that start at
+        /// the look as designed, outside the presets.
+        /// </summary>
+        [Test]
+        public void TestOpacities()
+        {
+            AddAssert("both default to full", () => new[] { new HighwaySettings().HoldOpacity, new HighwaySettings().TrackOpacity }, () => Is.EqualTo(new[] { 1f, 1f }));
+
+            AddAssert("config defaults to full", () =>
+            {
+                using (var config = create())
+                    return new[] { config.Highway.Current.HoldOpacity, config.Highway.Current.TrackOpacity };
+            }, () => Is.EqualTo(new[] { 1f, 1f }));
+
+            AddAssert("holds never vanish, the track can", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.HoldOpacity, 0f);
+                    config.Highway.SetValue(HighwaySetting.TrackOpacity, 0f);
+                    return new[] { config.Highway.Current.HoldOpacity, config.Highway.Current.TrackOpacity };
+                }
+            }, () => Is.EqualTo(new[] { HighwaySettings.MIN_HOLD_OPACITY, 0f }).Within(1e-6f));
+
+            AddAssert("changing them keeps the preset", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.HoldOpacity, 0.7f);
+                    config.Highway.SetValue(HighwaySetting.TrackOpacity, 0.7f);
+                    return config.Highway.Get<HighwayPreset>(HighwaySetting.Preset);
+                }
+            }, () => Is.EqualTo(HighwayPreset.Chunithm));
+
+            AddAssert("choosing a preset leaves them", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.HoldOpacity, 0.4f);
+                    config.Highway.SetValue(HighwaySetting.TrackOpacity, 0.5f);
+                    config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex);
+                    return new[] { config.Highway.Current.HoldOpacity, config.Highway.Current.TrackOpacity };
+                }
+            }, () => Is.EqualTo(new[] { 0.4f, 0.5f }).Within(1e-4f));
         }
 
         [Test]

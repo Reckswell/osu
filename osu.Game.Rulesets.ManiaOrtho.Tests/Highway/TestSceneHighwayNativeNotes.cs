@@ -76,6 +76,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
                 highwayConfig.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
             });
 
             base.SetUpSteps();
@@ -91,6 +92,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).SetDefault();
                 highwayConfig.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
                 highwayConfig.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
                 rulesetConfig.SetValue(ManiaRulesetSetting.TimingBasedNoteColouring, false);
                 skins.CurrentSkinInfo.SetDefault();
             });
@@ -509,6 +511,50 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 return Math.Abs(tail - warpedDepth(held.Tail)) < depth_tolerance;
             });
         }
+
+        /// <summary>
+        /// Sekai's Long Note Transparency (research game-sekai.md K6): the body fades, its head and tail do not.
+        /// </summary>
+        [Test]
+        public void TestHoldOpacity()
+        {
+            DrawableHoldNote held = null!;
+            float body = 0;
+            float head = 0;
+            float tail = 0;
+
+            AddUntilStep("a hold note is being held", () =>
+            {
+                held = drawableRuleset.Playfield.Stages.SelectMany(s => s.Columns).SelectMany(c => c.HitObjectContainer.AliveObjects).OfType<DrawableHoldNote>()
+                                      .FirstOrDefault(h => h.IsHolding.Value && h.Time.Current > h.HitObject.StartTime + 50 && h.Time.Current < h.HitObject.EndTime - 200)!;
+
+                if (held != null)
+                    Player.GameplayClockContainer.Stop();
+
+                return held != null;
+            });
+
+            AddWaitStep("let the highway gather", 2);
+            AddStep("measure at full opacity", () =>
+            {
+                body = holdBody(held).Near.A;
+                head = holdEndAlpha(held, HighwayNoteLayer.NoteQuadKind.HoldHead);
+                tail = holdEndAlpha(held, HighwayNoteLayer.NoteQuadKind.HoldTail);
+            });
+            AddAssert("a held body is drawn at 85%", () => body, () => Is.EqualTo(0.85f).Within(1e-4f));
+
+            AddStep("hold opacity 40%", () => highwayConfig.SetValue(HighwaySetting.HoldOpacity, 0.4f));
+            AddUntilStep("the body is 40% as opaque", () => holdBody(held).Near.A, () => Is.EqualTo(0.4f * body).Within(1e-4f));
+            AddAssert("its head is not", () => holdEndAlpha(held, HighwayNoteLayer.NoteQuadKind.HoldHead), () => Is.EqualTo(head).Within(1e-4f));
+            AddAssert("nor its tail", () => holdEndAlpha(held, HighwayNoteLayer.NoteQuadKind.HoldTail), () => Is.EqualTo(tail).Within(1e-4f));
+
+            AddStep("hold opacity 0%", () => highwayConfig.SetValue(HighwaySetting.HoldOpacity, 0f));
+            AddUntilStep("bodies never vanish", () => holdBody(held).Near.A, () => Is.EqualTo(HighwaySettings.MIN_HOLD_OPACITY * body).Within(1e-4f));
+        }
+
+        private HighwayNoteLayer.NoteQuad holdBody(DrawableHoldNote hold) => quadsFor(hold.HitObject).Single(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody);
+
+        private float holdEndAlpha(DrawableHoldNote hold, HighwayNoteLayer.NoteQuadKind kind) => quadsFor(hold.HitObject).Where(q => q.Kind == kind).Max(q => q.Near.A);
 
         [Test]
         public void TestHoldHeldPastItsEndKeepsItsHeadOnTheLine()

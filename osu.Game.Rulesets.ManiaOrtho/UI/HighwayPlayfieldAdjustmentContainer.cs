@@ -172,6 +172,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public HighwayGuides Guides { get; }
 
         /// <summary>
+        /// Each lane's piece of the judgement line lit after a hit (with the highway's hit effects), in <see cref="Overlay"/>
+        /// over the guides and under the notes.
+        /// </summary>
+        public HighwaySlotLights SlotLights { get; }
+
+        /// <summary>
         /// Notes drawn natively on the track, in <see cref="Overlay"/> over the guides and under the wall. Only used with
         /// <see cref="HighwayNoteStyle.Highway"/>.
         /// </summary>
@@ -310,6 +316,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     Children = new Drawable[]
                     {
                         Guides = new HighwayGuides(),
+                        SlotLights = new HighwaySlotLights { Alpha = 0 },
                         NoteLayer = new HighwayNoteLayer { Alpha = 0 },
                         PortedKeys = new PortedKeyArea { Alpha = 0 },
                         Wall = new HighwayWall(),
@@ -437,6 +444,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             Track.SetLanes(stageLanes, columnLanes);
             Track.FarDepth = Warp.Scroll.AppearDepth;
+            Track.FloorOpacity = Settings.TrackOpacity;
+            PortedTrack.BackgroundOpacity = Settings.TrackOpacity;
             updateBeams();
 
             FlatStage = measureFlatStage(stage);
@@ -467,12 +476,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 NoteLayer.SnapColours = timingBasedColouring.Value;
                 NoteLayer.Ported = PortedNotesShown ? portedNotes : null;
                 NoteLayer.FarFade = DepthCover.FarFade(Warp.Scroll.AppearDepth, Settings.FarFade);
+                NoteLayer.HoldOpacity = Settings.HoldOpacity;
                 measureCovers(stage);
                 NoteLayer.Gather(drawableRuleset.Playfield, columnLanes, columnCovers, scrollingInfo.Algorithm.Value, scrollingInfo.TimeRange.Value, Warp.Scroll,
                     Time.Current);
             }
 
             HitEffects.Place(Projection, columnLanes, highwayEffects, highwayEffects || PortedLightingShown);
+
+            SlotLights.Layout = Projection.Layout;
+            SlotLights.Alpha = highwayEffects ? 1 : 0;
+            SlotLights.SetLights(columnLanes, HitEffects.SlotLights);
 
             PortedLighting.Active = PortedLightingShown;
             PortedLighting.Alpha = PortedLightingShown ? 1 : 0;

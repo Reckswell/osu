@@ -131,6 +131,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.StageFit, defaults.StageFit);
             SetDefault(HighwaySetting.SkinNoteProportions, defaults.SkinNoteProportions);
             SetDefault(HighwaySetting.FarFade, defaults.FarFade, 0f, HighwaySettings.MAX_FAR_FADE, 0.01f);
+            SetDefault(HighwaySetting.HoldOpacity, defaults.HoldOpacity, HighwaySettings.MIN_HOLD_OPACITY, 1f, 0.01f);
+            SetDefault(HighwaySetting.TrackOpacity, defaults.TrackOpacity, 0f, 1f, 0.01f);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
         }
 
@@ -156,13 +158,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             StageFit = Get<SkinStageFit>(HighwaySetting.StageFit),
             SkinNoteProportions = Get<bool>(HighwaySetting.SkinNoteProportions),
             FarFade = Get<float>(HighwaySetting.FarFade),
+            HoldOpacity = Get<float>(HighwaySetting.HoldOpacity),
+            TrackOpacity = Get<float>(HighwaySetting.TrackOpacity),
         };
 
         /// <summary>
         /// Writes a preset's values into the individual settings. Leaves <see cref="HighwaySetting.WallKeepsVisibleTime"/>,
         /// <see cref="HighwaySetting.LaneGuides"/>, <see cref="HighwaySetting.SkinHitTarget"/>,
         /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/>, <see cref="HighwaySetting.Track"/>,
-        /// <see cref="HighwaySetting.FarFade"/> and the skin porter's settings alone (preferences, not part of a camera).
+        /// <see cref="HighwaySetting.FarFade"/>, <see cref="HighwaySetting.HoldOpacity"/>, <see cref="HighwaySetting.TrackOpacity"/> and the
+        /// skin porter's settings alone (preferences, not part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
         {
@@ -229,6 +234,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         StageFit,
         SkinNoteProportions,
         FarFade,
+        HoldOpacity,
+        TrackOpacity,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.

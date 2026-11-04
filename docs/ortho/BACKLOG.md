@@ -180,7 +180,8 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
 
 - [x] Legacy skin textures on projected notes: the runtime skin porter (Alpha's ask, 2026-11-04; survey in
       `research/skins-survey.md`). Open: the default key-area variant for raised hit positions (asked on a card).
-- [ ] Optional "Hold opacity" 10-100% and "Track opacity" 0-100% settings, and the judgement line lit per lane on a hit
-  in the result's colour (`game-sekai.md` K6, K7, K9).
+- [x] Optional "Hold opacity" 10-100% and "Track opacity" 0-100% settings, and the judgement line lit per lane on a hit
+  in the result's colour (`game-sekai.md` K6, K7, K9). Multipliers, default 100%; slot lights retuned after the
+  playtest (DECISIONS 2026-11-04). Open: Great and Meh slot colours seen only in tests (autoplay hits Perfects).
 - [ ] Optional cosmetic camera motion (kiai sway), off by default.
 - [ ] More presets from research.

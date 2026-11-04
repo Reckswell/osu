@@ -199,12 +199,24 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "note size", "note height" },
                 },
+                new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Hold opacity",
+                    HintText = "How solid hold note bodies are, so notes and the track show through long holds. Their heads and tails "
+                               + "stay solid. Highway and Skin (ported) notes only.",
+                    Current = highway.GetBindable<float>(HighwaySetting.HoldOpacity),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.01f,
+                })
+                {
+                    Keywords = new[] { "long note", "ln", "transparency", "hold body", "sekai" },
+                },
                 new SettingsItemV2(new FormEnumDropdown<HighwayHitEffectStyle>
                 {
                     Caption = "Hit effects",
-                    HintText = "Highway: bursts on the track at the judgement line, gold for Perfect and orange for Great, and a glow "
-                               + "while you hold a note. Skin (ported): your skin's hit and hold lighting, upright at the line. Skin "
-                               + "(warped): your skin's hit explosions, tilted with the track.",
+                    HintText = "Highway: bursts on the track at the judgement line, gold for Perfect and orange for Great, that also "
+                               + "light the lane's piece of the line, and a glow while you hold a note. Skin (ported): your skin's hit and "
+                               + "hold lighting, upright at the line. Skin (warped): your skin's hit explosions, tilted with the track.",
                     Current = highway.GetBindable<HighwayHitEffectStyle>(HighwaySetting.HitEffects),
                 })
                 {
@@ -220,6 +232,19 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 })
                 {
                     Keywords = new[] { "stage", "lane background", "column", "receptor", "key area", "floor", "beam", "lane lighting", "port" },
+                },
+                new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Track opacity",
+                    HintText = "How solid the lanes' background is: the Highway floor, or your skin's lane colours under Skin (ported). "
+                               + "Lower shows more of the beatmap's background through the lanes; the background dim still applies. Lines, "
+                               + "rails and lighting stay.",
+                    Current = highway.GetBindable<float>(HighwaySetting.TrackOpacity),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.01f,
+                })
+                {
+                    Keywords = new[] { "lane transparency", "lane opacity", "floor", "background", "brightness", "sekai" },
                 },
                 new SettingsItemV2(new FormEnumDropdown<SkinKeyArea>
                 {

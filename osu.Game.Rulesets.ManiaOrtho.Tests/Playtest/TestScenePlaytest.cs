@@ -400,6 +400,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         stageFit = used.StageFit.ToString(),
                         used.SkinNoteProportions,
                         used.FarFade,
+                        used.HoldOpacity,
+                        used.TrackOpacity,
                         ported = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Port != null,
                     }
                     : null,

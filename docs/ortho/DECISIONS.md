@@ -792,3 +792,53 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Why not every chart at both speeds**: each run is 2-4 minutes per ruleset in the cloud; one 840 ms chart shows the
   slower look, and Alpha plays at 405 ms.
 - **Reverse**: restore the `beatmaps` default and drop the `runs` list in both scripts.
+
+## 2026-11-04: Hold and track opacity multiply the look as designed; a hit lights its lane's piece of the line
+
+- **What** (BACKLOG M6, `research/game-sekai.md` K6, K7, K9): two preferences outside the presets, "Hold opacity"
+  10-100% and "Track opacity" 0-100%, both 100% by default, and with the highway's hit effects each hit lights its
+  lane's piece of the judgement line in its result's colour, fading linearly over 300 ms.
+- **Opacities are multipliers, not absolute alphas.** K9 proposed "Track opacity" as the floor's alpha with today's 90%
+  as the default. A multiplier (default 100%) leaves every look unchanged until it is moved, and the same slider then
+  also scales a ported skin's own lane colours (most stable skins set them, with their own alpha) instead of overriding
+  them. The cost: the highway floor tops out at today's 90%; osu!'s background dim already darkens what shows through.
+  Hold opacity multiplies the body's state alphas (55% idle, 85% held, 35% dropped) and a ported skin's body image, as
+  Sekai's Long Note Transparency does its connector; its 10% floor is Sekai's. Heads and tails keep full strength.
+- **Not Quaver's idle-alpha reading** (`research/game-quaver.md` QV6: the slider as the idle body alpha, default
+  55%, so 100% reaches Quaver's and argon's opaque bodies). One slider would then mean an alpha for Highway notes and a
+  factor for a ported skin's body image, whose default (most skins draw opaque bodies) must stay as the skin has it.
+  Opaque bodies already come with Skin (ported), Alpha's default. Revisit if Alpha wants solid Highway bodies.
+- **What each covers**: Track opacity scales only the lanes' background (the highway floor above and below the line, or
+  the skin's `Colour1..N` under Skin (ported)), not the rails, lines, stage sides, beams or lighting, so the lanes stay
+  readable at 0%. Neither applies to Skin (warped) parts or the flat camera, which are mania's own drawables.
+- **Slot lights**: part of "Hit effects: Highway" (no separate toggle), on the same results as the bursts (none on a
+  miss). Colour by result (K7: colour is the grade cue with the top judgement text hidden): the burst's colour (Great
+  orange, Good green-white, Meh muted green), except a Perfect's pale gold `#FFF4D0`. Peak 80% times the burst's own
+  alpha (Meh dimmer), linear over 300 ms *(tune)*. Drawn as a screen-space band over the guides' judgement line and under
+  the notes: solid over the line's glow height (3.3% H) and fading over 1% H beyond it; mixture blending, since additive
+  would wash every colour over the gold glow towards the same pale yellow.
+- **Tuned after the playtest** (first cut: the burst's gold for Perfect, 60%, Sekai's 500 ms): measured on captures,
+  a Perfect's gold on the line's gold glow read as a thicker glow, not as the lane lit, and a 1/4 stream at 170 BPM lit
+  5 to 7 of 7 lanes at once, so the whole line just looked thicker. Pale gold keeps the core white and makes the lane's
+  piece a flat bright bar; 300 ms lights three or four lanes in such a stream; 80% keeps it visible once the burst over
+  it (its first ~150 ms) has faded. Greats and Mehs are only checked in tests so far: autoplay hits only Perfects.
+- **Rewinds**: rewound to before a hit, its lane is dark until the replayed hit lights it again; switching the effects
+  off clears every light.
+- **Two layering exceptions, accepted**: with Skin (ported) track and a key panel, the skin's keys stand in front of the
+  line (as they stand in front of notes) and cover the band's lower half; Skin (warped) notes are drawn in the warped
+  stage under the overlay, so the band (like the guides' judgement line) lies over them at the line.
+- **Gate**: `TestSceneHighwaySettings.TestOpacities` (defaults, the 10% floor, outside presets),
+  `TestSceneHighwayNativeNotes.TestHoldOpacity` (a held body at 85% then 40% of it, its head unchanged, the floor),
+  `TestSceneHighwayTrack.TestTrackOpacity`, `TestSceneSkinPort.TestOpacitiesReachTheSkinsTrackAndHolds`,
+  `HitBurstStyleTest` (slot fade, peak per result, colours), `HighwayTrackTest` (floor and ported lane background as
+  drawn, the band across lanes, the slot band centred on the line at the camera's height and a lifted one),
+  `TestSceneHighwayHitEffects.TestHitsLightTheirLanesPieceOfTheLine` (exactly the lanes hit in the last 300 ms, at the
+  expected strength and colour, between the guides and the notes), `TestSlotsGoDarkWhenTheEffectsAreSwitchedOff` and the
+  miss, flat and skin-effects cases; `TestJudgementParityWithNativeNotes` now also checks that slot lights fired during
+  the parity run. Mutations: the hold factor dropped from native bodies fails `TestHoldOpacity`; hits not recording
+  their time fails the slot scene test. Review (approve with fixes): tests reached only properties (draw values moved
+  into tested helpers), the deactivation path was untested, the tail was unchecked; all fixed. Playtester: hold bodies at
+  exactly 0.4x over the measured background (native and classic), the floor 0.9 to 0.36, nothing else changed, slot
+  alphas within 0.01 of the formula, unlit lanes' line byte-identical; its Perfect and stream notes led to the tuning.
+- **Reverse**: drop `HighwaySetting.HoldOpacity` / `TrackOpacity` and their three uses in the container; remove
+  `HighwaySlotLights` and the slot arrays in `HighwayHitEffectLayer`.

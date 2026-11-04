@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using osu.Framework.Extensions.Color4Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Pooling;
@@ -12,14 +13,17 @@ using osu.Game.Rulesets.Mania.Objects.Drawables;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.Objects.Drawables;
+using osu.Game.Rulesets.Scoring;
 using osuTK;
+using osuTK.Graphics;
 
 namespace osu.Game.Rulesets.ManiaOrtho.UI
 {
     /// <summary>
     /// Hit lighting at the judgement line (SPEC 5 and 7; research <c>game-chunithm-feedback.md</c> P1, P2 and P6): a burst
-    /// lying flat on the track in the lane's projected position for each hit, coloured by result, and a glow in each lane
-    /// while a hold is held. Shown under <see cref="HighwayHitEffectStyle.Highway"/>, where it replaces the skin's hit
+    /// lying flat on the track in the lane's projected position for each hit, coloured by result, the lane's piece of the
+    /// judgement line lit in the same colour (<see cref="SlotLights"/>, research <c>game-sekai.md</c> K7), and a glow in each
+    /// lane while a hold is held. Shown under <see cref="HighwayHitEffectStyle.Highway"/>, where it replaces the skin's hit
     /// explosions (which the warp would stretch near the line).
     /// </summary>
     /// <remarks>
@@ -53,6 +57,25 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public const double MAX_TICK_INTERVAL = 300;
 
         /// <summary>
+        /// How long a lane's piece of the judgement line stays lit after a hit, fading linearly: Sekai's slot light
+        /// (research <c>game-sekai.md</c> K7), shortened from its 500 ms so a 1/4 stream lights three or four lanes at once,
+        /// not the whole line (tune).
+        /// </summary>
+        public const double SLOT_DURATION = 300;
+
+        /// <summary>
+        /// A slot's opacity just after a Perfect or Great (other results scale it by their burst's): strong enough to still
+        /// show once the burst over it has faded (tune). Notes cross the line over it.
+        /// </summary>
+        public const float SLOT_ALPHA = 0.8f;
+
+        /// <summary>
+        /// A Perfect's slot: a pale gold, close to white. The burst's gold would vanish into the judgement line's own gold glow
+        /// and read as a thicker glow, not as the lane lit.
+        /// </summary>
+        public static readonly Color4 PERFECT_SLOT_COLOUR = Color4Extensions.FromHex("#FFF4D0");
+
+        /// <summary>
         /// Whether the highway's hit effects are shown this frame (and the skin's explosions hidden).
         /// </summary>
         public bool Active { get; private set; }
@@ -67,12 +90,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// </summary>
         public IReadOnlyList<HighwayHoldGlow> HoldGlows => glows.Children;
 
+        /// <summary>
+        /// Each column's slot light this frame, in playfield column order: its last hit's colour at the light's current
+        /// strength, transparent when unlit. Drawn by <see cref="HighwaySlotLights"/>.
+        /// </summary>
+        public ReadOnlySpan<Color4> SlotLights => slotLights;
+
+        /// <summary>
+        /// How many hits have lit a slot since this layer loaded.
+        /// </summary>
+        public int SlotsLit { get; private set; }
+
         private readonly List<Column> columns = new List<Column>();
         private readonly List<Action<DrawableHitObject, JudgementResult>> handlers = new List<Action<DrawableHitObject, JudgementResult>>();
         private readonly ControlPointInfo controlPoints;
         private readonly DrawablePool<HighwayHitBurst> pool;
         private readonly Container<HighwayHoldGlow> glows;
         private readonly Container<HighwayHitBurst> bursts;
+
+        private readonly double[] slotTimes;
+        private readonly Color4[] slotColours;
+        private readonly float[] slotPeaks;
+        private readonly Color4[] slotLights;
 
         /// <summary>
         /// Whether the skin's explosions are currently hidden by this layer.
@@ -98,6 +137,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             for (int i = 0; i < columns.Count; i++)
                 glows.Add(new HighwayHoldGlow());
+
+            slotTimes = new double[columns.Count];
+            slotColours = new Color4[columns.Count];
+            slotPeaks = new float[columns.Count];
+            slotLights = new Color4[columns.Count];
+            Array.Fill(slotTimes, double.NaN);
         }
 
         protected override void LoadComplete()
@@ -132,7 +177,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             var burst = pool.Get();
             burst.Apply(index, result.Type, style, seed);
             bursts.Add(burst);
+
+            slotTimes[index] = Time.Current;
+            slotColours[index] = SlotColour(result.Type, style);
+            slotPeaks[index] = SlotPeak(style);
+            SlotsLit++;
         }
+
+        /// <summary>
+        /// A slot light's colour: the result's burst colour, but <see cref="PERFECT_SLOT_COLOUR"/> for a Perfect.
+        /// </summary>
+        public static Color4 SlotColour(HitResult result, HitBurstStyle style) => result == HitResult.Perfect ? PERFECT_SLOT_COLOUR : style.Colour;
+
+        /// <summary>
+        /// A slot light's opacity on the hit: <see cref="SLOT_ALPHA"/> scaled as the result's burst is (a Meh's is dimmer).
+        /// </summary>
+        public static float SlotPeak(HitBurstStyle style) => SLOT_ALPHA * style.Alpha;
+
+        /// <summary>
+        /// A slot light's strength <paramref name="elapsed"/> milliseconds after its hit: 1 on the hit, falling linearly to 0 at
+        /// <see cref="SLOT_DURATION"/>. Nothing before the hit (time rewound past it) or without one (NaN).
+        /// </summary>
+        public static float SlotLevel(double elapsed) => elapsed >= 0 && elapsed < SLOT_DURATION ? (float)(1 - elapsed / SLOT_DURATION) : 0;
 
         /// <summary>
         /// Moves the effects to their lanes on the highway and shows or hides them. Called by the highway once per frame,
@@ -149,6 +215,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             {
                 // Hidden, this layer's children are not updated, so bursts would not expire; return them to the pool now.
                 bursts.Clear(false);
+                Array.Fill(slotTimes, double.NaN);
             }
 
             Active = active;
@@ -183,6 +250,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
                 if (burst.Column < columnLanes.Length)
                     place(burst, projection, columnLanes[burst.Column], trackWidth, burst.Style.RingEnd);
+            }
+
+            for (int i = 0; i < slotTimes.Length; i++)
+            {
+                // Rewound past the hit (a replay seeking back), the lane is dark until the replayed hit lights it again.
+                float level = active ? SlotLevel(Time.Current - slotTimes[i]) : 0;
+                slotLights[i] = level > 0 ? slotColours[i].Opacity(slotPeaks[i] * level) : Color4.Transparent;
             }
 
             float phase = HoldTickPhase(Time.Current, controlPoints.TimingPointAt(Time.Current));

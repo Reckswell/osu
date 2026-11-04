@@ -52,7 +52,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         /// Native notes take over drawing mania's notes (their containers are proxied away); judging must not notice.
         /// </summary>
         [TestCase("synthetic-7k", 4)]
-        public void TestJudgementParityWithNativeNotes(string source, int seed) => testParity(source, seed, HighwayNoteStyle.Highway);
+        public void TestJudgementParityWithNativeNotes(string source, int seed)
+        {
+            testParity(source, seed, HighwayNoteStyle.Highway);
+
+            // The highway's hit effects (every case but the ported one) listen to each column's results for bursts and slot lights.
+            AddAssert("ortho run lit the line on hits", () => ortho.SlotsLit, () => Is.GreaterThan(0));
+        }
 
         /// <summary>
         /// Hidden, Fade In and Cover wrap mania's note containers, which native notes read to fade the same way. Flashlight is
@@ -244,7 +250,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault() is HighwayPlayfieldAdjustmentContainer h
                     && h.Port != null && h.PortedNotesShown && h.PortedTrackShown && h.PortedLightingShown,
                     currentPlayer.ChildrenOfType<PlayLogRecorder>().SingleOrDefault() is PlayLogRecorder recorder ? recorder.Writing == null ? "not logged" : "logged" : "none",
-                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NoteLayer.FarFade.IsActive == true));
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NoteLayer.FarFade.IsActive == true,
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.HitEffects.SlotsLit ?? 0));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -256,6 +263,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
         private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
                                   float? LineHeight, bool HighwayTrack, int LivePerformance, bool Ported,
-                                  string PlayLog, bool FarFade);
+                                  string PlayLog, bool FarFade, int SlotsLit);
     }
 }

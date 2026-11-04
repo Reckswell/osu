@@ -11,7 +11,8 @@ using osu.Game.Rulesets.Scoring;
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 {
     /// <summary>
-    /// Which burst each mania result gets (research game-chunithm-feedback P1 and P2), and the hold glow's pulse rate (P6).
+    /// Which burst each mania result gets (research game-chunithm-feedback P1 and P2), the hold glow's pulse rate (P6), and how
+    /// long a hit lights its lane's piece of the judgement line.
     /// </summary>
     [TestFixture]
     public class HitBurstStyleTest
@@ -86,6 +87,46 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             // Before the timing point (a hold under the first one): still on the grid, in [0, 1).
             Assert.That(HighwayHitEffectLayer.HoldTickPhase(1000 - interval * 0.25, timing), Is.EqualTo(0.75f).Within(1e-4));
+        }
+
+        /// <summary>
+        /// A hit lights its lane's piece of the line and the light falls linearly to nothing over 300 ms (research
+        /// game-sekai.md K7, shortened from Sekai's 500 ms).
+        /// </summary>
+        [TestCase(0, 1f)]
+        [TestCase(75, 0.75f)]
+        [TestCase(150, 0.5f)]
+        [TestCase(297, 0.01f)]
+        [TestCase(300, 0f)]
+        [TestCase(5000, 0f)]
+        [TestCase(-16, 0f)] // Rewound before the hit.
+        [TestCase(double.NaN, 0f)] // Never hit.
+        public void TestSlotLightFadesLinearly(double elapsed, float level)
+            => Assert.That(HighwayHitEffectLayer.SlotLevel(elapsed), Is.EqualTo(level).Within(1e-4f));
+
+        /// <summary>
+        /// A slot lights as strongly as the result's burst: Perfect and Great at the full 80%, a Meh dimmer (a miss has none).
+        /// </summary>
+        [TestCase(HitResult.Perfect, 0.8f)]
+        [TestCase(HitResult.Great, 0.8f)]
+        [TestCase(HitResult.Good, 0.72f)]
+        [TestCase(HitResult.Meh, 0.48f)]
+        public void TestSlotLightPeak(HitResult result, float peak)
+            => Assert.That(HighwayHitEffectLayer.SlotPeak(HitBurstStyle.For(result)!.Value), Is.EqualTo(peak).Within(1e-4f));
+
+        /// <summary>
+        /// Slots take the burst's colour, except a Perfect's pale gold, which stands out from the judgement line's gold glow.
+        /// </summary>
+        [Test]
+        public void TestSlotLightColours()
+        {
+            Assert.That(HighwayHitEffectLayer.SlotColour(HitResult.Perfect, HitBurstStyle.For(HitResult.Perfect)!.Value),
+                Is.EqualTo(HighwayHitEffectLayer.PERFECT_SLOT_COLOUR));
+            Assert.That(HighwayHitEffectLayer.SlotColour(HitResult.Great, HitBurstStyle.For(HitResult.Great)!.Value), Is.EqualTo(HitBurstStyle.GREAT_COLOUR));
+            Assert.That(HighwayHitEffectLayer.SlotColour(HitResult.Meh, HitBurstStyle.For(HitResult.Meh)!.Value), Is.EqualTo(HitBurstStyle.MEH_COLOUR));
+
+            // Paler than the glow's gold (255, 226, 119): more blue, so a lit lane reads as lit rather than as a thicker glow.
+            Assert.That(HighwayHitEffectLayer.PERFECT_SLOT_COLOUR.B, Is.GreaterThan(0.75f));
         }
     }
 }

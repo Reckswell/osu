@@ -230,9 +230,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// The band across the whole track between screen heights <paramref name="top"/> and <paramref name="bottom"/>, its
         /// sides on the track's edges (the judgement line and its glow).
         /// </summary>
-        public static Quad GetAcrossTrack(in HighwayProjection projection, float top, float bottom) => new Quad(
-            new Vector2(projection.XAt(0, top), top), new Vector2(projection.XAt(1, top), top),
-            new Vector2(projection.XAt(0, bottom), bottom), new Vector2(projection.XAt(1, bottom), bottom));
+        public static Quad GetAcrossTrack(in HighwayProjection projection, float top, float bottom) => GetAcrossLanes(projection, 0, 1, top, bottom);
+
+        /// <summary>
+        /// The band between lanes <paramref name="lane0"/> and <paramref name="lane1"/> and screen heights <paramref name="top"/>
+        /// and <paramref name="bottom"/>, its sides on the lane edges' straight lines, above the judgement line or below it.
+        /// </summary>
+        public static Quad GetAcrossLanes(in HighwayProjection projection, float lane0, float lane1, float top, float bottom) => new Quad(
+            new Vector2(projection.XAt(lane0, top), top), new Vector2(projection.XAt(lane1, top), top),
+            new Vector2(projection.XAt(lane0, bottom), bottom), new Vector2(projection.XAt(lane1, bottom), bottom));
     }
 
     /// <summary>
