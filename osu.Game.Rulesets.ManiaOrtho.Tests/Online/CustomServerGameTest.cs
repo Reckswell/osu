@@ -95,7 +95,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Online
             using (var host = new CleanRunHeadlessGameHost(callingMethodName: $"{nameof(CustomServerGameTest)}-{Guid.NewGuid()}"))
             {
                 var game = new StartingGame(address, token, tokenServer);
-                var run = Task.Factory.StartNew(() => host.Run(game), TaskCreationOptions.LongRunning);
+                var run = Task.Factory.StartNew(state => ((GameHost)state!).Run(game), host, TaskCreationOptions.LongRunning);
 
                 try
                 {

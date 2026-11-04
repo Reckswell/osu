@@ -37,7 +37,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
 
         private static readonly byte[] map_file = Encoding.UTF8.GetBytes(SyntheticManiaMap.Create(4, 8, 300, 8));
 
-        private FakeScoreServer server = null!;
+        private FakeScoreServer? server;
 
         protected override bool HasCustomSteps => true;
 
@@ -69,7 +69,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             AddStep("send plays there", () =>
             {
                 config.SetValue(ScoreServerSetting.ScoreServerEnabled, true);
-                config.SetValue(ScoreServerSetting.ScoreServerAddress, server.Address);
+                config.SetValue(ScoreServerSetting.ScoreServerAddress, server!.Address);
                 log.DeleteDirectory(ScoreServerClient.OUTBOX_DIRECTORY);
             });
 
@@ -79,10 +79,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             AddUntilStep("logged and sent", () => recorder.Writing?.IsCompleted == true);
 
             AddAssert("sent and rated", () => recorder.ScoreServerOutcome?.Kind, () => Is.EqualTo(ScoreServerOutcomeKind.Sent));
-            AddAssert("one request", () => server.Requests, () => Has.Count.EqualTo(1));
+            AddAssert("one request", () => server!.Requests, () => Has.Count.EqualTo(1));
             AddAssert("the play as logged", () =>
             {
-                var sent = JsonConvert.DeserializeObject<PlayUpload>(server.Requests.Single().PartText("play"))!;
+                var sent = JsonConvert.DeserializeObject<PlayUpload>(server!.Requests.Single().PartText("play"))!;
 
                 return new object?[]
                 {
@@ -90,8 +90,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
                     sent.Statistics["Miss"].ToString(CultureInfo.InvariantCulture), sent.Settings["preset"],
                 };
             }, () => Is.EqualTo(loggedRow()));
-            AddAssert("with its map file", () => server.Requests.Single().Parts["beatmap"], () => Is.EqualTo(map_file));
-            AddAssert("and its replay", () => server.Requests.Single().Parts["replay"].Length, () => Is.GreaterThan(0));
+            AddAssert("with its map file", () => server!.Requests.Single().Parts["beatmap"], () => Is.EqualTo(map_file));
+            AddAssert("and its replay", () => server!.Requests.Single().Parts["replay"].Length, () => Is.GreaterThan(0));
             AddAssert("nothing queued", () => new ScoreServerClient(log).QueuedCount, () => Is.Zero);
         }
 
@@ -118,6 +118,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
                 config.SetValue(ScoreServerSetting.ScoreServerEnabled, false);
                 config.GetBindable<string>(ScoreServerSetting.ScoreServerAddress).SetDefault();
                 server?.Dispose();
+                server = null;
             });
         }
     }

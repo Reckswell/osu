@@ -3,6 +3,8 @@
 
 using Newtonsoft.Json;
 
+// Shared by the game and the server, so one namespace for both projects.
+// ReSharper disable once CheckNamespace
 namespace ManiaOrtho.ScoreServerContract
 {
     /// <summary>

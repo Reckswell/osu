@@ -87,7 +87,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
         public async Task TestRedirectsAreNotFollowed(int status)
         {
             using var elsewhere = new FakeScoreServer();
-            using var server = new FakeScoreServer { Respond = _ => (status, string.Empty), Location = elsewhere.Address + "/api/plays" };
+            using var server = new FakeScoreServer();
+            server.Respond = _ => (status, string.Empty);
+            server.Location = elsewhere.Address + "/api/plays";
 
             var outcome = await client.SendAsync(server.Address, play("a"), map, replay).ConfigureAwait(false);
 
@@ -103,7 +105,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
         [TestCase(200, "<html>a router's page</html>")]
         public async Task TestWrongAddressKeepsThePlays(int status, string body)
         {
-            using var server = new FakeScoreServer { Respond = _ => (status, body) };
+            using var server = new FakeScoreServer();
+            server.Respond = _ => (status, body);
 
             await client.SendAsync(FakeScoreServer.UnusedAddress(), play("first", 1), map, replay).ConfigureAwait(false);
             var outcome = await client.SendAsync(server.Address, play("second", 2), map, replay).ConfigureAwait(false);
@@ -230,7 +233,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
         [Test]
         public async Task TestRefusedSignInKeepsThePlayWaiting()
         {
-            using var server = new FakeScoreServer { Respond = _ => (401, "{\"error\":\"signed out\"}") };
+            using var server = new FakeScoreServer();
+            server.Respond = _ => (401, "{\"error\":\"signed out\"}");
             var signedIn = new ScoreServerClient(new NativeStorage(folder), signIn: _ => "stale-token");
 
             var waiting = await signedIn.SendAsync(server.Address, play("a"), map, replay).ConfigureAwait(false);
@@ -358,7 +362,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
         [Test]
         public async Task TestServerErrorQueuesButRefusalSetsAside()
         {
-            using var server = new FakeScoreServer { Respond = _ => (500, "{\"error\":\"disk full\"}") };
+            using var server = new FakeScoreServer();
+            server.Respond = _ => (500, "{\"error\":\"disk full\"}");
 
             var failed = await client.SendAsync(server.Address, play("a", 1), map, replay).ConfigureAwait(false);
 
@@ -388,7 +393,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
         [Test]
         public async Task TestPlayTheServerKeepsFailingOnIsSetAside()
         {
-            using var server = new FakeScoreServer { Respond = _ => (500, "{}") };
+            using var server = new FakeScoreServer();
+            server.Respond = _ => (500, "{}");
 
             await client.SendAsync(server.Address, play("stuck", 1), map, replay).ConfigureAwait(false);
 
@@ -405,7 +411,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             Assert.That(client.QueuedCount, Is.Zero);
 
             string kept = Directory.GetDirectories(Path.Combine(folder, ScoreServerClient.REFUSED_DIRECTORY)).Single();
-            Assert.That(File.ReadAllText(Path.Combine(kept, ScoreServerClient.ERROR_FILE)), Does.Contain($"({ScoreServerClient.MAX_SERVER_ERRORS} times)"));
+            Assert.That(await File.ReadAllTextAsync(Path.Combine(kept, ScoreServerClient.ERROR_FILE)).ConfigureAwait(false), Does.Contain($"({ScoreServerClient.MAX_SERVER_ERRORS} times)"));
         }
 
         [Test]

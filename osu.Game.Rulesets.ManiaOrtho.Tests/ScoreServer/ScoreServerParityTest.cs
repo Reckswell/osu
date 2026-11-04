@@ -100,7 +100,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
                 Passed = true,
             };
 
-            return (attributes.StarRating, ruleset.CreatePerformanceCalculator()!.Calculate(score, attributes).Total);
+            return (attributes.StarRating, ruleset.CreatePerformanceCalculator().Calculate(score, attributes).Total);
         }
 
         public static byte[] Map(JToken entry) => System.Text.Encoding.UTF8.GetBytes(SyntheticManiaMap.Create(

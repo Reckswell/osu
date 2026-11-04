@@ -1,6 +1,8 @@
 ﻿// Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+// Shared by the game and the server, so one namespace for both projects.
+// ReSharper disable once CheckNamespace
 namespace ManiaOrtho.ScoreServerContract
 {
     public static class ScoreServerProtocol

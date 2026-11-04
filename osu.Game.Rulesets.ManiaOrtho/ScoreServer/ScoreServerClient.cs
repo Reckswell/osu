@@ -271,14 +271,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Post, address + "/api/plays");
-                using var form = new MultipartFormDataContent
-                {
-                    { new StringContent(playJson, Encoding.UTF8, "application/json"), "play" },
-                    { new ByteArrayContent(beatmap), "beatmap", BEATMAP_FILE },
-                };
-
-                if (replay != null)
-                    form.Add(new ByteArrayContent(replay), "replay", REPLAY_FILE);
+                using var form = createForm(playJson, beatmap, replay);
 
                 request.Content = form;
                 request.Headers.Add(ScoreServerProtocol.CLIENT_HEADER, ManiaOrthoRuleset.SHORT_NAME);
@@ -340,6 +333,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
             }
 
             static ScoreServerOutcome wrongAddress(string message) => new ScoreServerOutcome(ScoreServerOutcomeKind.Queued, null, message);
+
+            static MultipartFormDataContent createForm(string playJson, byte[] beatmap, byte[]? replay)
+            {
+                var form = new MultipartFormDataContent
+                {
+                    { new StringContent(playJson, Encoding.UTF8, "application/json"), "play" },
+                    { new ByteArrayContent(beatmap), "beatmap", BEATMAP_FILE },
+                };
+
+                if (replay != null)
+                    form.Add(new ByteArrayContent(replay), "replay", REPLAY_FILE);
+
+                return form;
+            }
 
             static string detail(string body) => errorMessage(body) is string error ? $": {error}" : string.Empty;
         }
