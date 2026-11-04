@@ -2,10 +2,13 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Linq;
 using osu.Framework.Allocation;
 using osu.Framework.Configuration;
 using osu.Framework.Configuration.Tracking;
 using osu.Framework.Graphics;
+using osu.Game.Input;
+using osu.Game.Input.Bindings;
 using osu.Game.Localisation;
 using osu.Game.Overlays;
 using osu.Game.Rulesets.Mania.Configuration;
@@ -18,7 +21,7 @@ using osu.Game.Skinning;
 namespace osu.Game.Rulesets.ManiaOrtho.UI
 {
     /// <summary>
-    /// The toasts osu! shows in gameplay when the scroll speed (F3 and F4) or the wall (Shift+F3 and Shift+F4) changes, with
+    /// The toasts osu! shows in gameplay when the scroll speed (F3 and F4) or the wall (Shift with those) changes, with
     /// how long notes are now visible on the highway (<see cref="VisibleTime"/>): mania's own speed toast shows
     /// <c>11485 / speed</c>, which ignores the skin's hit position and the wall (research/topic-covers.md C3).
     /// </summary>
@@ -29,7 +32,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
     public partial class HighwayToasts : Component
     {
         /// <summary>
-        /// The keys that move the wall in gameplay (<see cref="HighwayHotkeys"/>), named under the wall's toast.
+        /// The keys that move the wall in gameplay (<see cref="HighwayHotkeys"/>) with osu!'s default bindings, named under the
+        /// wall's toast. The toast names the keys bound now (<see cref="WallShortcut"/>).
         /// </summary>
         public const string WALL_SHORTCUT = "Shift+F3 / Shift+F4";
 
@@ -44,6 +48,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         [Resolved]
         private ISkinSource skin { get; set; } = null!;
+
+        [Resolved]
+        private RealmKeyBindingStore? keyBindingStore { get; set; }
 
         private IDisposable? speedTracker;
         private IDisposable? wallTracker;
@@ -113,7 +120,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 rawValue: wall,
                 name: "Wall",
                 value: $"{cover} · {visible} ms visible",
-                shortcut: WALL_SHORTCUT);
+                shortcut: WallShortcut);
+        }
+
+        /// <summary>
+        /// The keys that move the wall now: Shift with the first key bound to each scroll speed action, as osu! names keys in
+        /// its own toasts (<see cref="WALL_SHORTCUT"/> outside a game).
+        /// </summary>
+        public string WallShortcut
+        {
+            get
+            {
+                if (keyBindingStore == null)
+                    return WALL_SHORTCUT;
+
+                return $"Shift+{firstKey(GlobalAction.DecreaseScrollSpeed)} / Shift+{firstKey(GlobalAction.IncreaseScrollSpeed)}";
+
+                string firstKey(GlobalAction action) => keyBindingStore.GetReadableKeyCombinationsFor(action).FirstOrDefault() ?? ToastStrings.NoKeyBound.ToString();
+            }
         }
 
         private double visibleTimeAt(double targetTimeRange)

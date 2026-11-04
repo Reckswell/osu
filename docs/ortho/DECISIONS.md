@@ -1084,6 +1084,73 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   lines are drawn.
 - **Reverse**: pass an empty span of lines to `HighwayNoteLayer.Gather`.
 
+## 2026-11-04: Settings consistent with osu!mania (Alpha)
+
+- **Alpha asked** that every lazer setting that affects gameplay works as in osu!mania, hit lighting and key bindings
+  named, "as extensive with each lazer setting as possible". Every setting is listed with where it acts and how it was
+  checked in `SETTINGS-PARITY.md`. Most act outside the playfield and run the same code in both modes.
+- **maniaortho plays with osu!mania's keys** (`DrawableManiaOrthoRuleset.CreateInputManager` gives mania's input manager
+  mania's ruleset info, which is only where it looks its bindings up). Keys map to the same actions, so judgement and
+  replays are untouched (invariant 1); `TestSceneKeyBindings` presses a rebound key in both modes. Asked on a decision
+  card (Q21); this is its recommended option, easily undone.
+- **The maniaortho key section stays, mirrored.** It cannot be hidden without patching osu!: the settings list every
+  ruleset, and an empty variant list would also drop song select's key-count grouping for maniaortho. `KeyBindingMirror`
+  keeps the stored keys equal to osu!mania's both ways. It lives with `ManiaOrthoSettingsSubsection`, the ruleset's only
+  part of the game that exists while keys are changed (settings sections load when the settings first open), and writes
+  with `WriteAsync`, which does not need the subsection to be updated while the key binding panel covers it.
+  - After the first sync it copies only the columns (variant, action) a change touched, so the echo of its own copy
+    finds both sides equal and writes nothing, and an older key is never carried back over one changed meanwhile (review:
+    copying the whole side lost a second quick edit). A removed key copies the whole side.
+  - The first sync (`Merge`) runs when the settings open and as every maniaortho play loads, so keys set for maniaortho
+    before the change reach gameplay without the settings ever opening. Per key count, the side changed from osu!mania's
+    defaults wins; when both were changed osu!mania's win (what the player last played osu!mania with) and maniaortho's
+    are written to osu!'s log first, so they can be found again.
+  - osu!'s key binding panel reads its keys once, so a change copied from the other side shows there after osu!
+    restarts. Gameplay uses it at once. Refreshing the panel would need a patch to osu!.
+- **Wall keys follow the scroll speed bindings** (Shift with them), read from realm as they change, instead of a fixed
+  Shift+F3/F4, and the wall's toast names the keys bound now. Matching uses the binding's own modifiers exactly, so
+  Ctrl+Shift+F4 still leaves the wall alone, and a scroll speed binding that itself includes Shift cannot move the wall.
+  An action with no key stored keeps osu!'s default.
+- **Touch overlay** added to maniaortho's settings (mania shows it on every platform; the config already had it).
+- **Hit lighting** is left alone: osu!mania never reads it (only osu! and osu!catch do), so the highway does not either.
+  The highway's own effects have "Hit effects".
+- **Harness**: `playtest.sh --game-set Name=value,...` sets osu!'s and osu!mania's own settings in both modes, through
+  each setting's bindable as osu! reads its settings files; the summary records them.
+- **Not changed** (Q22): HUD layouts per mode, the fail animation's tumbling notes, touching lanes directly.
+
+## 2026-11-04: Live osu!mania check (M4 daily job)
+
+- **Decision**: `scripts/ortho/live-mania.sh` compares mania's judgement, scoring and difficulty code with the release
+  osu!'s servers use (`osu-queue-score-statistics` pins `ppy.osu.Game.Rulesets.Mania`), and a GitHub Actions workflow
+  runs it daily and opens a pull request when that release changes (README "Live osu!mania check").
+- **Compared**: mania's rules (`ManiaRuleset.cs`, Beatmaps, Difficulty, Judgements, MathUtils, Mods, Objects with their
+  drawables, which judge, Scoring, and `Column.cs` / `OrderedHitPolicy.cs`, the order notes are judged in) and the
+  shared code under them (beatmap decoding and conversion, control points, hit objects, mods and `ModUtils`' rates,
+  judgements, scoring and health, `IBeatmapDifficultyInfo`'s hit window ranges, `WorkingBeatmap`, `LegacyRandom`,
+  difficulty). Wider than "difficulty code", as the backlog put it, because invariant 1 covers judgements, score and
+  accuracy too. Files are named one by one where a folder holds other things: `osu.Game/Beatmaps` holds the core patch
+  `BeatmapInfoExtensions.cs`, which a proposal must never revert (review: the first list missed `LegacySortHelper`,
+  `ModUtils` and the hit policy).
+- **Proposal**: when the branch lacks the release, merge it (the fork follows upstream, so this is the bump), then take
+  the release's version of any compared file that still differs; a merge that conflicts is aborted and only the files
+  are taken. Where the branch already has the release, a difference is a change upstream made after it that osu! has
+  not deployed: the proposal reverts it and says to close it if the change cannot affect a result.
+- **When**: only when the release differs from `docs/ortho/live-mania-version.txt` (one pull request per release, open
+  or closed, its branch `ortho/live-mania-<release>`), not every day a difference stays, so a reviewed difference does
+  not come back. A kept difference is taken out of the pull request (or named with `--record`) and noted here; closing
+  the pull request instead would leave the release unchecked.
+- **GitHub limits** (review): the workflow's token cannot push workflow changes, which merging an upstream release often
+  brings, so then it takes only the files; and a pull request it cannot open (Actions may not create them by default)
+  removes its branch, so the next run tries again instead of finding the branch and stopping.
+- **Why Actions, not a daily Claude routine**: free and deterministic; a routine starts a session every day. It needs
+  Actions enabled and the workflow on the default branch (Q23); until then the work loop runs the check.
+- **Today**: live is 2026.1026.0, pinned as checked. This branch differs from it in `HealthProcessor.cs` and
+  `HealthValue.cs`, upstream's health graph for replays (#39078), merged after that release: it records each health
+  value next to the judgement and never changes health, failing, judgements or score, so it stays.
+- **Shallow clones** (like this container's): the release is fetched as one commit, so whether the branch has it can be
+  "unknown" and only files are taken; a full clone fetches it with its history, so its commit never becomes a shallow
+  root that cuts `git log` short.
+
 ## 2026-11-04: A local score server rates plays with osu!'s published calculators
 
 - **What**: Alpha asked for "my own local server which imitates but does not copy bancho", with "its own separate scoring
@@ -1108,7 +1175,7 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   contacts osu!'s API).
 - **Not Bancho**: no osu! protocol, no logins, no osu! passwords, no beatmap mirroring; map files come from the player's own
   game. `ScoreServerClient` refuses any `ppy.sh` host before sending (invariant 2 reworded to say so). Whether lazer's own
-  login and leaderboards should point at it is Q21 (needs core patches; default: no).
+  login and leaderboards should point at it is Q24 (needs core patches; default: no).
 - **Delivery**: each play is written to `maniaortho/outbox` first and leaves it only once the server stored it (or had it:
   `score_id` is stored once) or refused it, so nothing is lost to a closed game, a server that is away or a wrong address;
   one send at a time, oldest first. Redirects are never followed (a redirect could carry the play to any host, osu!'s
@@ -1130,9 +1197,9 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Reverse**: turn the setting off (nothing is sent); delete `ortho-server/`, `osu.Game.Rulesets.ManiaOrtho/ScoreServer`
   and the recorder's upload block.
 
-## 2026-11-04: Signing in to the score server from the game (Alpha, Q21)
+## 2026-11-04: Signing in to the score server from the game (Alpha, Q24)
 
-- **What**: Alpha chose "Also log in to it in-game" on the Q21 card, then asked for "the conventional login methods used
+- **What**: Alpha chose "Also log in to it in-game" on the Q24 card, then asked for "the conventional login methods used
   by other 3rd party servers, so that i can ideally connect, then log in through the lazer client, rather than having to
   do finnicking around with files". Lazer private servers are reached by pointing every endpoint at one address; the
   server then answers lazer's OAuth and `/api/v2` shapes. Done the same way here, with the address as a setting

@@ -8,6 +8,7 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Localisation;
 using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Localisation;
 using osu.Game.Online.API;
@@ -46,9 +47,18 @@ namespace osu.Game.Rulesets.ManiaOrtho
         [Resolved]
         private IAPIProvider? api { get; set; }
 
+        [Resolved]
+        private RealmAccess? realm { get; set; }
+
         private SettingsItemV2 scoreServerAddressItem = null!;
         private Bindable<string> scoreServerAddress = null!;
         private IBindable<APIState>? apiState;
+
+        /// <summary>
+        /// Keeps this ruleset's section of the key binding settings on osu!mania's keys, which gameplay uses. Here because this
+        /// is the ruleset's one part of the game that lives with the settings, where keys are changed.
+        /// </summary>
+        private KeyBindingMirror? keyBindingMirror;
 
         private HighwayConfigManager highway = null!;
         private FormSliderBar<double> scrollSpeed = null!;
@@ -91,7 +101,7 @@ namespace osu.Game.Rulesets.ManiaOrtho
             wall = highway.GetBindable<float>(HighwaySetting.Wall);
             wallScale = highway.GetBindable<WallScale>(HighwaySetting.WallScale);
 
-            const string wall_keys = "In gameplay, Shift+F3 and Shift+F4 move it (F3 and F4 change the scroll speed).";
+            const string wall_keys = "In gameplay, Shift with the scroll speed keys (F3 and F4 unless you changed them) moves it.";
 
             wallSliders[WallScale.Percent] = new SettingsItemV2(new FormSliderBar<float>
             {
@@ -161,6 +171,12 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "color" },
                 },
+                // As osu!mania shows it: on screen buttons for each key along the bottom, for touch screens and the mouse.
+                new SettingsItemV2(new FormCheckBox
+                {
+                    Caption = RulesetSettingsStrings.TouchOverlay,
+                    Current = config.GetBindable<bool>(ManiaRulesetSetting.TouchOverlay),
+                }),
                 new SettingsItemV2(new FormEnumDropdown<HighwayPreset>
                 {
                     Caption = "Highway preset",
@@ -468,6 +484,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
             apiState?.BindValueChanged(_ => Schedule(showScoreServerSignIn));
             showScoreServerSignIn();
 
+            if (realm != null)
+                keyBindingMirror = new KeyBindingMirror(realm);
+
             showVisibleTimeOnChange(highway.GetBindable<float>(HighwaySetting.Wall));
 
             // The other scales follow the wall, and set it when moved. The screen-based ones depend on the camera.
@@ -603,6 +622,7 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         protected override void Dispose(bool isDisposing)
         {
+            keyBindingMirror?.Dispose();
             if (skin != null)
                 skin.SourceChanged -= showVisibleTime;
 

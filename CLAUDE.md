@@ -32,6 +32,7 @@ scripts/ortho/check.sh                  # style-enforced build + all ruleset tes
 scripts/ortho/check.sh --mania          # also run osu!mania's own suite; required if you touch osu.Game or the mania ruleset
 scripts/ortho/playtest.sh               # autoplay real + synthetic charts in a real window, mania vs maniaortho screenshots side by side
 scripts/ortho/playtest.sh --beatmap path/to/map.osu --times 5000,20000 --scroll-speed 24
+scripts/ortho/live-mania.sh             # is mania's scoring and difficulty code the release osu!'s servers use? (exit 3: no)
 scripts/ortho/cloud-setup.sh --force    # install .NET 10, Mesa, Xvfb, ImageMagick on a fresh Linux container
 scripts/ortho/play.ps1                  # Windows: the full game with maniaortho, data kept next to the clone (PLAYTESTING L4)
 scripts/ortho/package.ps1               # Windows: package it as Documents\Projects\osu!\osu\osu.exe for Alpha; rerun after changes

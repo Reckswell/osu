@@ -25,9 +25,14 @@ Never work on `master`.
 1. Read the last three entries of `docs/ortho/LOG.md`.
 2. Read `docs/ortho/QUESTIONS.md`. For each newly answered question: apply it (SPEC, BACKLOG, DECISIONS), move it to
    *Answered*, and note it in the log.
-3. Read `docs/ortho/BACKLOG.md`. Pick the first `[~]` task, else the first `[ ]` task whose prerequisites are done.
+3. Run `scripts/ortho/live-mania.sh` (does mania's scoring code match the release osu!'s servers use?). If it names a
+   release other than `docs/ortho/live-mania-version.txt`, bringing the branch to it is the task: `--apply`, then
+   `check.sh --mania`. A difference that cannot change a result, or that the branch does not build without, goes back
+   in; note it in `DECISIONS.md`. Where you keep every difference, `--record` only names the release (README "Live
+   osu!mania check").
+4. Read `docs/ortho/BACKLOG.md`. Pick the first `[~]` task, else the first `[ ]` task whose prerequisites are done.
    Skip `[!]` tasks. If the pick is a milestone gate (**MG**), go to section 5.
-4. Mark it `[~]`.
+5. Mark it `[~]`.
 
 ## 2. Do the task
 

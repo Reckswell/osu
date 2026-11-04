@@ -60,6 +60,26 @@ These touch Claude Code's own configuration, so they were left for Alpha to appr
    { "hooks": { "SessionStart": [ { "hooks": [ { "type": "command", "command": "$CLAUDE_PROJECT_DIR/scripts/ortho/cloud-setup.sh" } ] } ] } }
    ```
 2. Optionally allow the loop's routine commands without prompts (`dotnet build`, `dotnet test`, `scripts/ortho/*`).
+3. Turn on the daily [live osu!mania check](#live-osumania-check): GitHub Actions are off for this fork, and a scheduled
+   workflow runs only from the default branch (QUESTIONS Q23).
+
+## Live osu!mania check
+
+maniaortho's star rating and pp equal osu!'s only while mania's code here is the code osu!'s servers rate plays with.
+osu!'s pp come from `osu-queue-score-statistics`, which pins a release of `ppy.osu.Game.Rulesets.Mania`.
+`scripts/ortho/live-mania.sh` compares the files that decide judgements, score, accuracy, star rating and pp between
+that release of ppy/osu and HEAD: mania's rules (with the order notes are judged in), and the shared beatmap decoding
+and conversion, timing, hit objects, mods and their rates, judgements, scoring and health, hit window ranges and
+difficulty code (the list is in the script). Exit 0 the same, 3 different, with the files listed.
+`docs/ortho/live-mania-version.txt` names the release last checked; a difference reviewed and kept under it is written
+in DECISIONS (`--record` names a release without changing files).
+
+`.github/workflows/ortho-live-mania.yml` runs it daily. When osu!'s servers move to another release, it opens one pull
+request for it (`ortho/live-mania-<release>`) that brings the branch to it: it merges the release if the branch lacks
+it, takes those files from the release wherever they still differ (only them if the merge conflicts, or if the merge
+would bring workflow changes, which its token cannot push), and records it. Run it by hand with a release in
+`live_version` to simulate a bump. It needs Actions enabled with "Allow GitHub Actions to create and approve pull
+requests" (Q23). Its offline test, `scripts/ortho/live-mania-test.sh`, runs in `check.sh`.
 
 ## Core patches
 
@@ -72,7 +92,7 @@ Changes outside the two ruleset projects. Keep this list short; each needs a rea
 | `osu.Game/Rulesets/Ruleset.cs` | New virtual `PlaysBeatmapsOfRuleset` (null by default) | Lets a ruleset declare another ruleset's beatmaps as its own | Done, `BeatmapCompatibilityTest` |
 | `osu.Game/Beatmaps/BeatmapInfoExtensions.cs` | `AllowGameplayWithRuleset` also accepts beatmaps of the ruleset named by `PlaysBeatmapsOfRuleset` (looked up once per ruleset and cached) | Song select must offer every mania map under `maniaortho` without "show converts" | Done, `BeatmapCompatibilityTest` |
 | `osu.Game/Screens/Select/SongSelect.cs`, `osu.Game/OsuGame.cs` | `PresentBeatmap` keeps the current ruleset when it plays the beatmap natively (`AllowGameplayWithRuleset(..., false)` instead of ruleset equality, in song select, in the ruleset handed to the main menu, and in the fallback difficulty pick; identical for upstream rulesets) | Importing or opening a mania map must not switch the player back to mania | Done, `TestScenePresentBeatmapUnderOrtho`; pending Alpha (QUESTIONS Q9) |
-| `osu.Game/Configuration/OsuConfigManager.cs`, `osu.Game/Online/CustomEndpointConfiguration.cs` (new), `osu.Game/OsuGameBase.cs` | New settings `ServerAddress` and `TokenServer` (both empty by default). `CreateEndpoints` returns a `CustomEndpointConfiguration` (API, OAuth and website at the address, hubs under `/signalr`; https unless the server is on this computer) for an http(s) address that is not a `ppy.sh` host; otherwise osu!'s endpoints exactly as before. At start, a saved sign-in issued by another server than the one in use is forgotten (`ForgetSignInFromOtherServer`; a token saved before the patch counts as osu!'s, so nobody is signed out of osu!) | Sign in to Alpha's own score server from lazer's sign-in panel (Q21, Alpha chose it on the decision card); an osu! token never reaches that server, nor its token osu! | Done, `CustomServerTest`, `CustomServerGameTest` |
+| `osu.Game/Configuration/OsuConfigManager.cs`, `osu.Game/Online/CustomEndpointConfiguration.cs` (new), `osu.Game/OsuGameBase.cs` | New settings `ServerAddress` and `TokenServer` (both empty by default). `CreateEndpoints` returns a `CustomEndpointConfiguration` (API, OAuth and website at the address, hubs under `/signalr`; https unless the server is on this computer) for an http(s) address that is not a `ppy.sh` host; otherwise osu!'s endpoints exactly as before. At start, a saved sign-in issued by another server than the one in use is forgotten (`ForgetSignInFromOtherServer`; a token saved before the patch counts as osu!'s, so nobody is signed out of osu!) | Sign in to Alpha's own score server from lazer's sign-in panel (Q24, Alpha chose it on the decision card); an osu! token never reaches that server, nor its token osu! | Done, `CustomServerTest`, `CustomServerGameTest` |
 | `osu.Game/Online/EndpointConfiguration.cs`, `osu.Game/Online/API/APIRequest.cs`, `OAuth.cs`, `APIAccess.cs` | New virtual `AllowsPlainHttp(url)` (false for osu!'s endpoints); requests, sign-in and registration set the framework's `AllowInsecureRequests` only when it is true: a custom server that is itself http on a loopback address, same scheme and authority | osu-framework upgrades every http request to https, so a local server without a certificate could not be reached; a password must never cross a network in plain text | Done, `CustomServerTest` |
 | `osu.Game/Overlays/Settings/Sections/Online/ServerSettings.cs` (new), `OnlineSection.cs`, `osu.Game/Overlays/Login/LoginForm.cs` | Settings > Online > Server (address box, a note on what happens at the next start, signs out when another server is confirmed); the sign-in panel names the custom server it signs in to | Change server without editing files; never mistake the private server's sign-in for osu!'s | Done, `TestSceneServerSettings`, `CustomServerTest.TestNotes` |
 | API endpoints, app name, data folder | Point away from official services | Never share login or database with the official client | Backlog M3 |

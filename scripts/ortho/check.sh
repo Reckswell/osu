@@ -18,6 +18,9 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+echo "== scripts"
+bash scripts/ortho/live-mania-test.sh
+
 echo "== build (warnings as errors, code style enforced)"
 dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Debug -warnaserror -v q -nologo
 # Incremental builds skip analyzers, so re-run them on this fork's own projects every time (about 20s).

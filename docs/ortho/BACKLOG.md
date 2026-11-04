@@ -168,10 +168,13 @@ in the end. Live pp and the CSV still apply.
 
 ## M4: Upstream tracking
 
-- [ ] Daily job: read the live `ppy.osu.Game.Rulesets.Mania` version used by `osu-queue-score-statistics`; when it
+- [!] Daily job: read the live `ppy.osu.Game.Rulesets.Mania` version used by `osu-queue-score-statistics`; when it
   changes, diff mania difficulty code and open a PR that bumps it. Gate: a simulated bump opens a PR.
-  (The score server already reads that version at start and every 12 hours, `LiveCalculatorVersion`, and
-  `scripts/ortho/server-update` moves the server to it; the job that moves the game itself is still open.)
+  (Built: `scripts/ortho/live-mania.sh` and `.github/workflows/ortho-live-mania.yml`, README "Live osu!mania check";
+  offline test in `check.sh`; the workflow's steps simulated locally with release 2026.916.0 made the proposal commit.
+  Waits for Q23: Actions are off for this fork and a schedule runs only from the default branch. Meanwhile the work
+  loop runs the check at the start of each iteration. The score server reads the same version at start and every 12
+  hours, `LiveCalculatorVersion`, and `scripts/ortho/server-update` moves the server to it.)
 - [x] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
   (Done for the score server's plays, `RecalculationTest`. Plays logged only to the CSV, with the setting off, are not
   rated again; the CSV keeps raw judgements and mods so they could be imported later.)
@@ -191,7 +194,7 @@ matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score ser
   `LiveCalculatorVersionTest`, `RecalculationTest`.
 - [x] The game sends plays (opt-in setting), queues them while the server is away, refuses `ppy.sh`, toasts the pp and
   total. Gate: `ScoreServerClientTest`, `ScoreServerContractTest`, `TestScenePlayToScoreServer`.
-- [x] The game's own sign-in on this server (Alpha, Q21): Settings > Online > Server, registration and sign-in in
+- [x] The game's own sign-in on this server (Alpha, Q24): Settings > Online > Server, registration and sign-in in
   lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.
   Gate: `CustomServerTest`, `CustomServerGameTest`, `TestSceneServerSettings`, `ScoreServerClientTest`, `LazerApiTest`;
   end to end in the real game (register, sign in, stay signed in across a restart, profile).

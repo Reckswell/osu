@@ -21,6 +21,7 @@ using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterfaceV2;
+using osu.Game.Localisation;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Mania;
@@ -274,6 +275,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
             AddAssert("its most follows the camera too", () => ((BindableNumber<int>)wallSlider<int>("Wall (white number)").Current).MaxValue,
                 () => Is.EqualTo(WallScales.MaxUnits(WallScale.Iidx, 0.1f)));
         }
+
+        /// <summary>
+        /// osu!mania's "Touch overlay" is offered here too (SETTINGS-PARITY.md), and sets the setting mania's touch area reads.
+        /// </summary>
+        [Test]
+        public void TestTouchOverlayOffered()
+        {
+            AddStep("touch overlay off", () => gameConfig.SetValue(ManiaRulesetSetting.TouchOverlay, false));
+            showPanel();
+            AddStep("tick it", () => touchOverlay.Current.Value = true);
+            AddAssert("the setting is on", () => gameConfig.Get<bool>(ManiaRulesetSetting.TouchOverlay));
+            AddStep("touch overlay off", () => gameConfig.SetValue(ManiaRulesetSetting.TouchOverlay, false));
+            AddAssert("the box follows", () => touchOverlay.Current.Value, () => Is.False);
+        }
+
+        private FormCheckBox touchOverlay => this.ChildrenOfType<FormCheckBox>().Single(c => c.Caption.ToString() == RulesetSettingsStrings.TouchOverlay.ToString());
 
         [Test]
         public void TestValuesPersist()
