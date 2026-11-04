@@ -45,15 +45,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
 
         /// <summary>
         /// The camera's <paramref name="layout"/>, changed for the skin: the judgement line lifted to the skin's hit position
-        /// when <paramref name="keyArea"/> asks for it and the skin's line is the higher, and the track moved (and sized) as
-        /// <paramref name="fit"/> asks.
+        /// when <paramref name="keyArea"/> asks for it and the skin's line is the higher, the track moved (and sized) as
+        /// <paramref name="fit"/> asks, and a track the skin puts to one side converging as <paramref name="convergence"/> asks.
         /// </summary>
         /// <param name="layout">The camera's layout.</param>
         /// <param name="keyArea">Where the key area goes.</param>
         /// <param name="fit">How the track is fitted across the screen.</param>
         /// <param name="stage">The skin's flat stage.</param>
         /// <param name="columnStart">The skin's <c>ColumnStart</c> (stable units), or null when it centres its stage.</param>
-        public static HighwayLayout Adjust(HighwayLayout layout, SkinKeyArea keyArea, SkinStageFit fit, in FlatStage stage, float? columnStart)
+        /// <param name="convergence">Where the lanes of a stage put to one side converge.</param>
+        public static HighwayLayout Adjust(HighwayLayout layout, SkinKeyArea keyArea, SkinStageFit fit, in FlatStage stage, float? columnStart,
+                                           SkinConvergence convergence = SkinConvergence.Stage)
         {
             if (!stage.IsValid)
                 return layout;
@@ -66,19 +68,88 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
                 return layout;
 
             if (fit == SkinStageFit.SkinLayout)
-                layout = layout with { NearWidth = Math.Clamp(stage.Width / stage.Size.X, 0.05f, 1) };
+                layout = layout with { NearWidth = Math.Clamp(stage.Width / stage.Size.X, HighwayLayout.MIN_NEAR_WIDTH, 1) };
 
             if (columnStart is float start)
             {
-                // Where stable centres the stage: its left edge at ColumnStart, then the skin's own width. The track keeps that
-                // centre at its own width, but never leaves the screen.
-                float centre = (start * stage.Size.Y / STABLE_SCREEN_HEIGHT + stage.Width / 2) / stage.Size.X;
-                float half = Math.Min(layout.NearWidth, 1) / 2;
-                layout = layout with { CentreX = Math.Clamp(centre, half, 1 - half) };
+                // Below the line the track keeps widening along its lanes unless the key area stands upright, so the bottom
+                // row is the widest one drawn.
+                float widening = keyArea == SkinKeyArea.Panel ? 1 : WideningToBottom(new HighwayProjection(layout, stage.Size));
+
+                layout = CentreOn(layout, StableCentre(stage, start), stage.Width / stage.Size.X, widening);
+                layout = Converge(layout, convergence);
             }
 
             return layout;
         }
+
+        /// <summary>
+        /// <paramref name="layout"/> leaning so that its lanes converge where <paramref name="convergence"/> asks: above the
+        /// track's own centre (no lean), above the screen's centre, or halfway between.
+        /// </summary>
+        public static HighwayLayout Converge(HighwayLayout layout, SkinConvergence convergence)
+        {
+            switch (convergence)
+            {
+                case SkinConvergence.Screen:
+                    return layout.LeanTowards(0.5f);
+
+                case SkinConvergence.Halfway:
+                    return layout.LeanTowards((layout.CentreX + 0.5f) / 2);
+
+                default:
+                    return layout with { Lean = 0 };
+            }
+        }
+
+        /// <summary>
+        /// Where stable centres a stage whose left edge is at <paramref name="columnStart"/> (stable units), as a fraction
+        /// of the screen's width: the left edge, then the skin's own width.
+        /// </summary>
+        public static float StableCentre(in FlatStage stage, float columnStart)
+            => (columnStart * stage.Size.Y / STABLE_SCREEN_HEIGHT + stage.Width / 2) / stage.Size.X;
+
+        /// <summary>
+        /// <paramref name="layout"/> centred exactly on <paramref name="centre"/> (a fraction of the screen's width), so a
+        /// stage the skin puts to one side keeps its lane centres where the skin has them. A track too wide to fit around that
+        /// centre is narrowed to fit, never moved (research/topic-off-centre-fields.md O3), but never below
+        /// <paramref name="minWidth"/>: the skin's own stage, which fits wherever the skin puts it.
+        /// </summary>
+        /// <param name="layout">The layout to centre.</param>
+        /// <param name="centre">Where the track's centre goes.</param>
+        /// <param name="minWidth">The narrowest the track may become, a fraction of the screen's width.</param>
+        /// <param name="widening">How much wider than at the judgement line the widest row drawn is.</param>
+        public static HighwayLayout CentreOn(HighwayLayout layout, float centre, float minWidth = 0, float widening = 1)
+        {
+            if (!float.IsFinite(centre))
+                return layout;
+
+            centre = Math.Clamp(centre, HighwayLayout.MIN_NEAR_WIDTH / 2, 1 - HighwayLayout.MIN_NEAR_WIDTH / 2);
+
+            float room = Math.Min(centre, 1 - centre) / Math.Max(1, float.IsFinite(widening) ? widening : 1);
+            float half = Math.Min(Math.Min(layout.NearWidth, 1) / 2, Math.Max(room, minWidth / 2));
+
+            return layout with { CentreX = centre, NearWidth = 2 * half };
+        }
+
+        /// <summary>
+        /// How much wider the track is at the bottom of the screen than at the judgement line when its lanes run on below the
+        /// line (1 for parallel lanes; at most <see cref="MAX_WIDENING"/>).
+        /// </summary>
+        public static float WideningToBottom(in HighwayProjection projection)
+        {
+            float depth = projection.DepthAtY(projection.Size.Y);
+
+            if (!(depth < 0) || depth <= projection.MinDepth)
+                return depth < 0 ? MAX_WIDENING : 1;
+
+            return Math.Clamp(projection.ScaleAt(depth), 1, MAX_WIDENING);
+        }
+
+        /// <summary>
+        /// The most <see cref="WideningToBottom"/> counts, for a camera whose lanes would reach the camera plane on screen.
+        /// </summary>
+        public const float MAX_WIDENING = 2;
 
         /// <summary>
         /// The depth a ported note spans when it keeps the skin's proportions: as tall on screen at the judgement line, for the

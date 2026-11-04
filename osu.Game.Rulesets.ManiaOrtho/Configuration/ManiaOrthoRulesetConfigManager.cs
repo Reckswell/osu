@@ -129,6 +129,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.Track, defaults.Track);
             SetDefault(HighwaySetting.KeyArea, defaults.KeyArea);
             SetDefault(HighwaySetting.StageFit, defaults.StageFit);
+            SetDefault(HighwaySetting.Convergence, defaults.Convergence);
             SetDefault(HighwaySetting.SkinNoteProportions, defaults.SkinNoteProportions);
             SetDefault(HighwaySetting.FarFade, defaults.FarFade, 0f, HighwaySettings.MAX_FAR_FADE, 0.01f);
             SetDefault(HighwaySetting.HoldOpacity, defaults.HoldOpacity, HighwaySettings.MIN_HOLD_OPACITY, 1f, 0.01f);
@@ -158,6 +159,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             Track = Get<HighwayTrackStyle>(HighwaySetting.Track),
             KeyArea = Get<SkinKeyArea>(HighwaySetting.KeyArea),
             StageFit = Get<SkinStageFit>(HighwaySetting.StageFit),
+            Convergence = Get<SkinConvergence>(HighwaySetting.Convergence),
             SkinNoteProportions = Get<bool>(HighwaySetting.SkinNoteProportions),
             FarFade = Get<float>(HighwaySetting.FarFade),
             HoldOpacity = Get<float>(HighwaySetting.HoldOpacity),
@@ -243,6 +245,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         TrackOpacity,
         KeyBeam,
         KiaiSway,
+        Convergence,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.

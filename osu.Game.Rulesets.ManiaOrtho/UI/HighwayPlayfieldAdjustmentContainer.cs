@@ -375,7 +375,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             // The skin's layout moves the camera's track: its line lifted for the key area, its stage's position and width.
             if (PortedTrackShown && Port != null)
-                layout = SkinPortLayout.Adjust(layout, Settings.KeyArea, Settings.StageFit, FlatStage, Port.Stages.Length > 0 ? Port.Stages[0].ColumnStart : null);
+                layout = SkinPortLayout.Adjust(layout, Settings.KeyArea, Settings.StageFit, FlatStage, Port.Stages.Length > 0 ? Port.Stages[0].ColumnStart : null,
+                    Settings.Convergence);
 
             // Cosmetic only, and a function of the (frame-stable) time, so a seek shows the same pose as playing through.
             if (!flat && Settings.KiaiSway > 0 && kiaiSway != null)

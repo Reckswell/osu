@@ -73,13 +73,128 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
             Assert.That(layout.NearWidth, Is.EqualTo(chunithm().NearWidth), "the camera's width is kept");
         }
 
-        [Test]
-        public void TestSkinPositionKeepsTheTrackOnScreen()
+        [TestCase(SkinStageFit.SkinPosition)]
+        [TestCase(SkinStageFit.SkinLayout)]
+        public void TestStageToOneSideKeepsTheSkinsCentreAndNarrowsToFit(SkinStageFit fit)
         {
-            // A stage pushed all the way to the left keeps the camera's wide track inside the screen.
-            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), 0);
+            // A stage pushed all the way to the left (an IIDX 1P layout): the camera's wide track would leave the screen around
+            // the skin's centre, so it is narrowed there instead of moved.
+            var stage = minty();
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, fit, stage, 0);
+            float centre = stage.Width / 2 / size.X;
 
-            Assert.That(layout.CentreX, Is.EqualTo(chunithm().NearWidth / 2).Within(1e-5f));
+            Assert.That(layout.CentreX, Is.EqualTo(centre).Within(1e-5f), "the skin's centre, exactly");
+            Assert.That(layout.CentreX - layout.NearWidth / 2, Is.GreaterThanOrEqualTo(-1e-5f), "inside the screen");
+            Assert.That(layout.NearWidth, Is.LessThanOrEqualTo(chunithm().NearWidth + 1e-5f));
+        }
+
+        [Test]
+        public void TestFloorKeyAreaFitsTheBottomRow()
+        {
+            // The floor runs on below the line along the lanes, so its bottom row (wider than the line) must fit too.
+            var stage = minty() with { HitY = 0.8f * size.Y };
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Floor, SkinStageFit.SkinPosition, stage, 40);
+            var projection = new HighwayProjection(layout, size);
+
+            Assert.That(SkinPortLayout.WideningToBottom(projection), Is.GreaterThan(1.1f));
+            Assert.That(layout.CentreX, Is.EqualTo(SkinPortLayout.StableCentre(stage, 40)).Within(1e-5f), "the skin's centre, exactly");
+            Assert.That(projection.XAt(0, size.Y), Is.GreaterThanOrEqualTo(-0.5f), "the bottom row inside the screen");
+            Assert.That(projection.XAt(0, size.Y), Is.LessThan(1), "and no narrower than that needs");
+        }
+
+        [Test]
+        public void TestNeverNarrowerThanTheSkinsOwnStage()
+        {
+            // A stage the skin draws partly off the left edge: the track keeps the skin's centre and at least its width.
+            var stage = minty();
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Panel, SkinStageFit.SkinPosition, stage, -40);
+
+            Assert.That(layout.CentreX, Is.EqualTo(SkinPortLayout.StableCentre(stage, -40)).Within(1e-5f));
+            Assert.That(layout.NearWidth, Is.EqualTo(stage.Width / size.X).Within(1e-5f));
+        }
+
+        [Test]
+        public void TestStageToTheRightKeepsTheSkinsCentre()
+        {
+            // ColumnStart 560 at 16:9: the stage's right edge near the screen's.
+            var stage = minty();
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, stage, 560);
+            float centre = SkinPortLayout.StableCentre(stage, 560);
+
+            Assert.That(centre, Is.GreaterThan(1 - chunithm().NearWidth / 2), "the camera's track would not fit around it");
+            Assert.That(layout.CentreX, Is.EqualTo(centre).Within(1e-5f));
+            Assert.That(layout.CentreX + layout.NearWidth / 2, Is.LessThanOrEqualTo(1 + 1e-5f));
+        }
+
+        /// <summary>
+        /// Above the stage (the default): the stage's centre line stays upright at the skin's centre, from the judgement line to
+        /// the far edge.
+        /// </summary>
+        [TestCase(HighwayPreset.Chunithm)]
+        [TestCase(HighwayPreset.Voltex)]
+        [TestCase(HighwayPreset.Parallel)]
+        public void TestStageConvergenceKeepsTheCentreLineUpright(HighwayPreset preset)
+        {
+            var stage = minty();
+            var camera = HighwayPresets.Get(preset).ToLayout();
+            var projection = new HighwayProjection(SkinPortLayout.Adjust(camera, SkinKeyArea.Hidden, SkinStageFit.SkinPosition, stage, 40), size);
+            float centre = SkinPortLayout.StableCentre(stage, 40) * size.X;
+
+            Assert.That(projection.ToScreen(0.5f, 0).X, Is.EqualTo(centre).Within(0.01f), "at the judgement line");
+            Assert.That(projection.ToScreen(0.5f, 0.5f).X, Is.EqualTo(centre).Within(0.01f), "halfway up");
+            Assert.That(projection.ToScreen(0.5f, 1).X, Is.EqualTo(centre).Within(0.01f), "at the far edge");
+
+            if (projection.VanishingPoint is Vector2 vanishingPoint)
+                Assert.That(vanishingPoint.X, Is.EqualTo(centre).Within(0.01f));
+        }
+
+        /// <summary>
+        /// Screen centre and halfway lean the stage in towards the middle, but its judgement line and key area stay where the
+        /// skin puts them, and the lanes still meet in one point.
+        /// </summary>
+        [TestCase(SkinConvergence.Screen, 1f)]
+        [TestCase(SkinConvergence.Halfway, 0.5f)]
+        public void TestLeaningConvergenceKeepsTheLine(SkinConvergence convergence, float towardsScreen)
+        {
+            var stage = minty();
+            var projection = new HighwayProjection(SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, stage, 40, convergence), size);
+            float centre = SkinPortLayout.StableCentre(stage, 40) * size.X;
+            float lineY = projection.YAt(0);
+
+            Assert.That(projection.ToScreen(0.5f, 0).X, Is.EqualTo(centre).Within(0.01f), "the line's centre stays at the skin's");
+            Assert.That(projection.XAt(0.5f, lineY + 50), Is.EqualTo(centre).Within(0.01f), "and so does the key area below it");
+            Assert.That(projection.ToScreen(0.5f, 1).X, Is.GreaterThan(centre + 1), "the far edge leans in towards the middle");
+
+            var vanishingPoint = projection.VanishingPoint;
+            Assert.That(vanishingPoint, Is.Not.Null);
+            Assert.That(vanishingPoint!.Value.X, Is.EqualTo(centre + (size.X / 2 - centre) * towardsScreen).Within(0.05f));
+
+            // Every lane edge is a straight line through that point.
+            for (float lane = 0; lane <= 1; lane += 0.25f)
+            {
+                var near = projection.ToScreen(lane, 0);
+                var far = projection.ToScreen(lane, 1);
+                float t = (vanishingPoint.Value.Y - near.Y) / (far.Y - near.Y);
+                Assert.That(near.X + (far.X - near.X) * t, Is.EqualTo(vanishingPoint.Value.X).Within(0.05f), $"lane edge {lane}");
+            }
+        }
+
+        [Test]
+        public void TestParallelLanesDoNotLean()
+        {
+            var parallel = HighwayPresets.Get(HighwayPreset.Parallel).ToLayout();
+            var layout = SkinPortLayout.Adjust(parallel, SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), 40, SkinConvergence.Screen);
+
+            Assert.That(layout.Lean, Is.Zero);
+        }
+
+        [Test]
+        public void TestCentredSkinDoesNotLean()
+        {
+            var layout = SkinPortLayout.Adjust(chunithm(), SkinKeyArea.Hidden, SkinStageFit.SkinPosition, minty(), null, SkinConvergence.Screen);
+
+            Assert.That(layout.CentreX, Is.EqualTo(0.5f));
+            Assert.That(layout.Lean, Is.Zero);
         }
 
         [Test]

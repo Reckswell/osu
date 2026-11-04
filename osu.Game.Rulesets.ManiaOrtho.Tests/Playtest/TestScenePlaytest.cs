@@ -176,6 +176,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     ortho.Highway.GetBindable<bool>(HighwaySetting.SkinHitTarget).SetDefault();
                     ortho.Highway.GetBindable<SkinKeyArea>(HighwaySetting.KeyArea).SetDefault();
                     ortho.Highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit).SetDefault();
+                    ortho.Highway.GetBindable<SkinConvergence>(HighwaySetting.Convergence).SetDefault();
                     ortho.Highway.GetBindable<bool>(HighwaySetting.SkinNoteProportions).SetDefault();
                     ortho.Highway.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
                     ortho.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
@@ -426,6 +427,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         track = used.Track.ToString(),
                         keyArea = used.KeyArea.ToString(),
                         stageFit = used.StageFit.ToString(),
+                        convergence = used.Convergence.ToString(),
                         used.SkinNoteProportions,
                         used.FarFade,
                         used.HoldOpacity,

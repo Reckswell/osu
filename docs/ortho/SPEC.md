@@ -108,6 +108,9 @@ Requirements:
   target, lane lights, keys, the stage bottom, and hit and hold lighting. The skin's own files are never changed.
 - Skins whose hit position sits above the camera's judgement line (keys or an IIDX-style panel below it) choose where
   the key area goes ("Skin key area"); the skin's stage position (`ColumnStart`) moves the track sideways by default.
+  The track's centre at the judgement line is then exactly the skin's stage centre (as stable places it); a track too
+  wide to fit around it is narrowed, never moved. Where a side-placed stage's lanes converge is a setting: above the
+  stage (default, the centre line stays upright at the skin's x), halfway, or above the screen's centre.
   Skins without legacy mania images (argon, triangles) keep the built-in highway look.
 
 ## 9. Mods
