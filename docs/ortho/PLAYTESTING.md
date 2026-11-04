@@ -21,11 +21,16 @@ Add a case when you add a code path that touches input or judgement, or when Alp
 ## L2: screenshots (2-4 minutes per chart)
 
 ```bash
-scripts/ortho/playtest.sh                                    # synthetic-7k and real-4k, mania vs maniaortho
+scripts/ortho/playtest.sh                                    # the default set (below), mania vs maniaortho
 scripts/ortho/playtest.sh --beatmap synthetic-4k --times 9000,18000 --scroll-speed 20
 scripts/ortho/playtest.sh --beatmap "/path/to/Songs/123 Artist - Title/Artist - Title (Mapper) [Diff].osu"
 scripts/ortho/playtest.sh --preset Parallel --wall 0.3 --skin classic             # highway settings; built-in skins: argon, argon-pro, triangles, classic
 ```
+
+The default set is synthetic-7k and real-4k at speed 29 (Alpha's speed: 405 ms visible on lazer's skins) and
+synthetic-7k at speed 14 (840 ms, where Chunithm and Sekai players' notes move at the line: `game-sekai.md` K3). Runs
+without `--scroll-speed` use 29: the harness keeps its settings between runs, so an unset speed would be whatever an
+earlier run left. Each run's folder is `<chart>-speed<N>`, and its summary records the real visible time.
 
 The runner (`dotnet <tests dll> playtest ...`) opens a real window, plays the chart with autoplay, and at each capture
 time stops the clock at exactly that time and saves the frame. Both rulesets are captured at identical times, then

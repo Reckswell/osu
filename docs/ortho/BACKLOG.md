@@ -143,8 +143,9 @@ From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md`
   captures in `/mnt/project-files/ortho-agent/wide-keys/`, playtester pass.)
 - [x] Optional far fade (YARG), default off. Gate: capture; parity. (`TestFarFade`, `TestFarFadeMultipliesFadeIn`,
   `TestJudgementParityWithFarFade`; captures in `/mnt/project-files/ortho-agent/far-fade/`, playtester pass.)
-- [ ] Playtest at 840 ms visible time too, where Chunithm and Sekai players' near-line speed is (`game-sekai.md` K3).
-  Gate: the harness's default capture set includes it.
+- [x] Playtest at 840 ms visible time too, where Chunithm and Sekai players' near-line speed is (`game-sekai.md` K3).
+  Gate: the harness's default capture set includes it. (`playtest.sh` and `playtest.ps1` with no chart or speed: both
+  charts at speed 29, 405 ms, and synthetic-7k at 14, 839 ms by the summary; an unset speed is now 29.)
 - [ ] **[Alpha: Q17]** A Sekai preset with Sekai's eased approach (`game-sekai.md` K2).
 - [ ] **[Alpha: Q14]** Missed notes slide past the line; the wall keys' gate with "keep speed"; lane tint; a wall for
   Voltex at 9K and up.

@@ -781,3 +781,14 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   25% under a 30% wall, holds crossing the band, the classic skin ported); playtester: measured alpha within 0.005 of
   the formula, notes below the band pixel-identical to the reference, alpha 0 at the wall's edge, no banding.
 - **Reverse**: drop `HighwaySetting.FarFade` and the `FarFade` cover in `HighwayNoteLayer.add`.
+
+## 2026-11-04: The default playtest set has two speeds, and the speed is always set
+
+- **What**: `playtest.sh` (and `playtest.ps1`) with no chart and no speed play synthetic-7k and real-4k at speed 29
+  (Alpha's: 405 ms visible on lazer's skins) and synthetic-7k again at speed 14 (839 ms, where Chunithm and Sekai
+  players' notes move at the line, `game-sekai.md` K3). Every other run without `--scroll-speed` plays at 29.
+- **Why always set it**: the harness runs portable and keeps its settings between runs, so an unset speed was whatever
+  an earlier run used, and two "default" captures could differ. Output folders are now `<chart>-speed<N>`.
+- **Why not every chart at both speeds**: each run is 2-4 minutes per ruleset in the cloud; one 840 ms chart shows the
+  slower look, and Alpha plays at 405 ms.
+- **Reverse**: restore the `beatmaps` default and drop the `runs` list in both scripts.
