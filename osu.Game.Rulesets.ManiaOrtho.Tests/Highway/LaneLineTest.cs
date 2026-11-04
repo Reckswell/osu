@@ -100,6 +100,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         }
 
         [Test]
+        public void TestFeatheredLineKeepsItsWidth()
+        {
+            var p = create(0.24f);
+
+            // A group divider (twice a lane line, held at 2 px): 5.2 px at the judgement line, 2 px far away.
+            TrackDrawing.GetLaneLine(p, 0.5f, 0.0044f, 1, 2, out var near, out _, out _);
+            TrackDrawing.Feather(near, 1, out var core, out var left, out var right);
+
+            // The core is a pixel narrower; each fading edge is a pixel wide and adds half of it, so the line is as wide and
+            // as bright overall at every height, and grows smoothly instead of in whole pixels.
+            Assert.That(width(core.BottomLeft, core.BottomRight), Is.EqualTo(width(near.BottomLeft, near.BottomRight) - 1).Within(tolerance));
+            Assert.That(width(core.TopLeft, core.TopRight), Is.EqualTo(width(near.TopLeft, near.TopRight) - 1).Within(tolerance));
+            Assert.That(width(left.TopLeft, left.TopRight), Is.EqualTo(1).Within(tolerance));
+            Assert.That(width(right.BottomLeft, right.BottomRight), Is.EqualTo(1).Within(tolerance));
+
+            // Edges meet the core, and are centred on the line's own edges.
+            assertNear(left.TopRight, core.TopLeft);
+            assertNear(right.BottomLeft, core.BottomRight);
+            assertNear((left.BottomLeft + left.BottomRight) / 2, near.BottomLeft);
+            assertNear((right.TopLeft + right.TopRight) / 2, near.TopRight);
+        }
+
+        [Test]
         public void TestAcrossTrackSpansTheTrack()
         {
             var p = create(0.24f);

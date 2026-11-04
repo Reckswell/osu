@@ -17,6 +17,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
     /// <summary>
     /// The highway's own markings, after Chunithm (research/game-chunithm.md, "Judgement line and receptors" and P4): teal
     /// guide lines along the lane boundaries that thin and dim with distance, and a white judgement line with a gold glow.
+    /// From 6K, the boundaries between mania's hand groups are drawn twice as wide and brighter (<see cref="LaneGroups"/>,
+    /// research/topic-wide-keys.md W1).
     /// </summary>
     /// <remarks>
     /// Drawn over the warped stage. Chunithm draws its judgement line and guides under the notes; these are drawn over
@@ -35,6 +37,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public const float MIN_LINE_PIXELS = 1;
 
         /// <summary>
+        /// Group divider width, in track widths: twice a lane line.
+        /// </summary>
+        public const float GROUP_LINE_WIDTH = 2 * LINE_WIDTH;
+
+        /// <summary>
+        /// Group dividers never get thinner than this on screen, so far away they still differ from the 1 px lane lines.
+        /// </summary>
+        public const float MIN_GROUP_LINE_PIXELS = 2;
+
+        /// <summary>
         /// The judgement line's white core, as a fraction of the playfield height (1.0% H in the arcade).
         /// </summary>
         public const float JUDGEMENT_CORE_HEIGHT = 0.010f;
@@ -51,6 +63,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         private const float near_alpha = 0.8f;
         private const float far_alpha = 0.3f;
+        private const float group_near_alpha = 1;
+        private const float group_far_alpha = 0.45f;
 
         private HighwayLayout layout = new HighwayLayout();
 
@@ -135,12 +149,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
-        /// Sets line <paramref name="index"/>: at <paramref name="lane"/> in lane space, an edge of a stage or a divider between
-        /// two lanes.
+        /// Sets line <paramref name="index"/>: at <paramref name="lane"/> in lane space, an edge of a stage, a divider between
+        /// two lanes, or one between two hand groups.
         /// </summary>
-        public void SetLine(int index, float lane, bool isEdge)
+        public void SetLine(int index, float lane, GuideLineKind kind)
         {
-            var line = new GuideLine(lane, isEdge);
+            var line = new GuideLine(lane, kind);
 
             if (lines[index] == line)
                 return;
@@ -153,7 +167,28 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         protected override DrawNode CreateDrawNode() => new HighwayGuidesDrawNode(this);
 
-        public readonly record struct GuideLine(float Lane, bool IsEdge);
+        public readonly record struct GuideLine(float Lane, GuideLineKind Kind)
+        {
+            public bool IsEdge => Kind == GuideLineKind.Edge;
+        }
+
+        public enum GuideLineKind
+        {
+            /// <summary>
+            /// A stage's outer edge.
+            /// </summary>
+            Edge,
+
+            /// <summary>
+            /// Between two lanes.
+            /// </summary>
+            Lane,
+
+            /// <summary>
+            /// Between two of mania's hand groups (<see cref="LaneGroups"/>).
+            /// </summary>
+            Group,
+        }
 
         private class HighwayGuidesDrawNode : DrawNode
         {
@@ -166,7 +201,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             private GuideLine[] lines = Array.Empty<GuideLine>();
             private int lineCount;
             private float alpha;
+            private float pixel;
             private float minLineWidth;
+            private float minGroupLineWidth;
 
             public HighwayGuidesDrawNode(HighwayGuides source)
                 : base(source)
@@ -185,7 +222,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
                 // The minimum is in screen pixels; gameplay is drawn inside a scaling container.
                 float pixelsPerUnit = MathF.Sqrt(DrawInfo.Matrix.M11 * DrawInfo.Matrix.M11 + DrawInfo.Matrix.M12 * DrawInfo.Matrix.M12);
-                minLineWidth = pixelsPerUnit > 0 ? MIN_LINE_PIXELS / pixelsPerUnit : MIN_LINE_PIXELS;
+                pixel = pixelsPerUnit > 0 ? 1 / pixelsPerUnit : 1;
+                minLineWidth = MIN_LINE_PIXELS * pixel;
+                minGroupLineWidth = MIN_GROUP_LINE_PIXELS * pixel;
 
                 lineCount = Source.LineCount;
                 if (lines.Length < lineCount)
@@ -216,15 +255,51 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             private void drawLaneLine(IRenderer renderer, GuideLine line)
             {
-                TrackDrawing.GetLaneLine(projection, line.Lane, LINE_WIDTH, 1, minLineWidth, out var near, out var far, out float split);
+                bool group = line.Kind == GuideLineKind.Group;
+
+                TrackDrawing.GetLaneLine(projection, line.Lane, group ? GROUP_LINE_WIDTH : LINE_WIDTH, 1, group ? minGroupLineWidth : minLineWidth,
+                    out var near, out var far, out float split);
 
                 Color4 colour = line.IsEdge ? edge_colour : divider_colour;
-                float splitAlpha = near_alpha + (far_alpha - near_alpha) * split;
+                float nearAlpha = group ? group_near_alpha : near_alpha;
+                float farAlpha = group ? group_far_alpha : far_alpha;
+                float splitAlpha = nearAlpha + (farAlpha - nearAlpha) * split;
 
-                draw(renderer, near, colour.Opacity(splitAlpha * alpha), colour.Opacity(near_alpha * alpha));
+                // Group dividers are wide enough to step visibly from 2 to 4 px: their edges fade instead (TrackDrawing.Feather).
+                drawPart(renderer, near, colour.Opacity(splitAlpha * alpha), colour.Opacity(nearAlpha * alpha), group);
 
                 if (split < 1)
-                    draw(renderer, far, colour.Opacity(far_alpha * alpha), colour.Opacity(splitAlpha * alpha));
+                    drawPart(renderer, far, colour.Opacity(farAlpha * alpha), colour.Opacity(splitAlpha * alpha), group);
+            }
+
+            private void drawPart(IRenderer renderer, Quad part, Color4 top, Color4 bottom, bool feathered)
+            {
+                if (!feathered)
+                {
+                    draw(renderer, part, top, bottom);
+                    return;
+                }
+
+                TrackDrawing.Feather(part, pixel, out var core, out var left, out var right);
+
+                Color4 topClear = top.Opacity(0);
+                Color4 bottomClear = bottom.Opacity(0);
+
+                draw(renderer, core, top, bottom);
+                renderer.DrawQuad(renderer.WhitePixel, left * DrawInfo.Matrix, new ColourInfo
+                {
+                    TopLeft = topClear,
+                    BottomLeft = bottomClear,
+                    TopRight = top,
+                    BottomRight = bottom,
+                });
+                renderer.DrawQuad(renderer.WhitePixel, right * DrawInfo.Matrix, new ColourInfo
+                {
+                    TopLeft = top,
+                    BottomLeft = bottom,
+                    TopRight = topClear,
+                    BottomRight = bottomClear,
+                });
             }
 
             private void drawJudgementLine(IRenderer renderer)

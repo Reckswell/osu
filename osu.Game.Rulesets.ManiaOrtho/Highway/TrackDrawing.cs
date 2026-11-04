@@ -188,6 +188,30 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         }
 
         /// <summary>
+        /// Splits a line from <see cref="GetLaneLine"/> into a solid core and a fading edge on each side, so it widens smoothly
+        /// on screen. Without them a line keeps whole pixels: one centred on a pixel boundary jumps from 2 to 4 px wide where
+        /// its width passes 3 px.
+        /// </summary>
+        /// <remarks>
+        /// The core is <paramref name="feather"/> narrower than the line and each edge is <paramref name="feather"/> wide,
+        /// centred on the line's own edge. Faded from full to none across its width, each edge adds half of it, so the line
+        /// keeps its width and brightness overall. Its sides stay on the same straight lines, offset sideways.
+        /// </remarks>
+        /// <param name="line">The line, as wide as wanted, at least <paramref name="feather"/>.</param>
+        /// <param name="feather">The width of each fading edge (one screen pixel, in the line's space).</param>
+        /// <param name="core">The solid middle.</param>
+        /// <param name="left">The left edge: its right side touches the core.</param>
+        /// <param name="right">The right edge: its left side touches the core.</param>
+        public static void Feather(in Quad line, float feather, out Quad core, out Quad left, out Quad right)
+        {
+            var half = new Vector2(feather / 2, 0);
+
+            core = new Quad(line.TopLeft + half, line.TopRight - half, line.BottomLeft + half, line.BottomRight - half);
+            left = new Quad(line.TopLeft - half, line.TopLeft + half, line.BottomLeft - half, line.BottomLeft + half);
+            right = new Quad(line.TopRight - half, line.TopRight + half, line.BottomRight - half, line.BottomRight + half);
+        }
+
+        /// <summary>
         /// The part of the track between lanes <paramref name="lane0"/> and <paramref name="lane1"/> from the judgement line down
         /// <paramref name="height"/> pixels, its sides on the lane edges' straight lines (as <see cref="DrawBelowLine"/> draws
         /// the stage there). A plain trapezoid: anything that varies only with screen height is drawn exactly on it.

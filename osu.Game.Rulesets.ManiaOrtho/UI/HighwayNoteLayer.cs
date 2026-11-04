@@ -47,9 +47,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public float NoteThickness { get; set; } = NOTE_THICKNESS;
 
         /// <summary>
-        /// The gap on each side of a note, as a fraction of its lane (a 98% wide note).
+        /// The gap on each side of a note, as a fraction of its lane (a 98% wide note), but never under
+        /// <see cref="MIN_GAP_PIXELS"/>.
         /// </summary>
         public const float NOTE_GAP = 0.01f;
+
+        /// <summary>
+        /// The least gap on each side of a note, in screen pixels: far away, and on narrow lanes at high key counts, 1% of a lane
+        /// is under a pixel and neighbouring notes merge into one bar (research/topic-wide-keys.md W3).
+        /// </summary>
+        public const float MIN_GAP_PIXELS = 1;
+
+        /// <summary>
+        /// The gap never takes more than this share of a lane from each side, so a note on a very narrow lane still shows.
+        /// </summary>
+        private const float max_gap = 0.25f;
 
         /// <summary>
         /// Hold bodies are narrower than their heads, as a fraction of the note width.
@@ -121,6 +133,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private DepthCover cover;
 
         /// <summary>
+        /// The camera this frame's notes are gathered for, and how many screen pixels one of this layer's units is.
+        /// </summary>
+        private HighwayProjection projection;
+
+        private float pixelsPerUnit = 1;
+
+        /// <summary>
         /// When set, notes are drawn with the skin's own images (<see cref="HighwayNoteStyle.Ported"/>) instead of plain bars.
         /// </summary>
         public PortedNoteShapes? Ported { get; set; }
@@ -136,6 +155,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         {
             Count = 0;
             Invalidate(Invalidation.DrawNode);
+
+            projection = new HighwayProjection(layout, DrawSize);
+            pixelsPerUnit = MathF.Sqrt(DrawInfo.Matrix.M11 * DrawInfo.Matrix.M11 + DrawInfo.Matrix.M12 * DrawInfo.Matrix.M12);
 
             var stages = playfield.Stages;
             int columnIndex = 0;
@@ -174,9 +196,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                         continue;
                     }
 
-                    float inset = (lanes.Y - lanes.X) * NOTE_GAP;
-                    float lane0 = lanes.X + inset;
-                    float lane1 = lanes.Y - inset;
                     Color4 colour = ColumnColour(column.AccentColour.Value, j, columns.Length, column.IsSpecial);
                     cover = columnIndex < columnCovers.Length ? columnCovers[columnIndex] : DepthCover.None;
 
@@ -185,11 +204,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                         switch (entry.Value)
                         {
                             case DrawableHoldNote hold:
-                                addHold(hold, lane0, lane1, colour, algorithm, timeRange, scroll, currentTime);
+                                addHold(hold, lanes, colour, algorithm, timeRange, scroll, currentTime);
                                 break;
 
                             case DrawableNote note:
-                                addNote(note, lane0, lane1, colour, algorithm, timeRange, scroll, currentTime);
+                                addNote(note, lanes, colour, algorithm, timeRange, scroll, currentTime);
                                 break;
                         }
                     }
@@ -215,23 +234,38 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
+        /// The gap on each side of a note in a lane <paramref name="laneWidth"/> wide (lane space), where the whole track (one
+        /// unit of lane space) is <paramref name="trackPixels"/> screen pixels wide: <see cref="NOTE_GAP"/> of the lane, at
+        /// least <see cref="MIN_GAP_PIXELS"/>, at most a quarter of the lane.
+        /// </summary>
+        public static float NoteGap(float laneWidth, float trackPixels)
+        {
+            float gap = laneWidth * NOTE_GAP;
+
+            if (trackPixels > 0)
+                gap = Math.Max(gap, MIN_GAP_PIXELS / trackPixels);
+
+            return Math.Min(gap, laneWidth * max_gap);
+        }
+
+        /// <summary>
         /// The colour <paramref name="snapSource"/>'s note is drawn in: its snap colour when timing-based colouring is on
         /// (mania sets it as the drawable's colour, white otherwise), else its column's colour.
         /// </summary>
         private Color4 noteColour(DrawableNote snapSource, Color4 columnColour)
             => SnapColours ? snapSource.Colour.TopLeft.SRGB.Opacity(1f) : columnColour;
 
-        private void addNote(DrawableNote note, float lane0, float lane1, Color4 columnColour, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
+        private void addNote(DrawableNote note, Vector2 lanes, Color4 columnColour, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
                              double currentTime)
         {
             if (note.Alpha <= 0)
                 return;
 
             float depth = scroll.DepthAt(algorithm, note.HitObject.StartTime, currentTime, timeRange);
-            addBar(note.HitObject, NoteQuadKind.Note, lane0, lane1, depth, NoteThickness, noteColour(note, columnColour), note.Alpha);
+            addBar(note.HitObject, NoteQuadKind.Note, lanes, depth, NoteThickness, noteColour(note, columnColour), note.Alpha);
         }
 
-        private void addHold(DrawableHoldNote hold, float lane0, float lane1, Color4 columnColour, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
+        private void addHold(DrawableHoldNote hold, Vector2 lanes, Color4 columnColour, IScrollAlgorithm algorithm, double timeRange, HighwayScroll scroll,
                              double currentTime)
         {
             if (hold.Alpha <= 0)
@@ -252,18 +286,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             bool broken = hold.MissingStartTime.Value != null;
             Color4 colour = broken ? broken_colour : noteColour(hold.Head, columnColour);
 
-            float bodyInset = (lane1 - lane0) * (1 - BODY_WIDTH) / 2;
+            // The body is narrower than the note by a share of the lane, wide enough at any size, and never wider than its head
+            // or tail: on a lane a few pixels wide their gap's pixel floor is more than the share.
+            float laneWidth = lanes.Y - lanes.X;
+            float bodyInset = laneWidth * (NOTE_GAP + (1 - 2 * NOTE_GAP) * (1 - BODY_WIDTH) / 2);
+            bodyInset = Math.Max(bodyInset, Math.Max(barGap(lanes, headDepth, NoteThickness), barGap(lanes, tailDepth, NoteThickness / 2)));
             float bodyAlpha = broken ? 0.35f : hold.IsHolding.Value ? 0.85f : 0.55f;
             float bodyStart = headDepth + NoteThickness / 2;
 
             if (tailDepth > bodyStart)
             {
                 Color4 body = colour.Opacity(bodyAlpha * hold.Alpha);
-                add(new NoteQuad(hold.HitObject, NoteQuadKind.HoldBody, lane0 + bodyInset, lane1 - bodyInset, bodyStart, tailDepth, body, body));
+                add(new NoteQuad(hold.HitObject, NoteQuadKind.HoldBody, lanes.X + bodyInset, lanes.Y - bodyInset, bodyStart, tailDepth, body, body));
             }
 
-            addBar(hold.HitObject, NoteQuadKind.HoldTail, lane0, lane1, tailDepth, NoteThickness / 2, colour, hold.Alpha * hold.Tail.Alpha);
-            addBar(hold.HitObject, NoteQuadKind.HoldHead, lane0, lane1, headDepth, NoteThickness, colour, hold.Alpha * hold.Head.Alpha);
+            addBar(hold.HitObject, NoteQuadKind.HoldTail, lanes, tailDepth, NoteThickness / 2, colour, hold.Alpha * hold.Tail.Alpha);
+            addBar(hold.HitObject, NoteQuadKind.HoldHead, lanes, headDepth, NoteThickness, colour, hold.Alpha * hold.Head.Alpha);
         }
 
         /// <summary>
@@ -405,18 +443,29 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
         /// <summary>
         /// A note-like bar from <paramref name="depth"/> (its leading edge, which crosses the judgement line at its time) to
-        /// <paramref name="depth"/> + <paramref name="thickness"/>, with a bright rim at the near edge.
+        /// <paramref name="depth"/> + <paramref name="thickness"/>, with a bright rim at the near edge, across
+        /// <paramref name="lanes"/> (its column's edges in lane space) less the gap on each side (<see cref="NoteGap"/>).
         /// </summary>
-        private void addBar(HitObject hitObject, NoteQuadKind kind, float lane0, float lane1, float depth, float thickness, Color4 colour, float alpha)
+        private void addBar(HitObject hitObject, NoteQuadKind kind, Vector2 lanes, float depth, float thickness, Color4 colour, float alpha)
         {
             if (alpha <= 0)
                 return;
 
+            float inset = barGap(lanes, depth, thickness);
+            float lane0 = lanes.X + inset;
+            float lane1 = lanes.Y - inset;
             float rim = depth + thickness * rim_fraction;
 
             add(new NoteQuad(hitObject, kind, lane0, lane1, rim, depth + thickness, colour.Lighten(0.25f).Opacity(alpha), colour.Opacity(alpha)));
             add(new NoteQuad(hitObject, kind, lane0, lane1, depth, rim, Color4.White.Opacity(alpha), Color4.White.Opacity(alpha)));
         }
+
+        /// <summary>
+        /// The gap on each side of a bar from <paramref name="depth"/> to <paramref name="depth"/> + <paramref name="thickness"/>
+        /// (<see cref="NoteGap"/>), measured where the bar is narrowest on screen: its far side.
+        /// </summary>
+        private float barGap(Vector2 lanes, float depth, float thickness)
+            => NoteGap(lanes.Y - lanes.X, projection.WidthAt(Math.Max(depth + thickness, 0)) * pixelsPerUnit);
 
         /// <summary>
         /// Adds <paramref name="quad"/>, cut where the column's cover changes so each piece fades as mania's cover would fade

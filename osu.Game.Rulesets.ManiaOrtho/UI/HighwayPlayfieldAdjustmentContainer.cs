@@ -965,14 +965,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     float left = toLane(quad.TopLeft);
                     float right = toLane(quad.BottomRight);
 
-                    // The left edge of the stage, then the middle of each gap between columns.
-                    Guides.SetLine(index++, j == 0 ? left : (previousRight + left) / 2, j == 0);
+                    // The left edge of the stage, then the middle of each gap between columns; hand groups by the stage's own key
+                    // count, so dual stages are grouped each on its own.
+                    Guides.SetLine(index++, j == 0 ? left : (previousRight + left) / 2,
+                        j == 0 ? HighwayGuides.GuideLineKind.Edge
+                        : LaneGroups.StartsGroup(columns.Length, j) ? HighwayGuides.GuideLineKind.Group
+                        : HighwayGuides.GuideLineKind.Lane);
                     previousRight = right;
 
                     columnLanes[columnIndex++] = new Vector2(left, right);
                 }
 
-                Guides.SetLine(index++, previousRight, true);
+                Guides.SetLine(index++, previousRight, HighwayGuides.GuideLineKind.Edge);
 
                 if (columns.Length > 0)
                     stageLanes[i] = new Vector2(columnLanes[columnIndex - columns.Length].X, previousRight);

@@ -712,3 +712,33 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   inputs are unbound on dispose; shared settings are reset in teardown; `VisibleTimeTest` pins the formula (cap, rate,
   wall, flat) without a renderer.
 - **Reverse**: restore the old `LabelFormat` and the two `CreateTrackedSettings`, drop `HighwayToasts`.
+
+## 2026-11-04: Hand-group dividers from 6K, and a pixel of gap between notes
+
+- **Group dividers** (research/topic-wide-keys.md W1): the lane guides draw the boundaries between mania's default hand
+  groups (6K 3|3, 7K 3|1|3, 8K 4|4, 9K 4|1|4, 10K 5|5; one group up to 5K) as a second tier: the same teal, twice a lane
+  line's width (0.0044 track widths) and at least 2 px, alpha 1.0 near to 0.45 far (lane lines: 0.8 to 0.3). From the
+  stage's key count alone (`LaneGroups`), so dual stages are grouped each on its own and bindings do not matter.
+  They are part of the lane guides: off with "Lane guides" off, under the flat camera, and when the ported skin's own
+  track is shown (it draws its own column lines; Alpha asked for skins to look like themselves). First-guess values
+  from the research, to tune in playtests. Their sides fade over a pixel (`TrackDrawing.Feather`: core a pixel
+  narrower, a pixel-wide fading edge each side, same overall width and brightness): a sharp line centred on a pixel
+  boundary jumped 2 to 4 to 6 px wide down the 10K split, the most prominent line on screen (playtester). Lane lines
+  stay sharp: they are 1-3 px, and a fading edge would grey the 1 px gap beside far notes.
+- **Note gap floor** (W3): native note bars keep their 1% gap per side but never less than 1 px on screen, measured at
+  the bar's far side (where it is narrowest), and never more than a quarter of the lane, so a note on a tiny lane still
+  shows. At the line nothing changes under Chunithm; far away and at 7K+ neighbouring notes no longer merge (at the far
+  end the floor applies even at 4K under Chunithm: 1% there is 0.45 px). Hold bodies keep their 80% width, but never
+  wider than their head or tail: on lanes under about 9 px (10K Voltex in a small window, dual-stage 10K) the floor is
+  more than the body's own inset and the body poked out under its caps (reviewer, SPEC 6). Ported notes are the skin's
+  images, whose own margins stay.
+- **Gate**: `WideKeysTest` (groups 1K-10K, the gap's three cases), `LaneLineTest.TestFeatheredLineKeepsItsWidth`,
+  `TestGroupDividers` (7K and 10K line kinds in game) and `TestGroupDividersPerStage` (two 7K stages from an osu! map with
+  7K and Dual Stages), `TestNotesKeepAPixelOfGap` (10K Voltex and 4K Chunithm, once a note is near the line: every bar
+  at least 1 px each side, some held at the pixel, and under Chunithm some at 1%), `TestHoldBodiesStayWithinTheirEnds`
+  (10K Voltex among the long notes). Mutations: no floor fails both gap cases (0.06 px at 10K Voltex's far end); no 1%
+  share fails 4K Chunithm (1 px where 1.58 px was due); no cap limit on the body fails the hold test. Captures at 7K and
+  10K (Chunithm, Voltex) reviewed by the playtester: the centre key and the 10K split found at a glance, far notes
+  separated by a black pixel; after feathering the split widens smoothly (pixel rows 2, 2+, 4, 4+, 6).
+- **Reverse**: `SetLine(..., Lane)` for every inner line; `NoteGap` back to `laneWidth * NOTE_GAP`; the body's inset back
+  to its share alone.

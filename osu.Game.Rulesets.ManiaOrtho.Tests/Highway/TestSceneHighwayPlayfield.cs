@@ -12,6 +12,7 @@ using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Mods;
+using osu.Game.Rulesets.Mania.Objects;
 using osu.Game.Rulesets.Mania.Skinning.Legacy;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
@@ -19,6 +20,9 @@ using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Mods;
+using osu.Game.Rulesets.Objects;
+using osu.Game.Rulesets.Osu;
+using osu.Game.Rulesets.Osu.Objects;
 using osu.Game.Rulesets.UI;
 using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Skinning;
@@ -36,7 +40,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
         protected override Ruleset CreatePlayerRuleset() => new ManiaOrthoRuleset();
 
-        protected override IBeatmap CreateBeatmap(RulesetInfo ruleset) => PlaytestBeatmaps.Load("synthetic-4k");
+        private string chart = "synthetic-4k";
+
+        /// <summary>
+        /// Played instead of <see cref="chart"/> when set.
+        /// </summary>
+        private IBeatmap? beatmap;
+
+        protected override IBeatmap CreateBeatmap(RulesetInfo ruleset) => beatmap ?? PlaytestBeatmaps.Load(chart);
 
         private DrawableManiaOrthoRuleset drawableRuleset => (DrawableManiaOrthoRuleset)Player.DrawableRuleset;
 
@@ -54,6 +65,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         {
             AddStep("Chunithm preset", () =>
             {
+                chart = "synthetic-4k";
+                beatmap = null;
+                highwayConfig.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).SetDefault();
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.LaneGuides, true);
@@ -224,6 +238,187 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 var line = highway.Guides.GetLine(i);
                 return Math.Abs(line.Lane - i / 4f) < 0.01f && line.IsEdge == (i == 0 || i == 4);
             }));
+        }
+
+        /// <summary>
+        /// From 6K, the boundaries between mania's hand groups are group dividers (research/topic-wide-keys.md W1): the centre
+        /// key of 7K stands alone, 10K splits 5|5.
+        /// </summary>
+        [TestCase(7, new[] { 3, 4 })]
+        [TestCase(10, new[] { 5 })]
+        public void TestGroupDividers(int keys, int[] groupStarts)
+        {
+            AddStep($"play {keys}K", () =>
+            {
+                chart = $"synthetic-{keys}k";
+                LoadPlayer();
+            });
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1 && highway.Guides.LineCount == keys + 1);
+
+            AddAssert("edges, group dividers and lane lines", () => Enumerable.Range(0, keys + 1).Select(i => highway.Guides.GetLine(i).Kind),
+                () => Is.EqualTo(expectedKinds(keys, groupStarts)));
+        }
+
+        /// <summary>
+        /// Each stage of a dual-stage play is grouped on its own: two 7K stages each show 7K's centre key.
+        /// </summary>
+        [Test]
+        public void TestGroupDividersPerStage()
+        {
+            AddStep("play an osu! beatmap as 7K dual stages", () =>
+            {
+                // Dual Stages applies to converts only.
+                beatmap = new Beatmap
+                {
+                    BeatmapInfo = { Ruleset = new OsuRuleset().RulesetInfo },
+                    HitObjects = Enumerable.Range(0, 32).Select(i => (HitObject)new HitCircle { StartTime = 1000 + i * 250, Position = new Vector2(i * 61 % 512, 192) }).ToList(),
+                };
+
+                var ruleset = CreatePlayerRuleset();
+                LoadPlayer(new[] { ruleset.CreateModFromAcronym("7K").AsNonNull(), ruleset.CreateModFromAcronym("DS").AsNonNull() });
+            });
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1 && drawableRuleset.Playfield.Stages.Count == 2 && highway.Guides.LineCount == 16);
+
+            AddAssert("each stage grouped 3|1|3", () => Enumerable.Range(0, 16).Select(i => highway.Guides.GetLine(i).Kind),
+                () => Is.EqualTo(expectedKinds(7, new[] { 3, 4 }).Concat(expectedKinds(7, new[] { 3, 4 }))));
+        }
+
+        private static HighwayGuides.GuideLineKind[] expectedKinds(int keys, int[] groupStarts) => Enumerable.Range(0, keys + 1)
+            .Select(i => i == 0 || i == keys ? HighwayGuides.GuideLineKind.Edge
+                : groupStarts.Contains(i) ? HighwayGuides.GuideLineKind.Group
+                : HighwayGuides.GuideLineKind.Lane)
+            .ToArray();
+
+        /// <summary>
+        /// Notes keep at least a pixel of gap on each side on screen (research/topic-wide-keys.md W3): 1% of a 10K lane is far
+        /// under a pixel at Voltex's far end. Where 1% is more, as for 4K near the line under Chunithm, it stays 1%. Checked once
+        /// a note is near the line, so far and near notes are both on screen.
+        /// </summary>
+        [TestCase(HighwayPreset.Voltex, 10, false)]
+        [TestCase(HighwayPreset.Chunithm, 4, true)]
+        public void TestNotesKeepAPixelOfGap(HighwayPreset preset, int keys, bool someWiderThanAPixel)
+        {
+            playWithHighwayNotes(preset, keys);
+            AddUntilStep("a note near the line", () => noteBars().Any(b => b.Depth0 > 0 && b.Depth0 < 0.2f));
+
+            int floored = 0;
+            int share = 0;
+
+            AddStep("measure the gaps", () =>
+            {
+                var noteLayer = highway.NoteLayer;
+                var projection = new HighwayProjection(noteLayer.Layout, noteLayer.DrawSize);
+                float pixelsPerUnit = MathF.Sqrt(noteLayer.DrawInfo.Matrix.M11 * noteLayer.DrawInfo.Matrix.M11 + noteLayer.DrawInfo.Matrix.M12 * noteLayer.DrawInfo.Matrix.M12);
+
+                floored = share = 0;
+
+                // Each bar's gap is measured at its far side.
+                foreach (var bar in noteBars().Where(q => q.Depth1 >= 0))
+                {
+                    var lane = highway.ColumnLanes[((ManiaHitObject)bar.HitObject).Column];
+                    float width = lane.Y - lane.X;
+                    float trackPixels = projection.WidthAt(bar.Depth1) * pixelsPerUnit;
+                    float floor = HighwayNoteLayer.MIN_GAP_PIXELS / trackPixels;
+                    float expected = Math.Min(Math.Max(width * HighwayNoteLayer.NOTE_GAP, floor), width / 4);
+
+                    foreach (float gap in new[] { bar.Lane0 - lane.X, lane.Y - bar.Lane1 })
+                    {
+                        if (gap * trackPixels < HighwayNoteLayer.MIN_GAP_PIXELS - 1e-3f)
+                            throw new AssertionException($"under a pixel at depth {bar.Depth1}: {gap * trackPixels} px");
+
+                        if (Math.Abs(gap - expected) * trackPixels > 1e-3f)
+                            throw new AssertionException($"gap {gap * trackPixels} px at depth {bar.Depth1}, expected {expected * trackPixels} px");
+                    }
+
+                    if (floor > width * HighwayNoteLayer.NOTE_GAP)
+                        floored++;
+                    else
+                        share++;
+                }
+            });
+
+            AddAssert("some gaps held at a pixel", () => floored, () => Is.GreaterThan(0));
+            if (someWiderThanAPixel)
+                AddAssert("some gaps 1% of the lane", () => share, () => Is.GreaterThan(0));
+        }
+
+        /// <summary>
+        /// A hold's body is never wider than its head or tail (SPEC 6), also where the gap's pixel floor narrows them: 10K under
+        /// Voltex at the test window's size, where far lanes are a few pixels wide and a pixel is more than the body's own inset.
+        /// </summary>
+        [Test]
+        public void TestHoldBodiesStayWithinTheirEnds()
+        {
+            playWithHighwayNotes(HighwayPreset.Voltex, 10);
+
+            double time = 0;
+
+            AddStep("stop among the long notes", () =>
+            {
+                // Bars 12-15 of the synthetic chart: holds every beat, 1.5 beats long.
+                time = drawableRuleset.Objects.First(h => h is HoldNote).StartTime + 1000;
+
+                Player.GameplayClockContainer.Stop();
+                Player.GameplayClockContainer.Seek(time);
+            });
+            AddUntilStep("playfield at that time", () => drawableRuleset.FrameStableClock.CurrentTime, () => Is.EqualTo(time).Within(1));
+            AddWaitStep("let the highway gather", 2);
+
+            int holds = 0;
+            int narrowedByTheirEnds = 0;
+
+            AddStep("compare each body with its ends", () =>
+            {
+                var noteLayer = highway.NoteLayer;
+                var quads = Enumerable.Range(0, noteLayer.Count).Select(noteLayer.GetQuad).ToArray();
+
+                holds = narrowedByTheirEnds = 0;
+
+                foreach (var hold in quads.Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.HoldBody).GroupBy(q => q.HitObject))
+                {
+                    var body = hold.First();
+                    var ends = quads.Where(q => q.HitObject == hold.Key && q.Kind is HighwayNoteLayer.NoteQuadKind.HoldHead or HighwayNoteLayer.NoteQuadKind.HoldTail).ToArray();
+
+                    foreach (var end in ends)
+                    {
+                        if (body.Lane0 < end.Lane0 - 1e-6f || body.Lane1 > end.Lane1 + 1e-6f)
+                            throw new AssertionException($"body {body.Lane0}-{body.Lane1} wider than its {end.Kind} {end.Lane0}-{end.Lane1} at depth {end.Depth1}");
+                    }
+
+                    holds++;
+                    if (ends.Any(e => Math.Abs(body.Lane0 - e.Lane0) < 1e-6f))
+                        narrowedByTheirEnds++;
+                }
+            });
+
+            AddAssert("holds compared", () => holds, () => Is.GreaterThan(0));
+            AddAssert("some bodies narrowed by a pixel-wide gap", () => narrowedByTheirEnds, () => Is.GreaterThan(0));
+        }
+
+        private void playWithHighwayNotes(HighwayPreset preset, int keys)
+        {
+            AddStep($"{preset}, {keys}K, highway notes", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.Preset, preset);
+                highwayConfig.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);
+                chart = $"synthetic-{keys}k";
+                LoadPlayer();
+            });
+            AddUntilStep("highway notes shown", () => Player.IsLoaded && Player.Alpha == 1 && highway.NativeNotes && highway.ColumnLanes.Length == keys);
+        }
+
+        /// <summary>
+        /// Each tap note's bar as the highway draws it: the quad reaching farthest of its rim and body (they share their lanes).
+        /// </summary>
+        private HighwayNoteLayer.NoteQuad[] noteBars()
+        {
+            var noteLayer = highway.NoteLayer;
+
+            return Enumerable.Range(0, noteLayer.Count).Select(noteLayer.GetQuad)
+                             .Where(q => q.Kind == HighwayNoteLayer.NoteQuadKind.Note)
+                             .GroupBy(q => q.HitObject)
+                             .Select(g => g.MaxBy(q => q.Depth1))
+                             .ToArray();
         }
 
         [Test]

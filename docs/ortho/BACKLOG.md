@@ -137,8 +137,10 @@ From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md`
 - [x] Note thickness up to 8%, so Alpha's 6.4% bars can be matched under Parallel (osu!mania P7). Gate: settings test.
 - [x] Constant Speed on the highway: a test that pins it (osu!mania P2). Gate: notes equally spaced through an SV
   section with the mod on. (`TestConstantSpeedIgnoresSv`: the 0.5x and 1.75x sections scroll at 1x.)
-- [ ] Group dividers at 6K and up (3|3, 3|1|3, 4|4, 4|1|4, 5|5) and a 1 px on-screen floor on the gap between notes
-  (wide keys W1, W3). Gate: tests; 7K and 10K captures reviewed by the playtester.
+- [x] Group dividers at 6K and up (3|3, 3|1|3, 4|4, 4|1|4, 5|5) and a 1 px on-screen floor on the gap between notes
+  (wide keys W1, W3). Gate: tests; 7K and 10K captures reviewed by the playtester. (`WideKeysTest`,
+  `TestGroupDividers`, `TestGroupDividersPerStage`, `TestNotesKeepAPixelOfGap`, `TestHoldBodiesStayWithinTheirEnds`;
+  captures in `/mnt/project-files/ortho-agent/wide-keys/`, playtester pass.)
 - [ ] Optional far fade (YARG), default off. Gate: capture; parity.
 - [ ] Playtest at 840 ms visible time too, where Chunithm and Sekai players' near-line speed is (`game-sekai.md` K3).
   Gate: the harness's default capture set includes it.
