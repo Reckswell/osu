@@ -73,14 +73,25 @@ The cloud cannot measure performance or show the GPU path. At milestone gates th
 thread) to approve a Remote Control session on their Windows PC, then runs there:
 
 ```powershell
-git fetch; git checkout <branch>
-pwsh scripts/ortho/playtest.ps1                                        # same harness, real GPU, 1920x1080
-pwsh scripts/ortho/playtest.ps1 -Beatmap "$env:LOCALAPPDATA\osu!\Songs\...\map.osu"   # Alpha's own maps (osu!stable library)
-dotnet run --project osu.Desktop                                       # full game, for song-select and settings checks
+# in C:\Users\alpha\Documents\Projects\osu!\ortho (Alpha wants every file inside Documents\Projects\osu!)
+git pull
+powershell -ExecutionPolicy Bypass -File scripts\ortho\playtest.ps1    # same harness, real GPU, 1920x1080
+powershell -ExecutionPolicy Bypass -File scripts\ortho\playtest.ps1 -Beatmap "playtest-output\maps\<set>\<map>.osu" -PlayToEnd
 ```
 
-Report: the compare sheets, the `fps` block of each summary (mean and 5th percentile), and anything that differs from
-the cloud screenshots. Never copy Alpha's beatmaps, audio or skins into the repository.
+The full game (`osu.Desktop`) keeps its data in `%APPDATA%\osu-development`, outside the folder: run it there only
+with Alpha's say-so.
+
+Report: the compare sheets, the `fps` and `frameTimeMs` blocks of each summary, and anything that differs from the
+cloud screenshots. The harness measures uncapped (frame sync unlimited, 1000 Hz even when its window lacks focus,
+`frameLimits` and `windowActive` in the summary) and skips the half second after each seek or capture pause, when the
+playfield catches up. `frameTimeMs` p99 and max show stutter that a mean fps hides. Never copy Alpha's beatmaps, audio
+or skins into the repository.
+
+Keep everything inside the clone: the harness is portable (settings and realm next to its build output), and
+`playtest.ps1` puts NuGet's caches, the .NET CLI home and temp files in `.ortho-cache`. Copy Alpha's maps into
+`playtest-output\maps` (gitignored) and run them from there. The harness never contacts osu!'s servers (dummy API, no
+metadata cache download, no online images).
 
 ## L4: Alpha plays
 

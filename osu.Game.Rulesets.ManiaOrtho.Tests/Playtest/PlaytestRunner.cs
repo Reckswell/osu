@@ -15,8 +15,11 @@ using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Input.Handlers.Mouse;
+using osu.Framework.IO.Stores;
 using osu.Framework.Platform;
 using osu.Framework.Testing;
+using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Online.API;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
@@ -125,7 +128,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             {
                 frameworkConfig.SetValue(FrameworkSetting.WindowMode, WindowMode.Windowed);
                 frameworkConfig.SetValue(FrameworkSetting.WindowedSize, windowSize);
+
+                // Measure what the renderer can do, not the frame limiter (2x refresh by default).
+                frameworkConfig.SetValue(FrameworkSetting.FrameSync, FrameSync.Unlimited);
             }
+
+            // Nothing from osu!'s servers: the beatmap metadata cache (online.db) and online images such as avatars.
+            protected override IBeatmapUpdater CreateBeatmapUpdater() => new OfflineBeatmapUpdater();
+
+            protected override OnlineStore CreateOnlineStore() => new OfflineOnlineStore();
 
             public override void SetHost(GameHost host)
             {
@@ -136,6 +147,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             protected override void LoadComplete()
             {
                 base.LoadComplete();
+
+                // A window that did not get focus would otherwise run at 60 fps, which says nothing about the renderer.
+                Host.MaximumInactiveHz = 1000;
 
                 // Captures should show the game, not the harness: no mouse (so no hover states or tooltips) and no cursor.
                 foreach (var mouse in Host.AvailableInputHandlers.OfType<MouseHandler>())
@@ -189,6 +203,36 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         Exit();
                     });
                 });
+            }
+
+            /// <summary>
+            /// Leaves beatmaps as they are: the harness never imports any, and osu!'s updater would download its metadata cache.
+            /// </summary>
+            private sealed class OfflineBeatmapUpdater : IBeatmapUpdater
+            {
+                public void Queue(Live<BeatmapSetInfo> beatmapSet, MetadataLookupScope lookupScope = MetadataLookupScope.LocalCacheFirst)
+                {
+                }
+
+                public void Process(BeatmapSetInfo beatmapSet, MetadataLookupScope lookupScope = MetadataLookupScope.LocalCacheFirst)
+                {
+                }
+
+                public void ProcessObjectCounts(BeatmapInfo beatmapInfo, MetadataLookupScope lookupScope = MetadataLookupScope.LocalCacheFirst)
+                {
+                }
+
+                public void Dispose()
+                {
+                }
+            }
+
+            /// <summary>
+            /// Looks nothing up online (avatars, covers): those images stay blank.
+            /// </summary>
+            private sealed class OfflineOnlineStore : OnlineStore
+            {
+                protected override string GetLookupUrl(string url) => string.Empty;
             }
 
             private void captureAndExit()

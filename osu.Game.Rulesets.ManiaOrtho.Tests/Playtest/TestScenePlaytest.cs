@@ -42,6 +42,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         private readonly List<string> captures = new List<string>();
         private readonly List<object> clockAtCapture = new List<object>();
         private readonly List<double> fpsSamples = new List<double>();
+
+        /// <summary>
+        /// Draw frame times (ms) while gameplay runs, one per draw frame seen from the update thread.
+        /// </summary>
+        private readonly List<double> frameTimes = new List<double>();
+
+        /// <summary>
+        /// Frames are measured only after the gameplay clock has run smoothly for <see cref="settle_time"/> (real time):
+        /// a seek or a capture pause makes the playfield catch up, which is the harness's doing, not gameplay's.
+        /// </summary>
+        private const double settle_time = 500;
+
+        private double measureFrom;
+        private double lastMeasuredGameplayTime = double.NaN;
+        private double lastDrawFrame = double.NaN;
         private Task? captureTask;
 
         /// <summary>
@@ -262,9 +277,32 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         {
             base.Update();
 
-            if (Player?.GameplayClockContainer?.IsRunning == true)
-                fpsSamples.Add(host.DrawThread.Clock.FramesPerSecond);
+            if (Player?.GameplayClockContainer?.IsRunning != true)
+            {
+                lastMeasuredGameplayTime = double.NaN;
+                return;
+            }
+
+            // A jump in gameplay time (a seek), or a restart after a pause, starts a new settling period.
+            double gameplayTime = Player.GameplayClockContainer.CurrentTime;
+            if (double.IsNaN(lastMeasuredGameplayTime) || Math.Abs(gameplayTime - lastMeasuredGameplayTime) > 250)
+                measureFrom = Time.Current + settle_time;
+            lastMeasuredGameplayTime = gameplayTime;
+
+            var drawClock = host.DrawThread.Clock;
+            bool newDrawFrame = drawClock.CurrentTime != lastDrawFrame;
+            lastDrawFrame = drawClock.CurrentTime;
+
+            if (Time.Current < measureFrom)
+                return;
+
+            fpsSamples.Add(drawClock.FramesPerSecond);
+
+            if (newDrawFrame)
+                frameTimes.Add(drawClock.ElapsedFrameTime);
         }
+
+        private static double percentile(double[] sorted, double p) => sorted[Math.Min(sorted.Length - 1, (int)(sorted.Length * p))];
 
         private static double[] defaultTimes(IBeatmap beatmap)
         {
@@ -300,6 +338,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             var beatmap = Player.GameplayState.Beatmap;
             var scoreProcessor = Player.ScoreProcessor;
             double[] sortedFps = fpsSamples.OrderBy(f => f).ToArray();
+            double[] sortedFrameTimes = frameTimes.OrderBy(f => f).ToArray();
 
             var summary = new
             {
@@ -346,6 +385,19 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         min = Math.Round(sortedFps[0], 1),
                         samples = sortedFps.Length,
                     },
+                // Draw frame times in ms: the long frames are what a player feels as stutter.
+                frameTimeMs = sortedFrameTimes.Length == 0
+                    ? null
+                    : new
+                    {
+                        p50 = Math.Round(percentile(sortedFrameTimes, 0.5), 2),
+                        p95 = Math.Round(percentile(sortedFrameTimes, 0.95), 2),
+                        p99 = Math.Round(percentile(sortedFrameTimes, 0.99), 2),
+                        max = Math.Round(sortedFrameTimes[^1], 2),
+                        samples = sortedFrameTimes.Length,
+                    },
+                frameLimits = $"draw {host.MaximumDrawHz} Hz, update {host.MaximumUpdateHz} Hz, inactive {host.MaximumInactiveHz} Hz",
+                windowActive = host.IsActive.Value,
                 completed = Player.GameplayState.HasCompleted,
                 statistics = scoreProcessor.Statistics.Where(kvp => kvp.Value > 0).ToDictionary(kvp => kvp.Key.ToString(), kvp => kvp.Value),
                 accuracy = Math.Round(scoreProcessor.Accuracy.Value, 6),
