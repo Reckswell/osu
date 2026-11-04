@@ -14,6 +14,8 @@ using osu.Framework.Platform;
 using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
+using osu.Game.Online.API;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
@@ -107,6 +109,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         {
             AddStep("apply ruleset settings", () =>
             {
+                // The local user's avatar would be fetched from osu!'s servers (a.ppy.sh); an empty address loads none.
+                if (API is DummyAPIAccess dummyApi)
+                {
+                    dummyApi.LocalUser.Value = new APIUser
+                    {
+                        Username = @"Local user",
+                        Id = DummyAPIAccess.DUMMY_USER_ID,
+                        AvatarUrl = string.Empty,
+                    };
+                }
+
                 skins.CurrentSkinInfo.Value = options.CreateSkinInfo().ToLiveUnmanaged();
 
                 var config = (ManiaRulesetConfigManager)RulesetConfigs.GetConfigFor(CreatePlayerRuleset()).AsNonNull();

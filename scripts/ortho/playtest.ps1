@@ -29,6 +29,10 @@ $env:TEMP = Join-Path $cache "temp"
 $env:TMP = $env:TEMP
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = "1"
 $env:DOTNET_NOLOGO = "1"
+# The .NET CLI's first run would otherwise add its tools folder to the user's PATH and a development certificate to the
+# user's certificate store.
+$env:DOTNET_ADD_GLOBAL_TOOLS_TO_PATH = "0"
+$env:DOTNET_GENERATE_ASPNET_CERTIFICATE = "0"
 New-Item -ItemType Directory -Force -Path $env:TEMP, $env:DOTNET_CLI_HOME | Out-Null
 
 if (-not $Out) {
@@ -40,7 +44,8 @@ New-Item -ItemType Directory -Force -Path $Out | Out-Null
 
 Write-Host "== build"
 $ErrorActionPreference = "Continue"
-dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Release -v q -nologo 2>&1 | Out-Null
+# No build servers: ones left running from an earlier build would keep that build's temp folder and settings.
+dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Release -v q -nologo --disable-build-servers 2>&1 | Out-Null
 $buildExit = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 if ($buildExit -ne 0) { Write-Host "build FAILED (run: dotnet build osu.Game.Rulesets.ManiaOrtho.Tests -c Release)"; exit 1 }
