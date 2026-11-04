@@ -1,4 +1,4 @@
-﻿# Backlog
+# Backlog
 
 Work top to bottom. A task is done when its **Gate** passes and its commit is in. Tick it (`[x]`), add the commit
 hash, and log the iteration in `LOG.md`. Split a task if it will not fit in one iteration; add new tasks where they
@@ -21,6 +21,7 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   note approach, judgement line position, lane covers/walls, speed definition, hold rendering, key-count handling.
   SDVX, Chunithm, osu!mania first, then Project Sekai, IIDX, StepMania/Etterna, Quaver, YARG/Clone Hero, USC,
   Arcaea, DJMAX. Gate: each note has sources and a "what this means for us" section; `research/INDEX.md` updated.
+  (Remaining: Quaver, Arcaea, DJMAX.)
 - [x] Settings plumbing: `ManiaOrthoRulesetConfigManager` (camera mode, preset, tilt, FOV, wall position, lift,
   wall-keeps-visible-time) and a settings subsection; mania scroll speed still applies.
   Gate: settings round-trip test; settings show in the ruleset settings panel (screenshot via a test scene).
@@ -138,6 +139,9 @@ From the 2026-11-04 notes (`research/game-osu-mania.md` P1-P7, `topic-covers.md`
 - [ ] Group dividers at 6K and up (3|3, 3|1|3, 4|4, 4|1|4, 5|5) and a 1 px on-screen floor on the gap between notes
   (wide keys W1, W3). Gate: tests; 7K and 10K captures reviewed by the playtester.
 - [ ] Optional far fade (YARG), default off. Gate: capture; parity.
+- [ ] Playtest at 840 ms visible time too, where Chunithm and Sekai players' near-line speed is (`game-sekai.md` K3).
+  Gate: the harness's default capture set includes it.
+- [ ] **[Alpha: Q17]** A Sekai preset with Sekai's eased approach (`game-sekai.md` K2).
 - [ ] **[Alpha: Q14]** Missed notes slide past the line; the wall keys' gate with "keep speed"; lane tint; a wall for
   Voltex at 9K and up.
 
@@ -171,5 +175,7 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
 
 - [x] Legacy skin textures on projected notes: the runtime skin porter (Alpha's ask, 2026-11-04; survey in
       `research/skins-survey.md`). Open: the default key-area variant for raised hit positions (asked on a card).
+- [ ] Optional "Hold opacity" 10-100% and "Track opacity" 0-100% settings, and the judgement line lit per lane on a hit
+  in the result's colour (`game-sekai.md` K6, K7, K9).
 - [ ] Optional cosmetic camera motion (kiai sway), off by default.
 - [ ] More presets from research.

@@ -70,7 +70,7 @@ unverified; they look derived from its layout (1176-px lane art).
 | Chunithm | speed 1.00-15.00, 16-19, SONIC | visible time | T = 5486 / s ms | none ("BPM basically does not affect scroll speed") | **track** (constant world speed) | `game-chunithm.md` |
 | SDVX | III: Hi-speed, saved as Hi-speed × BPM; EG: lane speed | visible time (mapping unverified) | — | III: BPM × HS; EG: BPM-independent | track (clones) | `game-sdvx.md` |
 | USC / KSM | hi-speed or mod-speed | beats in view | T = 480,000 / (BPM × HS); KSM about 448,900 / (BPM × HS) | mod-speed normalised | **track** | `game-usc.md` |
-| Project Sekai (Sonolus) | note speed 1-12, default 6, 0.01 steps | approach duration | T = lerp(350, 4000, ((12 − s)/11)^1.31) ms | none (scaled time only) | **exponential in screen scale** | [P1] |
+| Project Sekai (Sonolus) | note speed 1-12, engine default 6 (the official game's is 5.0 [`game-sekai.md` K5]), 0.01 steps (official since 2024-04) | approach duration | T = lerp(350, 4000, ((12 − s)/11)^1.31) ms | none (scaled time only) | **exponential in screen scale** | [P1] |
 | YARG | note speed (units/s, code default 6; new profiles 5) and highway length (default 1) | track units per second | T = 5 × length / speed s: 833 ms or 1000 ms; slower on lower difficulties by default | none | **track** | `game-yarg-clonehero.md`, [Y1][Y2] |
 | ArcCreate (Arcaea editor/player, GPL-3.0) | drop rate (default 150) | z = time × rate / 1000 at the base BPM | 100 track units forward, so T = 100,000 / rate ms; default 667 ms | relative to the chart's base BPM | **track** | [A1] |
 | StepMania / Etterna | x-mod, C-mod, M-mod | field pixels: 64 px per beat × x; C: 64 px × C/60 per s | visible field px / speed: Overhead 360/C s, Hallway 38% longer | x: BPM; C: none; M: max BPM | flat field, then rotated (**track**) | `game-stepmania-etterna.md`, [SM1] |
@@ -237,8 +237,8 @@ Covers are in `topic-covers.md`; the rest does not concern speed.
 
 ## Unverified
 
-- Sekai: whether the official game uses the Sonolus engine's curve (1.06^45) and layout, and its speed range and
-  typical speeds.
+- Sekai: whether the official game uses the Sonolus engine's layout. (The curve and formula now fit a player's
+  captures of the official game at speeds 9-12 within 0.1-1.5%, and typical speeds are 10-11.6: `game-sekai.md`.)
 - SDVX EG: how lane speed maps to visible time.
 - Arcaea: the official speed to drop-rate mapping (ArcCreate's default 150 = 667 ms is the clone's).
 - Clone Hero: closed source; not checked.

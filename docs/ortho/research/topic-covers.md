@@ -60,7 +60,7 @@ See `topic-speed.md`. This note only records what each cover does to speed.
 | Chunithm | Field wall | far part of the track, opaque vertical panel | 0-16; 5.82% of the visible track per step up to 11 | 0 | options menu between songs only (unverified that it is locked in play) | **speed** (players lower speed by hand) | — [`game-chunithm.md`] |
 | DJMAX RESPECT V | Fader: Fade In 1/2, Fade Out 1/2, Blink 1/2, Fog, Blind | notes, by fixed patterns | fixed presets | off | no (equipment tab) | speed | — [D1] |
 | | Lane cover | — | not found (unverified) | — | — | — | — |
-| Project Sekai (official) | none found | — | — | — | — | — | — (unverified negative) |
+| Project Sekai (official) | Note Start Point (ノーツの開始位置), since 2024-04 | far part of the approach (unit inferred: screen distance) | 0-100, steps 1 or 10 | 0 (unverified) | before play (preview screen) | speed | — (corrected 2026-11-04 from "none found"; `game-sekai.md` [K1][K2][K3]) |
 | Sonolus Sekai engine (fan, MIT) | Stage cover (vertical) | screen above a line from the lane top to the judgement line | 0-1 in 0.01 steps (`lerp(lane top, line, v)`) | 0 | engine option, before play | speed (a drawn cover; note timing unchanged) | — [P1] |
 | | Hidden | the last part of each note's approach | 0-1 of the visible time, 0.05 steps | 0 | before play | — | — [P1] |
 | StepMania / Etterna (engine) | Sudden, Hidden, SuddenOffset, HiddenOffset | fade bands in field pixels: centre line 160 px from the receptors, fade 40 px, offsets move it; they tilt with the field | modifier 0-100% plus offset | off | mods (set before; themes may change them) | speed | — [SM1] (`game-stepmania-etterna.md`) |
@@ -162,8 +162,8 @@ standing on the track. Ours is a vertical panel (DECISIONS). **No change.**
 
 ## Unverified
 
-- Whether SDVX, official Project Sekai, Arcaea or DJMAX have any adjustable lane cover. None was found in their option
-  guides.
+- Whether SDVX, Arcaea or DJMAX have any adjustable lane cover. None was found in their option guides. (Official
+  Project Sekai has one: see its row and `game-sekai.md`.)
 - Whether Chunithm's wall can change during a song.
 - USC's in-game cover controls.
 - IIDX: HIDDEN+ range; FHS with LIFT.

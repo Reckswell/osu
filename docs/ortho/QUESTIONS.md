@@ -102,6 +102,17 @@ Each is a default-feel choice, so it is yours; nothing changes until you answer.
 - **Default until answered**: (a) keep Chunithm's, (b) any time, (c) off, (d) leave it.
 - **Answer**:
 
+### Q17. A "Sekai" camera preset with Project Sekai's eased approach
+Project Sekai has the steepest perspective of any reference (line 21% up, far lanes 7% of the near width, notes from
+the top edge) and stays readable because notes slow down less far away: their approach is not linear in track depth,
+which SPEC 3 rules out. Copying its camera without that curve would make far notes crawl and near notes rush (189×
+speed difference). `research/game-sekai.md` K2 has the values and the curve (it keeps hit times, visible time and SV).
+- **Options**: (a) a Sekai preset with the eased approach, other presets stay linear; (b) (a) plus an "Approach:
+  Linear / Eased" setting on every preset; (c) no Sekai preset.
+- **Default until answered**: nothing is built. If (a) or (b), Chunithm (linear) and Sekai (eased) captures at 405 ms,
+  4K and 7K come first.
+- **Answer**:
+
 ### Q18. Replays of your maniaortho plays
 osu! stores replays only for its four own rulesets, so it keeps none of your maniaortho plays: nothing to watch from
 the leaderboard and nothing to export. Each logged play's replay is now saved as an osu!mania `.osr` in
