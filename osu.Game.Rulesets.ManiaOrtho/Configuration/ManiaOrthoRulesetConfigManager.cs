@@ -78,6 +78,14 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
                     preset.Value = HighwayPreset.Custom;
             }
 
+            // Choosing a game's wall scale also gives the wall that game's speed behaviour (Chunithm and osu!mania keep the
+            // speed, IIDX the visible time); the toggle can still be changed afterwards.
+            GetOriginalBindable<WallScale>(HighwaySetting.WallScale).ValueChanged += e =>
+            {
+                if (WallScales.KeepsVisibleTime(e.NewValue) is bool keepsVisibleTime)
+                    SetValue(HighwaySetting.WallKeepsVisibleTime, keepsVisibleTime);
+            };
+
             ApplySkinPortDefaults();
         }
 
@@ -119,7 +127,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.JudgementLineHeight, defaults.JudgementLineHeight, 0f, HighwaySettings.MAX_JUDGEMENT_LINE_HEIGHT, precision);
             SetDefault(HighwaySetting.FarEdgeHeight, defaults.FarEdgeHeight, 0f, 0.5f, precision);
             SetDefault(HighwaySetting.TrackWidth, defaults.TrackWidth, 0.2f, 1f, precision);
-            SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.01f);
+            // Fine enough for every scale's units (a white number is a thousandth of the lane on screen).
+            SetDefault(HighwaySetting.Wall, defaults.Wall, 0f, HighwayScroll.MAX_WALL, 0.0001f);
             SetDefault(HighwaySetting.NoteThickness, defaults.NoteThickness, 0.005f, 0.08f, 0.0005f);
             SetDefault(HighwaySetting.WallKeepsVisibleTime, true);
             SetDefault(HighwaySetting.LaneGuides, true);
@@ -135,6 +144,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.TrackOpacity, defaults.TrackOpacity, 0f, 1f, 0.01f);
             SetDefault(HighwaySetting.KeyBeam, defaults.KeyBeam);
             SetDefault(HighwaySetting.KiaiSway, defaults.KiaiSway, 0f, 1f, 0.01f);
+            SetDefault(HighwaySetting.WallScale, defaults.WallScale);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
         }
 
@@ -164,6 +174,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             TrackOpacity = Get<float>(HighwaySetting.TrackOpacity),
             KeyBeam = Get<KeyBeamLength>(HighwaySetting.KeyBeam),
             KiaiSway = Get<float>(HighwaySetting.KiaiSway),
+            WallScale = Get<WallScale>(HighwaySetting.WallScale),
         };
 
         /// <summary>
@@ -171,7 +182,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         /// <see cref="HighwaySetting.LaneGuides"/>, <see cref="HighwaySetting.SkinHitTarget"/>,
         /// <see cref="HighwaySetting.NoteStyle"/>, <see cref="HighwaySetting.HitEffects"/>, <see cref="HighwaySetting.Track"/>,
         /// <see cref="HighwaySetting.FarFade"/>, <see cref="HighwaySetting.HoldOpacity"/>, <see cref="HighwaySetting.TrackOpacity"/>,
-        /// <see cref="HighwaySetting.KeyBeam"/>, <see cref="HighwaySetting.KiaiSway"/> and the
+        /// <see cref="HighwaySetting.KeyBeam"/>, <see cref="HighwaySetting.KiaiSway"/>, <see cref="HighwaySetting.WallScale"/> and the
         /// skin porter's settings alone (preferences, not part of a camera).
         /// </summary>
         public void ApplyPreset(HighwayPreset preset)
@@ -243,6 +254,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         TrackOpacity,
         KeyBeam,
         KiaiSway,
+        WallScale,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.

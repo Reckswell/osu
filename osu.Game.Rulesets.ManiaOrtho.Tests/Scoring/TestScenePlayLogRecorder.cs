@@ -86,15 +86,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Scoring
                 log.Delete(PlayLog.FILENAME);
                 log.DeleteDirectory(PlayLog.REPLAY_DIRECTORY);
             });
-            AddStep("Voltex preset", () => config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex));
+            AddStep("Voltex preset, wall in Chunithm's steps", () =>
+            {
+                config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex);
+                config.Highway.SetValue(HighwaySetting.WallScale, WallScale.Chunithm);
+            });
             AddStep("not a replay", () => hasReplayLoaded.Value = false);
         }
 
         [TearDownSteps]
         public void TearDownSteps()
         {
-            AddStep("default preset", () =>
+            AddStep("default preset and wall scale", () =>
             {
+                config.Highway.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
+                config.Highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
                 config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 config.Highway.SetValue(HighwaySetting.Preset, HighwayPresets.DEFAULT);
             });
@@ -124,12 +130,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Scoring
                     state.ScoreProcessor.HighestCombo.Value.ToString(CultureInfo.InvariantCulture),
                 }));
             AddAssert("stars and pp are mania's", () => new[] { field("stars"), field("pp") }, () => Is.EqualTo(maniaRating("DT")));
-            AddAssert("camera, wall and speed", () => new[] { field("preset"), field("camera"), field("wall"), field("lift"), field("wall_keeps_visible_time"), field("scroll_speed") },
+            AddAssert("camera, wall and speed", () => new[]
+                {
+                    field("preset"), field("camera"), field("wall"), field("wall_scale"), field("lift"), field("wall_keeps_visible_time"), field("scroll_speed")
+                },
                 () => Is.EqualTo(new[]
                 {
                     "Voltex",
                     config.Highway.Get<HighwayCameraMode>(HighwaySetting.CameraMode).ToString(),
-                    config.Highway.Get<float>(HighwaySetting.Wall).ToString("0.00", CultureInfo.InvariantCulture),
+                    config.Highway.Get<float>(HighwaySetting.Wall).ToString("0.0000", CultureInfo.InvariantCulture),
+                    $"Chunithm {WallScales.ChunithmStep(config.Highway.Get<float>(HighwaySetting.Wall)).ToString(CultureInfo.InvariantCulture)}",
                     config.Highway.Get<float>(HighwaySetting.JudgementLineHeight).ToString("0.000", CultureInfo.InvariantCulture),
                     config.Highway.Get<bool>(HighwaySetting.WallKeepsVisibleTime) ? "yes" : "no",
                     config.Get<double>(ManiaRulesetSetting.ScrollSpeed).ToString(CultureInfo.InvariantCulture),

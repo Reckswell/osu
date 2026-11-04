@@ -163,6 +163,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     ortho.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                     ortho.Highway.SetValue(HighwaySetting.Preset, options.Preset);
 
+                    // Before the speed toggle below, so the default scale cannot change it. A scale given with --set sets it
+                    // as that game would; --speed-lock still wins (applied again after the --set values).
+                    ortho.Highway.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
+
                     if (options.Wall is float wall)
                         ortho.Highway.SetValue(HighwaySetting.Wall, wall);
 
@@ -184,6 +188,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     ortho.Highway.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
 
                     options.ApplyHighwayValues(ortho.Highway);
+
+                    if (options.SpeedLock)
+                        ortho.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, false);
                 }
             });
 
@@ -432,6 +439,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         used.TrackOpacity,
                         keyBeam = used.KeyBeam.ToString(),
                         used.KiaiSway,
+                        wallScale = used.WallScale.ToString(),
                         ported = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Port != null,
                     }
                     : null,

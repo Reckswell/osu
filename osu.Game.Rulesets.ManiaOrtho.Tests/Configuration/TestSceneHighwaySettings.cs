@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Sample;
@@ -19,7 +20,9 @@ using osu.Game.Beatmaps;
 using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Graphics.Sprites;
+using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Overlays;
+using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
@@ -56,6 +59,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                 using (var config = create())
                 {
                     config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
+                    config.Highway.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
                     config.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, true);
                     config.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
                     config.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
@@ -167,6 +171,107 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     return (kept, config.Highway.Current.KiaiSway);
                 }
             }, () => Is.EqualTo(((0.5f, HighwayPreset.Chunithm), 0.5f)));
+        }
+
+        /// <summary>
+        /// The wall scale (SPEC 4) is a preference outside the presets. Choosing a game's gives the wall that game's speed
+        /// behaviour; the toggle can be changed back afterwards.
+        /// </summary>
+        [Test]
+        public void TestWallScale()
+        {
+            AddAssert("defaults to percent", () =>
+            {
+                using (var config = create())
+                    return new[] { new HighwaySettings().WallScale, config.Highway.Current.WallScale };
+            }, () => Is.EqualTo(new[] { WallScale.Percent, WallScale.Percent }));
+
+            AddAssert("Chunithm keeps the speed, IIDX the visible time, osu!mania the speed, percent leaves it", () =>
+            {
+                using (var config = create())
+                {
+                    var keeps = new List<bool>();
+
+                    foreach (var scale in new[] { WallScale.Chunithm, WallScale.Iidx, WallScale.Lane, WallScale.Percent })
+                    {
+                        config.Highway.SetValue(HighwaySetting.WallScale, scale);
+                        keeps.Add(config.Highway.Current.WallKeepsVisibleTime);
+                    }
+
+                    return keeps;
+                }
+            }, () => Is.EqualTo(new[] { false, true, false, false }));
+
+            AddAssert("the toggle still changes afterwards", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.WallScale, WallScale.Chunithm);
+                    config.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, true);
+                    return config.Highway.Current.WallKeepsVisibleTime;
+                }
+            });
+
+            AddAssert("kept, keeps the preset, and a preset leaves it", () =>
+            {
+                using (var config = create())
+                {
+                    var kept = (config.Highway.Current.WallScale, config.Highway.Get<HighwayPreset>(HighwaySetting.Preset));
+                    config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex);
+                    return (kept, config.Highway.Current.WallScale);
+                }
+            }, () => Is.EqualTo(((WallScale.Chunithm, HighwayPreset.Chunithm), WallScale.Chunithm)));
+
+            AddAssert("loading a stored scale leaves the stored toggle", () =>
+            {
+                using (var config = create())
+                    return config.Highway.Current.WallKeepsVisibleTime;
+            });
+        }
+
+        /// <summary>
+        /// The panel shows one wall slider, in the chosen scale's units, and it sets the same wall as the others.
+        /// </summary>
+        [Test]
+        public void TestWallSliderPerScale()
+        {
+            AddStep("no wall, percent", () =>
+            {
+                gameConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
+                gameConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
+                gameConfig.Highway.SetValue(HighwaySetting.WallScale, WallScale.Percent);
+            });
+            showPanel();
+            AddAssert("only the percent slider", shownWallSliders, () => Is.EqualTo(new[] { "Wall" }));
+
+            AddStep("Chunithm's scale", () => gameConfig.Highway.SetValue(HighwaySetting.WallScale, WallScale.Chunithm));
+            AddAssert("only Chunithm's slider", shownWallSliders, () => Is.EqualTo(new[] { "Wall (Chunithm)" }));
+
+            AddStep("slide to 5", () => wallSlider<int>("Wall (Chunithm)").Current.Value = 5);
+            AddAssert("the wall is Chunithm's 5", () => gameConfig.Highway.Get<float>(HighwaySetting.Wall), () => Is.EqualTo(WallScales.ChunithmWall(5)).Within(1e-4f));
+            AddAssert("the percent slider follows", () => wallSlider<float>("Wall").Current.Value, () => Is.EqualTo(0.29f).Within(1e-4f));
+
+            AddStep("IIDX's scale", () => gameConfig.Highway.SetValue(HighwaySetting.WallScale, WallScale.Iidx));
+            AddAssert("only the white number slider", shownWallSliders, () => Is.EqualTo(new[] { "Wall (white number)" }));
+            AddAssert("switching left the wall", () => gameConfig.Highway.Get<float>(HighwaySetting.Wall), () => Is.EqualTo(WallScales.ChunithmWall(5)).Within(1e-4f));
+            AddAssert("it shows the same wall", () => wallSlider<int>("Wall (white number)").Current.Value,
+                () => Is.EqualTo(WallScales.ToUnits(WallScale.Iidx, WallScales.ChunithmWall(5), gameConfig.Highway.Current.ToLayout().FarWidthRatio)));
+            AddStep("slide to 500", () => wallSlider<int>("Wall (white number)").Current.Value = 500);
+            AddAssert("the wall covers half the lane on screen", () => WallScales.ScreenShare(gameConfig.Highway.Get<float>(HighwaySetting.Wall),
+                gameConfig.Highway.Current.ToLayout().FarWidthRatio), () => Is.EqualTo(0.5f).Within(5e-4f));
+            AddAssert("Chunithm's slider follows to the nearest step", () => wallSlider<int>("Wall (Chunithm)").Current.Value,
+                () => Is.EqualTo(WallScales.ChunithmStep(gameConfig.Highway.Get<float>(HighwaySetting.Wall))));
+
+            AddStep("a wall set elsewhere", () => gameConfig.Highway.SetValue(HighwaySetting.Wall, 0.4f));
+            AddAssert("the sliders follow", () => (wallSlider<float>("Wall").Current.Value, wallSlider<int>("Wall (Chunithm)").Current.Value),
+                () => Is.EqualTo((0.4f, WallScales.ChunithmStep(0.4f))));
+
+            AddStep("a far narrower camera", () => gameConfig.Highway.SetValue(HighwaySetting.FarWidthRatio, 0.1f));
+            AddAssert("the white number follows the camera", () => wallSlider<int>("Wall (white number)").Current.Value,
+                () => Is.EqualTo(WallScales.ToUnits(WallScale.Iidx, 0.4f, 0.1f)));
+            AddAssert("the wall stays", () => gameConfig.Highway.Get<float>(HighwaySetting.Wall), () => Is.EqualTo(0.4f).Within(1e-4f));
+            AddAssert("its most follows the camera too", () => ((BindableNumber<int>)wallSlider<int>("Wall (white number)").Current).MaxValue,
+                () => Is.EqualTo(WallScales.MaxUnits(WallScale.Iidx, 0.1f)));
         }
 
         [Test]
@@ -365,7 +470,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
             {
                 skins.CurrentSkinInfo.SetDefault();
                 gameConfig.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed).SetDefault();
+                gameConfig.Highway.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
                 gameConfig.Highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
+                gameConfig.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 gameConfig.Highway.GetBindable<HighwayPreset>(HighwaySetting.Preset).SetDefault();
                 Beatmap.SetDefault();
                 SelectedMods.SetDefault();
@@ -507,6 +614,20 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
 
             public IEnumerable<ISkin> AllSources => new ISkin[] { this };
         }
+
+        /// <summary>
+        /// The captions of the wall sliders the panel shows.
+        /// </summary>
+        private string[] shownWallSliders() => this.ChildrenOfType<SettingsItemV2>()
+                                                   .Where(item => item.IsPresent && item.Alpha > 0)
+                                                   .SelectMany(item => item.ChildrenOfType<FormSliderBar<float>>().Select(s => s.Caption.ToString())
+                                                                           .Concat(item.ChildrenOfType<FormSliderBar<int>>().Select(s => s.Caption.ToString())))
+                                                   .Where(caption => caption.StartsWith("Wall", StringComparison.Ordinal))
+                                                   .ToArray();
+
+        private FormSliderBar<T> wallSlider<T>(string caption)
+            where T : struct, INumber<T>, IMinMaxValue<T>
+            => this.ChildrenOfType<FormSliderBar<T>>().Single(s => s.Caption.ToString() == caption);
 
         private ManiaOrthoRulesetConfigManager create() => new ManiaOrthoRulesetConfigManager(store, new ManiaOrthoRuleset().RulesetInfo);
 

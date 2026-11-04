@@ -28,7 +28,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
         {
             "time", "result", "rank", "artist", "title", "difficulty", "beatmap_md5", "keys", "mods",
             "score", "accuracy", "max_combo", "perfect", "great", "good", "ok", "meh", "miss",
-            "stars", "pp", "difficulty_version", "preset", "camera", "wall", "lift", "wall_keeps_visible_time",
+            "stars", "pp", "difficulty_version", "preset", "camera", "wall", "wall_scale", "lift", "wall_keeps_visible_time",
             "scroll_speed", "mods_json", "replay", "score_id",
         };
 

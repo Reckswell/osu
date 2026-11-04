@@ -87,7 +87,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             value: RulesetSettingsStrings.ScrollSpeedTooltip(milliseconds(visibleTimeAt(DrawableManiaRuleset.ComputeScrollTime(speed))), speed));
 
         /// <summary>
-        /// "40% covered · 405 ms visible", with "(speed kept)" when the wall shortens the visible time.
+        /// "40% covered · 405 ms visible" (in the chosen <see cref="WallScale"/>'s units: "wall 5", "WN 350"), with "(speed
+        /// kept)" when the wall shortens the visible time.
         /// </summary>
         public SettingDescription DescribeWall(float wall)
         {
@@ -98,9 +99,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             string cover;
 
             if (settings.CameraMode == HighwayCameraMode.Flat)
-                cover = wall > 0 ? $"{wall:0%}, not drawn by the flat camera" : "Off";
+                cover = wall > 0 ? $"{WallScales.Format(settings.WallScale, wall, 1)}, not drawn by the flat camera" : "Off";
             else if (wall > 0)
-                cover = settings.WallKeepsVisibleTime ? $"{wall:0%} covered" : $"{wall:0%} covered (speed kept)";
+            {
+                cover = WallScales.Describe(settings.WallScale, wall, settings.ToLayout().FarWidthRatio);
+                if (!settings.WallKeepsVisibleTime)
+                    cover += " (speed kept)";
+            }
             else
                 cover = "Off";
 

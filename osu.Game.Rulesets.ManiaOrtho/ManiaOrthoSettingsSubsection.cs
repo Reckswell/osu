@@ -46,6 +46,26 @@ namespace osu.Game.Rulesets.ManiaOrtho
         /// </summary>
         private readonly List<IUnbindable> visibleTimeInputs = new List<IUnbindable>();
 
+        private Bindable<float> wall = null!;
+        private Bindable<WallScale> wallScale = null!;
+
+        /// <summary>
+        /// The wall in each scale's units, kept in step with <see cref="wall"/> (stored finer than any slider moves).
+        /// </summary>
+        private readonly BindableFloat percentWall = new BindableFloat { MinValue = 0, MaxValue = HighwayScroll.MAX_WALL, Precision = 0.01f };
+
+        private readonly BindableInt chunithmWall = new BindableInt { MinValue = 0, MaxValue = WallScales.MAX_CHUNITHM_STEP };
+
+        private readonly BindableInt iidxWall = new BindableInt { MinValue = 0, MaxValue = 1000 };
+        private readonly BindableFloat laneWall = new BindableFloat { MinValue = 0, MaxValue = 1, Precision = 0.01f };
+
+        /// <summary>
+        /// One wall slider per scale; only the chosen scale's is shown.
+        /// </summary>
+        private readonly Dictionary<WallScale, SettingsItemV2> wallSliders = new Dictionary<WallScale, SettingsItemV2>();
+
+        private bool syncingWall;
+
         public ManiaOrthoSettingsSubsection(ManiaOrthoRuleset ruleset)
             : base(ruleset)
         {
@@ -56,6 +76,59 @@ namespace osu.Game.Rulesets.ManiaOrtho
         {
             var config = (ManiaOrthoRulesetConfigManager)Config;
             highway = config.Highway;
+            wall = highway.GetBindable<float>(HighwaySetting.Wall);
+            wallScale = highway.GetBindable<WallScale>(HighwaySetting.WallScale);
+
+            const string wall_keys = "In gameplay, Shift+F3 and Shift+F4 move it (F3 and F4 change the scroll speed).";
+
+            wallSliders[WallScale.Percent] = new SettingsItemV2(new FormSliderBar<float>
+            {
+                Caption = "Wall",
+                HintText = "How much of the far end of the track's depth is covered. " + wall_keys,
+                Current = percentWall,
+                DisplayAsPercentage = true,
+                KeyboardStep = 0.01f,
+            })
+            {
+                Keywords = new[] { "sudden", "cover", "field wall" },
+            };
+
+            wallSliders[WallScale.Chunithm] = new SettingsItemV2(new FormSliderBar<int>
+            {
+                Caption = "Wall (Chunithm)",
+                HintText = "Chunithm's field wall: 0 is none, each step covers more of the far end of the track, as in the arcade, up "
+                           + "to 14. " + wall_keys,
+                Current = chunithmWall,
+                KeyboardStep = 1,
+            })
+            {
+                Keywords = new[] { "field wall", "cover", "chunithm" },
+            };
+
+            wallSliders[WallScale.Iidx] = new SettingsItemV2(new FormSliderBar<int>
+            {
+                Caption = "Wall (white number)",
+                HintText = "IIDX's SUDDEN+ white number: thousandths of the lane's height on screen covered from the far end. Its most "
+                           + "depends on the camera. " + wall_keys,
+                Current = iidxWall,
+                KeyboardStep = 10,
+            })
+            {
+                Keywords = new[] { "sudden", "white number", "lane cover", "iidx", "beatoraja" },
+            };
+
+            wallSliders[WallScale.Lane] = new SettingsItemV2(new FormSliderBar<float>
+            {
+                Caption = "Wall (% of the lane)",
+                HintText = "How much of the lane's height on screen is covered from the far end, as osu!mania's Cover and Quaver's lane "
+                           + "cover measure it. " + wall_keys,
+                Current = laneWall,
+                DisplayAsPercentage = true,
+                KeyboardStep = 0.01f,
+            })
+            {
+                Keywords = new[] { "cover", "lane cover", "osu!mania", "quaver" },
+            };
 
             Children = new Drawable[]
             {
@@ -128,22 +201,27 @@ namespace osu.Game.Rulesets.ManiaOrtho
                     DisplayAsPercentage = true,
                     KeyboardStep = 0.01f,
                 }),
-                new SettingsItemV2(new FormSliderBar<float>
+                new SettingsItemV2(new FormEnumDropdown<WallScale>
                 {
-                    Caption = "Wall",
-                    HintText = "How much of the far end of the track is covered. Notes appear at the wall. In gameplay, Shift+F3 "
-                               + "and Shift+F4 move it (F3 and F4 change the scroll speed).",
-                    Current = highway.GetBindable<float>(HighwaySetting.Wall),
-                    DisplayAsPercentage = true,
-                    KeyboardStep = 0.01f,
+                    Caption = "Wall scale",
+                    HintText = "The units the wall is set in and moved by in gameplay: a percent of the track, Chunithm's field wall "
+                               + "steps, IIDX's white number, or osu!mania's and Quaver's lane cover. Choosing a game also gives the wall "
+                               + "that game's speed behaviour (below): Chunithm, osu!mania and Quaver keep the speed, IIDX the visible time. "
+                               + "Percent leaves it as it is.",
+                    Current = wallScale,
                 })
                 {
-                    Keywords = new[] { "sudden", "cover", "field wall" },
+                    Keywords = new[] { "wall units", "sudden", "white number", "chunithm", "iidx", "quaver", "cover" },
                 },
+                wallSliders[WallScale.Percent],
+                wallSliders[WallScale.Chunithm],
+                wallSliders[WallScale.Iidx],
+                wallSliders[WallScale.Lane],
                 new SettingsItemV2(new FormCheckBox
                 {
                     Caption = "Wall keeps visible time",
-                    HintText = "On: moving the wall slows notes so they stay visible for the same time. Off: notes keep their speed.",
+                    HintText = "On: notes appear at the wall's edge and slow down so they stay visible for the same time. "
+                               + "Off: notes keep their speed and come out from under the wall, which covers them, as in Chunithm.",
                     Current = highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime),
                 }),
                 new SettingsItemV2(new FormSliderBar<float>
@@ -307,6 +385,26 @@ namespace osu.Game.Rulesets.ManiaOrtho
             base.LoadComplete();
 
             showVisibleTimeOnChange(highway.GetBindable<float>(HighwaySetting.Wall));
+
+            // The other scales follow the wall, and set it when moved. The screen-based ones depend on the camera.
+            wall.BindValueChanged(_ => showWallInOtherScales(null));
+            showWallInOtherScalesOnChange(highway.GetBindable<float>(HighwaySetting.FarWidthRatio));
+            showWallInOtherScalesOnChange(highway.GetBindable<HighwayCameraMode>(HighwaySetting.CameraMode));
+            percentWall.BindValueChanged(e => setWall(WallScale.Percent, (int)Math.Round(e.NewValue * 100)));
+            chunithmWall.BindValueChanged(e => setWall(WallScale.Chunithm, e.NewValue));
+            iidxWall.BindValueChanged(e => setWall(WallScale.Iidx, e.NewValue));
+            laneWall.BindValueChanged(e => setWall(WallScale.Lane, (int)Math.Round(e.NewValue * 100)));
+
+            wallScale.BindValueChanged(e =>
+            {
+                foreach (var (scale, slider) in wallSliders)
+                {
+                    slider.CanBeShown.Value = scale == e.NewValue;
+                    slider.Alpha = scale == e.NewValue ? 1 : 0;
+                }
+
+                showWallInOtherScales(null);
+            }, true);
             showVisibleTimeOnChange(highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime));
             showVisibleTimeOnChange(highway.GetBindable<HighwayCameraMode>(HighwaySetting.CameraMode));
 
@@ -317,6 +415,67 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
             if (skin != null)
                 skin.SourceChanged += showVisibleTime;
+        }
+
+        private void showWallInOtherScalesOnChange<T>(IBindable<T> input)
+        {
+            visibleTimeInputs.Add(input);
+            input.BindValueChanged(_ => showWallInOtherScales(null));
+        }
+
+        /// <summary>
+        /// Shows the wall in each scale but <paramref name="except"/> (the one just moved, so it is not nudged under the
+        /// pointer by rounding).
+        /// </summary>
+        private void showWallInOtherScales(WallScale? except)
+        {
+            if (syncingWall)
+                return;
+
+            syncingWall = true;
+
+            try
+            {
+                float ratio = highway.Current.ToLayout().FarWidthRatio;
+
+                iidxWall.MaxValue = WallScales.MaxUnits(WallScale.Iidx, ratio);
+                laneWall.MaxValue = WallScales.MaxUnits(WallScale.Lane, ratio) / 100f;
+
+                if (except != WallScale.Percent)
+                    percentWall.Value = WallScales.ToUnits(WallScale.Percent, wall.Value, ratio) / 100f;
+                if (except != WallScale.Chunithm)
+                    chunithmWall.Value = WallScales.ToUnits(WallScale.Chunithm, wall.Value, ratio);
+                if (except != WallScale.Iidx)
+                    iidxWall.Value = WallScales.ToUnits(WallScale.Iidx, wall.Value, ratio);
+                if (except != WallScale.Lane)
+                    laneWall.Value = WallScales.ToUnits(WallScale.Lane, wall.Value, ratio) / 100f;
+            }
+            finally
+            {
+                syncingWall = false;
+            }
+        }
+
+        /// <summary>
+        /// Sets the wall from <paramref name="units"/> of <paramref name="scale"/>, moved on its slider.
+        /// </summary>
+        private void setWall(WallScale scale, int units)
+        {
+            if (syncingWall)
+                return;
+
+            syncingWall = true;
+
+            try
+            {
+                wall.Value = WallScales.FromUnits(scale, units, highway.Current.ToLayout().FarWidthRatio);
+            }
+            finally
+            {
+                syncingWall = false;
+            }
+
+            showWallInOtherScales(scale);
         }
 
         private void showVisibleTimeOnChange<T>(IBindable<T> input)

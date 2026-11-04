@@ -168,6 +168,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, beam);
                     break;
 
+                case HighwaySetting.WallScale:
+                    var scale = Enum.Parse<WallScale>(value, true);
+                    config?.SetValue(setting, scale);
+                    break;
+
                 case HighwaySetting.WallKeepsVisibleTime:
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:

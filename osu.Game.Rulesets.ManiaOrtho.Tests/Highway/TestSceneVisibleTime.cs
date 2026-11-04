@@ -102,6 +102,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 skins.CurrentSkinInfo.SetDefault();
                 rulesetConfig.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed).SetDefault();
                 highwayConfig.GetBindable<HighwayNoteStyle>(HighwaySetting.NoteStyle).SetDefault();
+                highwayConfig.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
                 highwayConfig.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
                 highwayConfig.GetBindable<HighwayPreset>(HighwaySetting.Preset).SetDefault();
             });
@@ -182,10 +183,40 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 => (int)Math.Round(DrawableManiaRuleset.ComputeScrollTime(scrollSpeed) * VisibleTime.HitPositionScale(Stage.HIT_TARGET_POSITION) * (1 - coveredByWall));
         }
 
+        /// <summary>
+        /// The wall toast names the wall in the chosen scale's units; Chunithm's keeps the speed, as in the arcade, so its
+        /// wall 5 leaves about 71% of the visible time (Alpha: "9.0 with no wall becomes about 6.0 at wall 5").
+        /// </summary>
+        [Test]
+        public void TestWallToastInChunithmUnits()
+        {
+            setUp(HighwayCameraMode.Perspective, 0, true, false, 29);
+            AddStep("Chunithm's wall scale", () => highwayConfig.SetValue(HighwaySetting.WallScale, WallScale.Chunithm));
+            AddAssert("which keeps the speed", () => highwayConfig.Get<bool>(HighwaySetting.WallKeepsVisibleTime), () => Is.False);
+            CreateTest();
+
+            for (int i = 0; i < 5; i++)
+            {
+                AddStep("press Shift+F4", () =>
+                {
+                    InputManager.PressKey(Key.ShiftLeft);
+                    InputManager.Key(Key.F4);
+                    InputManager.ReleaseKey(Key.ShiftLeft);
+                });
+            }
+
+            AddUntilStep("the wall toast shows wall 5 and its visible time", () => toastText(),
+                () => Does.Contain($"wall 5 (speed kept) · {expected(WallScales.ChunithmWall(5))} ms visible"));
+
+            int expected(float coveredByWall)
+                => (int)Math.Round(DrawableManiaRuleset.ComputeScrollTime(29) * VisibleTime.HitPositionScale(Stage.HIT_TARGET_POSITION) * (1 - coveredByWall));
+        }
+
         private void setUp(HighwayCameraMode camera, float wall, bool keepVisibleTime, bool classicSkin, double speed) => AddStep(
             $"{camera}, wall {wall:0%}, keep visible time: {keepVisibleTime}, {(classicSkin ? "classic" : "default")} skin, speed {speed}", () =>
             {
                 skins.CurrentSkinInfo.Value = classicSkin ? DefaultLegacySkin.CreateInfo().ToLiveUnmanaged() : ArgonSkin.CreateInfo().ToLiveUnmanaged();
+                highwayConfig.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.NoteStyle, HighwayNoteStyle.Highway);

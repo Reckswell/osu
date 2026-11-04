@@ -906,3 +906,51 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   scene test; all fixed. The 1 px band lean is accepted (above).
 - **Reverse**: drop `HighwaySetting.KiaiSway`, `KiaiSway`, `HighwayLayout.Sway` and `SwayAtY` (and its three uses in the
   projection), and the wall's shear and bottom-left origin.
+
+## 2026-11-04: Wall scale: the wall set in Chunithm's steps, IIDX's white number or a share of the lane
+
+- **What**: Alpha asked (2026-11-04) for the wall to be settable "scaled to that game specifically or as a flat wall
+  slider". A "Wall scale" setting picks the units the wall is set in, moved by in play and shown in: **Percent of the
+  track** (default, today's slider, 5% per key press), **Chunithm (0-14)** (the arcade's own wall positions,
+  `game-chunithm.md` "Positions", one step per press), **IIDX white number (0-1000)** (thousandths of the lane's height
+  on screen, as SUDDEN+ counts, 50 per press) and **osu!mania / Quaver (% of the lane)** (share of the lane's height on
+  screen, 5% per press). The wall is still stored as one share of the track's depth (`HighwaySetting.Wall`); a scale
+  only converts (`WallScales`), so presets, the drawn wall and the visible time are unchanged. The panel shows one wall
+  slider, in the chosen units; the others follow it and set the same wall. A preference outside the presets.
+- **Why both depth and screen**: a share of the depth is a share of the visible time (and of Chunithm's steps, which
+  are equal in depth up to 11). IIDX's white number and the lane covers of osu!mania and Quaver are drawn in the lane's
+  screen space; under a converging camera the far end is squeezed, so 90% of the depth is only about 68% of the lane on
+  screen with the Chunithm preset and 49% with Voltex (`topic-covers.md` C6). Each screen-based scale converts with the camera's far width
+  ratio, the projection's own formula (`WallScaleTest` checks it against `HighwayProjection.YAt`), so its most follows
+  the camera.
+- **Speed behaviour comes with the game**: choosing Chunithm or osu!mania / Quaver turns "Wall keeps visible time" off
+  (notes keep their speed and come out from under the opaque wall, which covers them, as in Chunithm: wall 5 leaves
+  71% of the visible time, why Alpha's 9.0 becomes about 6.0 there); choosing IIDX turns it on (Floating Hi-Speed);
+  Percent leaves it. The toggle can still be changed afterwards. Alpha's first question (do notes start at the wall, or
+  at the far end and get covered by it?) is exactly this toggle: on, they start at the wall's edge and slow down; off,
+  they run the full track under the wall.
+- **Range**: Chunithm stops at 14 (88.5%), the last step below our 90%; its 15 and 16 cover the line and beyond. The
+  screen scales stop where 90% of the depth lands.
+- **Precision**: the stored wall moved from 0.01 to 0.0001 so every scale's units round trip (one white number can be as
+  little as 0.00036 of the depth; `WallScaleTest.TestUnitsRoundTrip` rounds to the stored precision).
+  The percent slider keeps 1% steps on its own bindable. The play log records the wall to 0.0001 and a new
+  `wall_scale` column ("Chunithm 5"); its header changes, so an existing `plays.csv` is kept under a dated name.
+- **Keys between units**: a wall between two units (set in another scale) counts from the unit behind it in the key's
+  direction, so one press moves at most one step, and never against the key: a 90% wall stays at 90% when raised under
+  Chunithm's scale, whose last step is 88.5%.
+- **Gate**: `WallScaleTest` (Chunithm's table, screen share against the projection, round trips per scale and camera
+  incl. both presets' and the steepest, most units, key steps from between units, ends and never moving back,
+  speed behaviour, descriptions; dropping the never-back guard fails 6), `TestSceneHighwaySettings.TestWallScale` (default,
+  the speed toggle per game, outside presets, kept) and `TestWallSliderPerScale` (one slider shown, each sets and follows
+  the wall and the camera), `TestSceneHighwayHotkeys.TestKeysStepTheChosenScale` (five presses reach Chunithm's wall 5,
+  drawn), `TestSceneVisibleTime.TestWallToastInChunithmUnits` ("wall 5 (speed kept) · N ms visible"),
+  `TestScenePlayLogRecorder`. Playtest synthetic-7k at speed 14, Chunithm's wall 5 (summary: wall 0.2911, scale
+  Chunithm, speed kept): notes come out from under the wall's base at 0.08H, as computed; mania and maniaortho both
+  100%, 500000. Review (approve with fixes): the top unit disagreed with the stored most and a raise at the top could
+  lower the wall (MED; now the most is the wall's most in units and steps never go back), steps could skip from between
+  units, the harness's `--speed-lock` lost to a `--set` scale, a toggle left over between hotkey tests, the flat toast
+  ignored the scale, the play log rounded the wall, no try/finally on the sync guard, the IIDX slider's arrow step; all
+  fixed. Accepted: a wall under half a Chunithm step reads "wall 0" in Chunithm's units (only reachable from another
+  scale).
+- **Reverse**: drop `HighwaySetting.WallScale`, `WallScale.cs`, the panel's derived sliders and the coupling in
+  `HighwayConfigManager`; hotkeys step `WALL_STEP` again and the toast prints the percent.

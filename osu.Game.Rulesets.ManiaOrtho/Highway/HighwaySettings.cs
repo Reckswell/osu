@@ -255,6 +255,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         public bool WallKeepsVisibleTime { get; init; }
 
         /// <summary>
+        /// The units the wall is set, stepped and shown in (<see cref="Highway.WallScale"/>). Display only: the wall itself is
+        /// always <see cref="Wall"/>.
+        /// </summary>
+        public WallScale WallScale { get; init; }
+
+        /// <summary>
         /// Whether to draw guide lines along the lane boundaries (Chunithm's guidelines). Tilted cameras only.
         /// </summary>
         public bool LaneGuides { get; init; }
@@ -368,6 +374,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             TrackOpacity = 1;
             KeyBeam = KeyBeamLength.Long;
             KiaiSway = 0;
+            WallScale = WallScale.Percent;
         }
 
         /// <summary>

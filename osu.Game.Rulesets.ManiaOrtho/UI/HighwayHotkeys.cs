@@ -5,13 +5,15 @@ using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Input.Events;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osuTK.Input;
 
 namespace osu.Game.Rulesets.ManiaOrtho.UI
 {
     /// <summary>
     /// Gameplay hotkeys for the wall, next to mania's scroll speed keys (F3 and F4, which already work here): Shift+F3 and
-    /// Shift+F4 move it by <see cref="WALL_STEP"/>, and a toast shows the new value (<see cref="HighwayToasts"/>) as it does
+    /// Shift+F4 move it by one step of the chosen <see cref="WallScale"/> (5%, one Chunithm step, 50 white number or 5% of
+    /// the lane; <see cref="WallScales.KeyStep"/>), and a toast shows the new value (<see cref="HighwayToasts"/>) as it does
     /// for the scroll speed.
     /// </summary>
     /// <remarks>
@@ -26,14 +28,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
     public partial class HighwayHotkeys : Component
     {
         /// <summary>
-        /// How far one press moves the wall, as a share of the track's length.
+        /// How far one press moves the wall with <see cref="WallScale.Percent"/>, as a share of the track's length.
         /// </summary>
         public const float WALL_STEP = 0.05f;
 
+        private readonly HighwayConfigManager config;
         private readonly Bindable<float> wall;
 
         public HighwayHotkeys(HighwayConfigManager config)
         {
+            this.config = config;
             wall = config.GetBindable<float>(HighwaySetting.Wall);
         }
 
@@ -44,16 +48,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 return false;
 
             // The setting's own range clamps the wall (none, to the most the scroll allows).
+            int steps;
+
             switch (e.Key)
             {
                 case Key.F3:
-                    wall.Value -= WALL_STEP;
+                    steps = -1;
                     break;
 
                 case Key.F4:
-                    wall.Value += WALL_STEP;
+                    steps = 1;
                     break;
+
+                default:
+                    return false;
             }
+
+            var settings = config.Current;
+            wall.Value = WallScales.Step(settings.WallScale, wall.Value, steps, settings.ToLayout().FarWidthRatio);
 
             // Seen, never handled: the key goes on to everything it would reach in mania.
             return false;

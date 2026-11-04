@@ -141,7 +141,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
                 set(row, "preset", highway.Get<HighwayPreset>(HighwaySetting.Preset).ToString());
                 set(row, "camera", highway.Get<HighwayCameraMode>(HighwaySetting.CameraMode).ToString());
-                set(row, "wall", highway.Get<float>(HighwaySetting.Wall).ToString("0.00", CultureInfo.InvariantCulture));
+                set(row, "wall", highway.Get<float>(HighwaySetting.Wall).ToString("0.0000", CultureInfo.InvariantCulture));
+                set(row, "wall_scale", wallScale(highway.Current));
                 set(row, "lift", highway.Get<float>(HighwaySetting.JudgementLineHeight).ToString("0.000", CultureInfo.InvariantCulture));
                 set(row, "wall_keeps_visible_time", highway.Get<bool>(HighwaySetting.WallKeepsVisibleTime) ? "yes" : "no");
                 set(row, "scroll_speed", config.Get<double>(ManiaRulesetSetting.ScrollSpeed).ToString(CultureInfo.InvariantCulture));
@@ -206,6 +207,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
         }
 
         private static string count(ScoreInfo score, HitResult result) => score.Statistics.GetValueOrDefault(result).ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>
+        /// The wall scale and the wall in its units, "Chunithm 5".
+        /// </summary>
+        private static string wallScale(HighwaySettings settings)
+            => $"{settings.WallScale} {WallScales.ToUnits(settings.WallScale, settings.Wall, settings.ToLayout().FarWidthRatio).ToString(CultureInfo.InvariantCulture)}";
 
         private static void set(string?[] row, string column, string? value) => row[Array.IndexOf(PlayLog.COLUMNS, column)] = value;
     }

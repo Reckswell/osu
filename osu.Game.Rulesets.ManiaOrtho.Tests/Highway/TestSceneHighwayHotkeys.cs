@@ -46,10 +46,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
         [SetUpSteps]
         public override void SetUpSteps()
         {
-            AddStep("Chunithm preset (no wall)", () =>
+            AddStep("Chunithm preset (no wall), wall in percent", () =>
             {
                 config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Custom);
                 config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
+                config.Highway.GetBindable<WallScale>(HighwaySetting.WallScale).SetDefault();
+                config.Highway.GetBindable<bool>(HighwaySetting.WallKeepsVisibleTime).SetDefault();
             });
 
             base.SetUpSteps();
@@ -69,6 +71,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             pressWithShift(Key.F3);
             AddAssert("back to 5%", () => wall, () => Is.EqualTo(HighwayHotkeys.WALL_STEP).Within(1e-4f));
+        }
+
+        /// <summary>
+        /// With a game's wall scale chosen, the keys move one step of that game's: here Chunithm's field wall.
+        /// </summary>
+        [Test]
+        public void TestKeysStepTheChosenScale()
+        {
+            AddStep("Chunithm's wall scale", () => config.Highway.SetValue(HighwaySetting.WallScale, WallScale.Chunithm));
+
+            for (int i = 0; i < 5; i++)
+                pressWithShift(Key.F4);
+
+            AddAssert("at Chunithm's wall 5", () => wall, () => Is.EqualTo(WallScales.ChunithmWall(5)).Within(1e-4f));
+            AddUntilStep("the highway draws it", () => highway.Settings.Wall, () => Is.EqualTo(WallScales.ChunithmWall(5)).Within(1e-4f));
+
+            pressWithShift(Key.F3);
+            AddAssert("back to wall 4", () => wall, () => Is.EqualTo(WallScales.ChunithmWall(4)).Within(1e-4f));
         }
 
         [Test]
