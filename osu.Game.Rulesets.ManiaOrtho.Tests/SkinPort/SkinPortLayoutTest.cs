@@ -182,5 +182,37 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
             Assert.That(PortedLighting.HitAlpha(PortedLighting.FADE_IN), Is.EqualTo(1).Within(1e-5f));
             Assert.That(PortedLighting.HitAlpha(PortedLighting.FADE_IN + PortedLighting.FADE_OUT), Is.Zero);
         }
+
+        /// <summary>
+        /// As mania's pooled explosions do, a hit while the column's previous explosion still plays adds a second one; the
+        /// oldest is replaced only after <see cref="PortedLighting.HITS_PER_COLUMN"/> hits; rewinding forgets later hits.
+        /// </summary>
+        [Test]
+        public void TestHitsInOneColumnOverlap()
+        {
+            const int columns = 2;
+            double[] hitTimes = new double[columns * PortedLighting.HITS_PER_COLUMN];
+            int[] nextHit = new int[columns];
+            System.Array.Fill(hitTimes, double.NegativeInfinity);
+
+            // A hold's press and its release 150 ms later, in column 1.
+            PortedLighting.RecordHit(hitTimes, nextHit, 1, 1000);
+            PortedLighting.RecordHit(hitTimes, nextHit, 1, 1150);
+
+            Assert.That(column(1), Is.EquivalentTo(new[] { 1000, 1150, double.NegativeInfinity, double.NegativeInfinity }));
+            Assert.That(column(0), Has.All.EqualTo(double.NegativeInfinity), "other columns untouched");
+            Assert.That(PortedLighting.HitAlpha(1160 - 1000), Is.GreaterThan(0), "both lit at 1160");
+            Assert.That(PortedLighting.HitAlpha(1160 - 1150), Is.GreaterThan(0));
+
+            for (int i = 0; i < PortedLighting.HITS_PER_COLUMN; i++)
+                PortedLighting.RecordHit(hitTimes, nextHit, 1, 2000 + i);
+
+            Assert.That(column(1), Is.EquivalentTo(new double[] { 2000, 2001, 2002, 2003 }), "the oldest replaced first");
+
+            PortedLighting.ForgetHitsAfter(hitTimes, 2001.5);
+            Assert.That(column(1), Is.EquivalentTo(new[] { 2000, 2001, double.NegativeInfinity, double.NegativeInfinity }));
+
+            double[] column(int c) => hitTimes[(c * PortedLighting.HITS_PER_COLUMN)..((c + 1) * PortedLighting.HITS_PER_COLUMN)];
+        }
     }
 }
