@@ -102,7 +102,19 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   (Armageddon 4K and C18H27NO3 7K played to the end, Chunithm; synthetic 7K; Voltex + wall 40%). GPU captures equal the
   cloud's apart from random particles: `/mnt/project-files/ortho-agent/mg2/`. L4 asked in the thread; Q12, Q13.)
 
+## M2.5: Alpha plays (L4)
+
+- [ ] Portable full game: `osu.Desktop` keeps its data next to the build when asked (core patch, README). Gate: test that
+  the portable switch puts storage under the build folder; nothing written to `%APPDATA%` in a PC run.
+- [ ] Alpha's files from stable: first-run import of maps and skins from `AppData\Local\osu!` by hard links, screenshots
+  saved to stable's `Screenshots` folder; never open `%APPDATA%\osu`. Gate: on Alpha's PC the import reports hard links,
+  stable's files unchanged (sizes and times), a screenshot lands in stable's folder.
+- [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays.
+
 ## M3: Separate client and local scoring
+
+On hold for the "separate client" part (DECISIONS 2026-11-04, "Product direction"): Alpha wants a lazer game-mode mod
+in the end. Live pp and the CSV still apply.
 
 - [ ] Rebrand app name, icon and data folder **[Alpha: name]**; remove or replace the official API endpoints.
   Gate: the build cannot log in to or contact osu! servers (test); separate data folder.

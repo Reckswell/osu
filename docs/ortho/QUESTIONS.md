@@ -76,15 +76,19 @@ of the two or three rightmost lanes at 7K (MG2 captures, `/mnt/project-files/ort
 - **Default until answered**: (a).
 - **Answer**:
 
+## Answered
+
 ### Q13. Where the full game keeps its data on Alpha's PC (for the L4 session)
 Alpha wants every file kept inside `Documents\Projects\osu!`. The playtest harness is portable now, but the full game
 (`osu.Desktop`, needed for Alpha to play: song select, settings, replays) keeps its data in `%APPDATA%\osu-development`.
 - **Options**: (a) a small portable switch in `osu.Desktop` (data next to the build, inside the folder; a core patch
   outside `osu.Game/`, listed in README); (b) let the dev build use `%APPDATA%\osu-development`.
 - **Default until answered**: (a) prepared, not used until Alpha says.
-- **Answer**:
-
-## Answered
+- **Answer** (2026-11-04, in the thread): keep development isolated to `Documents\Projects\osu!`, but point the actual
+  osu! files (maps, skins, screenshots, user data) at the original osu! install (stable, `AppData\Local\osu!`) as much
+  as possible. Long term the product should be a lightweight mod: maniaortho as a separate game mode attached to the
+  main osu! engine, using the original install's files; standalone is fine while developing. See DECISIONS
+  2026-11-04 "Product direction".
 
 ### Q10. Track width at 7K and 10K
 SPEC 5 planned a track that widens with key count (about 45% of the screen at 4K to 70% at 10K) and less tilt at 7K+.

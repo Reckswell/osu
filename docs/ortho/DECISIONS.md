@@ -465,3 +465,23 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   a replay, holding Shift also fast-forwards it; a player with a column bound to Shift who presses F3 or F4 while
   holding it moves the wall instead of the speed.
 - **How to reverse**: remove `HighwayHotkeys` from `DrawableManiaOrthoRuleset.load`.
+
+## 2026-11-04: Product direction: a lazer game-mode mod later; a self-contained dev build with stable's files now (Alpha)
+
+- **Alpha's direction** (QUESTIONS Q13): development stays inside `C:\Users\alpha\Documents\Projects\osu!`; the osu!
+  files themselves (maps, skins, screenshots, user data) come from the original install (stable,
+  `C:\Users\alpha\AppData\Local\osu!`) as much as possible. The end product should be a lightweight mod that
+  attaches to the main osu! engine, with maniaortho as its own game mode; standalone is fine for now.
+- **Now**: the full game runs portable from the clone (its realm and settings next to the build). Maps and skins come in
+  through lazer's own "import from osu!stable", which on the same drive creates hard links (`LegacyImportManager`,
+  `HardLinkHelper`): no copies, no extra space, and lazer never writes to imported files (its store is content-addressed),
+  so stable's files are not changed. Screenshots go to stable's `Screenshots` folder. Alpha's lazer data
+  (`%APPDATA%\osu`) is never opened: a dev build can migrate its realm to a newer schema, which the release client then
+  refuses.
+- **Later (the mod)**: lazer loads custom rulesets as a DLL from its data folder's `rulesets` directory and never submits
+  their scores, so maniaortho can ship as one DLL for the official lazer client. Stable cannot load game modes, so the
+  mod targets lazer. The blocker is the `PlaysBeatmapsOfRuleset` core patch (README "Core patches"): release lazer
+  offers a custom ruleset only its own maps and osu!standard converts. Options to weigh when the time comes: an
+  upstream pull request to ppy for that hook; a workaround inside the DLL. M3's "separate client" tasks (rebrand, own
+  API endpoints) assumed a forked client and are on hold until that plan is made.
+- **Invariant 2 still holds**: a custom ruleset is never submittable, in the fork or as a mod.
