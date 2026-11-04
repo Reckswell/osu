@@ -11,12 +11,14 @@ using osu.Framework.Testing;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Rulesets.Mania.Configuration;
+using osu.Game.Rulesets.Mania.Mods;
 using osu.Game.Rulesets.Mania.Skinning.Legacy;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.ManiaOrtho.Tests.Playtest;
 using osu.Game.Rulesets.ManiaOrtho.UI;
+using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.UI;
 using osu.Game.Rulesets.UI.Scrolling;
 using osu.Game.Skinning;
@@ -307,6 +309,22 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddAssert("0.5x section scrolls at half speed", () => lengthRatio(probe, 24000), () => Is.EqualTo(0.5).Within(1e-3));
             AddAssert("1.75x section scrolls faster", () => lengthRatio(probe, 30000), () => Is.EqualTo(1.75).Within(1e-3));
             AddAssert("1x after the SV sections", () => lengthRatio(probe, 36000), () => Is.EqualTo(1).Within(1e-3));
+        }
+
+        [Test]
+        public void TestConstantSpeedIgnoresSv()
+        {
+            ScrollingProbe probe = null!;
+
+            // Mania's Constant Speed mod swaps the scroll algorithm for a constant one; the highway places notes with the
+            // algorithm mania hands out, so the SV sections must scroll at 1x (research/game-osu-mania.md, finding 2).
+            AddStep("play with Constant Speed", () => LoadPlayer(new Mod[] { new ManiaModConstantSpeed() }));
+            AddUntilStep("player loaded", () => Player.IsLoaded);
+            AddStep("add a probe inside the playfield", () => highway.Overlay.Add(probe = new ScrollingProbe()));
+            AddUntilStep("probe loaded", () => probe.IsLoaded);
+
+            AddAssert("0.5x section scrolls at 1x", () => lengthRatio(probe, 24000), () => Is.EqualTo(1).Within(1e-3));
+            AddAssert("1.75x section scrolls at 1x", () => lengthRatio(probe, 30000), () => Is.EqualTo(1).Within(1e-3));
         }
 
         /// <summary>
