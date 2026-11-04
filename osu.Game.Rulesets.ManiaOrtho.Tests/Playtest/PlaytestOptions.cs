@@ -163,6 +163,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, fit);
                     break;
 
+                case HighwaySetting.KeyBeam:
+                    var beam = Enum.Parse<KeyBeamLength>(value, true);
+                    config?.SetValue(setting, beam);
+                    break;
+
                 case HighwaySetting.WallKeepsVisibleTime:
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:

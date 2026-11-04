@@ -842,3 +842,29 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   alphas within 0.01 of the formula, unlit lanes' line byte-identical; its Perfect and stream notes led to the tuning.
 - **Reverse**: drop `HighwaySetting.HoldOpacity` / `TrackOpacity` and their three uses in the container; remove
   `HighwaySlotLights` and the slot arrays in `HighwayHitEffectLayer`.
+
+## 2026-11-04: Key beam length: Long stays as it was; Half and Quarter are shares of the visible track on screen
+
+- **What**: a "Key beam" setting (Long / Half / Quarter, default Long) for the Highway track's beam in a pressed lane,
+  after DJMAX's KEYBEAM option (`research/game-djmax.md` R2). A preference outside the presets, like the opacities.
+  Ported and warped skins keep their own lane lights' length.
+- **Long is unchanged**: half the track's depth, which under perspective is most of the track on screen (81% under
+  Chunithm, 90% under Voltex, 50% under Parallel). Nothing changes for anyone who leaves the default.
+- **Half and Quarter are measured on screen**, as R2 proposes, so they look the same under every camera. The span is
+  from the judgement line to where the track ends: the wall's edge when there is one, else the far edge. With a wall a
+  "half" beam measured to the far edge would partly sit behind the wall. The beam still fades linearly in depth over its
+  shorter span. Under Parallel without a wall, Half equals Long (depth and screen height are proportional there);
+  accepted rather than inventing a longer Long.
+- **Not done**: the Quaver-style release (QV9) the backlog item mentioned. It was conditional on a playtest showing the
+  150 ms ease-out lingering, and single captures cannot show that; it stays open for Alpha's L4 notes.
+- **Gate**: `HighwayTrackTest.TestBeamDepth` (R2's table for Chunithm and Voltex, Parallel, Long),
+  `TestBeamReachesItsShareOfTheTrackOnScreen` (with and without a wall), `TestSceneHighwayTrack.TestKeyBeamLength`
+  (the setting reaches the track; a quarter and a half of the visible track, with a wall at 30%; back to Long),
+  `TestSceneHighwaySettings.TestKeyBeam` (default, persists, outside presets). The draw node reads the tested
+  `HighwayTrack.BeamDepth`; the draw call itself is covered by the playtest: on synthetic-7k (Chunithm, 1280x720, line
+  at y=664, far edge at 0) the beam faded out at y≈140, ≈340 and ≈490 against 129, 332 and 498 computed. Review
+  (approve with fixes): the draw node computed its own depth (now reads the tested property), this entry, the harness
+  kept other `--set` preferences between runs (it now resets every preference outside the presets per run), and a
+  clearer hint; all fixed.
+- **Reverse**: drop `HighwaySetting.KeyBeam`, `KeyBeamLength`, `HighwayTrack.KeyBeam`/`BeamDepth`/`GetBeamDepth`, and
+  draw the beam to `BEAM_LENGTH` again.

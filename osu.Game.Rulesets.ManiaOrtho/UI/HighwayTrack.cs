@@ -50,7 +50,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public static readonly Color4 BEAM_COLOUR = Color4.White;
 
         /// <summary>
-        /// A pressed lane's beam at the judgement line. It fades linearly to nothing at <see cref="BEAM_LENGTH"/>.
+        /// A pressed lane's beam at the judgement line. It fades linearly to nothing where it ends (<see cref="KeyBeam"/>).
         /// </summary>
         public const float BEAM_ALPHA = 0.3f;
 
@@ -60,7 +60,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         public const float HOLD_BEAM_BOOST = 0.15f;
 
         /// <summary>
-        /// How far up the track a beam reaches, in track depth.
+        /// How far up the track a <see cref="KeyBeamLength.Long"/> beam reaches, in track depth.
         /// </summary>
         public const float BEAM_LENGTH = 0.5f;
 
@@ -133,6 +133,62 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 floorOpacity = value;
                 Invalidate(Invalidation.DrawNode);
             }
+        }
+
+        private KeyBeamLength keyBeam;
+
+        /// <summary>
+        /// How far up the track the beams reach (<see cref="HighwaySettings.KeyBeam"/>).
+        /// </summary>
+        public KeyBeamLength KeyBeam
+        {
+            get => keyBeam;
+            set
+            {
+                if (keyBeam == value)
+                    return;
+
+                keyBeam = value;
+                Invalidate(Invalidation.DrawNode);
+            }
+        }
+
+        /// <summary>
+        /// The depth the beams reach on the current layout and <see cref="FarDepth"/>.
+        /// </summary>
+        public float BeamDepth => GetBeamDepth(new HighwayProjection(layout, DrawSize), farDepth, keyBeam);
+
+        /// <summary>
+        /// The depth a beam of <paramref name="length"/> reaches. <see cref="KeyBeamLength.Long"/> is <see cref="BEAM_LENGTH"/>
+        /// in depth. Half and Quarter are that share of the track's height on screen, from the judgement line to
+        /// <paramref name="farDepth"/> (the wall or the far edge), so they look the same under every camera (research
+        /// <c>game-djmax.md</c> R2). Never longer than Long, as the far end is never wider than the line.
+        /// </summary>
+        public static float GetBeamDepth(in HighwayProjection projection, float farDepth, KeyBeamLength length)
+        {
+            float screenShare;
+
+            switch (length)
+            {
+                case KeyBeamLength.Half:
+                    screenShare = 0.5f;
+                    break;
+
+                case KeyBeamLength.Quarter:
+                    screenShare = 0.25f;
+                    break;
+
+                default:
+                    return BEAM_LENGTH;
+            }
+
+            // HighwayProjection.YAt and DepthAtY, measured as a share of the line-to-far-edge height so that no screen size is
+            // needed: depth d is drawn at t = d(1 + c) / (1 + c·d), and t at d = t / (1 + c − c·t).
+            float c = projection.Compression;
+            float end = farDepth * (1 + c) / (1 + c * farDepth);
+            float t = screenShare * end;
+
+            return Math.Min(BEAM_LENGTH, t / (1 + c - c * t));
         }
 
         /// <summary>
@@ -287,6 +343,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             private float alpha;
             private float floorAlpha;
             private float farDepth;
+            private float beamDepth;
 
             private Vector2[] stageLanes = Array.Empty<Vector2>();
             private int stageCount;
@@ -309,6 +366,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 alpha = DrawColourInfo.Colour.MaxAlpha;
                 floorAlpha = Source.FloorAlpha;
                 farDepth = Source.farDepth;
+                beamDepth = Source.BeamDepth;
 
                 stageCount = Source.stageCount;
                 if (stageLanes.Length < stageCount)
@@ -376,7 +434,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     float right = columnLanes[i].Y;
 
                     // Linear in depth, not in screen height: subdivided.
-                    TrackDrawing.DrawTrackRectangle(renderer, renderer.WhitePixel, projection, DrawInfo.Matrix, left, right, 0, BEAM_LENGTH,
+                    TrackDrawing.DrawTrackRectangle(renderer, renderer.WhitePixel, projection, DrawInfo.Matrix, left, right, 0, beamDepth,
                         ColourInfo.GradientVertical(BEAM_COLOUR.Opacity(0), BEAM_COLOUR.Opacity(beam)));
 
                     // Below the line the track is flat on screen, so a plain vertical gradient is exact.

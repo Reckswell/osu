@@ -246,6 +246,17 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Keywords = new[] { "lane transparency", "lane opacity", "floor", "background", "brightness", "sekai" },
                 },
+                new SettingsItemV2(new FormEnumDropdown<KeyBeamLength>
+                {
+                    Caption = "Key beam",
+                    HintText = "How far up the Highway track the beam in a pressed lane reaches. Long: most of the track. Half and "
+                               + "Quarter: that share of the track's height on screen, as DJMAX's short beams. A skin's lane lights keep "
+                               + "the skin's length.",
+                    Current = highway.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam),
+                })
+                {
+                    Keywords = new[] { "beam", "lane beam", "key beam", "lighting", "djmax", "iidx", "length" },
+                },
                 new SettingsItemV2(new FormEnumDropdown<SkinKeyArea>
                 {
                     Caption = "Skin key area",

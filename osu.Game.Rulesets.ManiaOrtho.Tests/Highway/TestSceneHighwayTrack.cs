@@ -71,6 +71,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.Preset, HighwayPreset.Chunithm);
                 highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                 highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
+                highwayConfig.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
             });
 
             base.SetUpSteps();
@@ -83,6 +84,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             {
                 highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
                 highwayConfig.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
+                highwayConfig.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
             });
             base.TearDownSteps();
         }
@@ -130,6 +132,41 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             AddStep("track opacity 0%", () => highwayConfig.SetValue(HighwaySetting.TrackOpacity, 0f));
             AddUntilStep("no floor", () => track.FloorAlpha, () => Is.Zero);
             AddAssert("the track is still shown (rails, beams)", () => highway.TrackShown && track.Alpha == 1);
+        }
+
+        /// <summary>
+        /// DJMAX's Half and Quarter beams (research game-djmax.md R2): that share of the track's height on screen, up to the
+        /// wall's edge when there is one.
+        /// </summary>
+        [Test]
+        public void TestKeyBeamLength()
+        {
+            AddUntilStep("a long beam reaches half the track's depth", () => highway.TrackShown && track.BeamDepth == HighwayTrack.BEAM_LENGTH);
+
+            AddStep("quarter beam", () => highwayConfig.SetValue(HighwaySetting.KeyBeam, KeyBeamLength.Quarter));
+            AddUntilStep("the track takes it", () => track.KeyBeam, () => Is.EqualTo(KeyBeamLength.Quarter));
+            AddAssert("a quarter of the track's height on screen", () => beamShareOnScreen(), () => Is.EqualTo(0.25f).Within(1e-3f));
+
+            AddStep("wall at 30%", () => highwayConfig.SetValue(HighwaySetting.Wall, 0.3f));
+            AddUntilStep("the track ends at the wall", () => track.FarDepth, () => Is.LessThan(1));
+            AddAssert("still a quarter of the visible track", () => beamShareOnScreen(), () => Is.EqualTo(0.25f).Within(1e-3f));
+
+            AddStep("half beam", () => highwayConfig.SetValue(HighwaySetting.KeyBeam, KeyBeamLength.Half));
+            AddUntilStep("half of the visible track", () => beamShareOnScreen(), () => Is.EqualTo(0.5f).Within(1e-3f));
+
+            AddStep("long beam", () => highwayConfig.SetValue(HighwaySetting.KeyBeam, KeyBeamLength.Long));
+            AddUntilStep("half the track's depth again", () => track.BeamDepth, () => Is.EqualTo(HighwayTrack.BEAM_LENGTH));
+        }
+
+        /// <summary>
+        /// How much of the visible track's height on screen (from the judgement line to <see cref="HighwayTrack.FarDepth"/>) the
+        /// beams reach.
+        /// </summary>
+        private float beamShareOnScreen()
+        {
+            var p = new HighwayProjection(track.Layout, track.DrawSize);
+            float line = p.YAt(0);
+            return (line - p.YAt(track.BeamDepth)) / (line - p.YAt(track.FarDepth));
         }
 
         [Test]

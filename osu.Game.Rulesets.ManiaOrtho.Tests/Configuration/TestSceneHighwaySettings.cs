@@ -59,6 +59,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     config.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, true);
                     config.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
                     config.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
+                    config.Highway.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
                 }
             });
         }
@@ -108,6 +109,37 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     return new[] { config.Highway.Current.HoldOpacity, config.Highway.Current.TrackOpacity };
                 }
             }, () => Is.EqualTo(new[] { 0.4f, 0.5f }).Within(1e-4f));
+        }
+
+        /// <summary>
+        /// DJMAX's beam lengths (research/game-djmax.md R2): a preference that starts at today's long beam, outside the presets.
+        /// </summary>
+        [Test]
+        public void TestKeyBeam()
+        {
+            AddAssert("defaults to long", () =>
+            {
+                using (var config = create())
+                    return new[] { new HighwaySettings().KeyBeam, config.Highway.Current.KeyBeam };
+            }, () => Is.EqualTo(new[] { KeyBeamLength.Long, KeyBeamLength.Long }));
+
+            AddAssert("kept, and keeps the preset", () =>
+            {
+                using (var config = create())
+                    config.Highway.SetValue(HighwaySetting.KeyBeam, KeyBeamLength.Quarter);
+
+                using (var config = create())
+                    return (config.Highway.Current.KeyBeam, config.Highway.Get<HighwayPreset>(HighwaySetting.Preset));
+            }, () => Is.EqualTo((KeyBeamLength.Quarter, HighwayPreset.Chunithm)));
+
+            AddAssert("choosing a preset leaves it", () =>
+            {
+                using (var config = create())
+                {
+                    config.Highway.SetValue(HighwaySetting.Preset, HighwayPreset.Voltex);
+                    return config.Highway.Current.KeyBeam;
+                }
+            }, () => Is.EqualTo(KeyBeamLength.Quarter));
         }
 
         [Test]

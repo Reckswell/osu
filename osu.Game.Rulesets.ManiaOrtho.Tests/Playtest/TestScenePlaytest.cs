@@ -170,6 +170,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     ortho.Highway.SetValue(HighwaySetting.NoteStyle, options.Port ? HighwayNoteStyle.Ported : options.NoteStyle);
                     ortho.Highway.SetValue(HighwaySetting.HitEffects, options.Port ? HighwayHitEffectStyle.Ported : HighwayHitEffectStyle.Highway);
                     ortho.Highway.SetValue(HighwaySetting.Track, options.Port ? HighwayTrackStyle.Ported : HighwayTrackStyle.Highway);
+
+                    // Preferences outside the presets start at their defaults, so a --set from an earlier run is not kept.
+                    ortho.Highway.GetBindable<bool>(HighwaySetting.LaneGuides).SetDefault();
+                    ortho.Highway.GetBindable<bool>(HighwaySetting.SkinHitTarget).SetDefault();
+                    ortho.Highway.GetBindable<SkinKeyArea>(HighwaySetting.KeyArea).SetDefault();
+                    ortho.Highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit).SetDefault();
+                    ortho.Highway.GetBindable<bool>(HighwaySetting.SkinNoteProportions).SetDefault();
+                    ortho.Highway.GetBindable<float>(HighwaySetting.FarFade).SetDefault();
+                    ortho.Highway.GetBindable<float>(HighwaySetting.HoldOpacity).SetDefault();
+                    ortho.Highway.GetBindable<float>(HighwaySetting.TrackOpacity).SetDefault();
+                    ortho.Highway.GetBindable<KeyBeamLength>(HighwaySetting.KeyBeam).SetDefault();
+
                     options.ApplyHighwayValues(ortho.Highway);
                 }
             });
@@ -417,6 +429,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                         used.FarFade,
                         used.HoldOpacity,
                         used.TrackOpacity,
+                        keyBeam = used.KeyBeam.ToString(),
                         ported = (Player.DrawableRuleset as DrawableManiaOrthoRuleset)?.Highway?.Port != null,
                     }
                     : null,

@@ -11,9 +11,9 @@ using osuTK.Graphics;
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 {
     /// <summary>
-    /// L0 checks for the highway's track (research game-chunithm-feedback P5): how a lane beam fades in and out, where
-    /// the track continues below the judgement line, how track opacity reaches the lanes' background, and where a hit
-    /// lights the line.
+    /// L0 checks for the highway's track (research game-chunithm-feedback P5): how a lane beam fades in and out and how far
+    /// it reaches, where the track continues below the judgement line, how track opacity reaches the lanes' background, and
+    /// where a hit lights the line.
     /// </summary>
     [TestFixture]
     public class HighwayTrackTest
@@ -215,6 +215,57 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
             // Its sides lie on the lane's edges, above the line and below it.
             Assert.That(cross(p.ToScreen(lane.X, 0.5f), p.ToScreen(lane.X, 0), solid.BottomLeft), Is.LessThan(1e-3f));
             Assert.That(cross(p.ToScreen(lane.Y, 0.5f), p.ToScreen(lane.Y, 0), solid.TopRight), Is.LessThan(1e-3f));
+        }
+
+        /// <summary>
+        /// DJMAX's Half and Quarter beams (research game-djmax.md R2, whose table these depths come from): a share of the
+        /// track's height on screen under every camera, where Long is half the track's depth.
+        /// </summary>
+        [TestCase(0.24f, KeyBeamLength.Half, 0.194f)] // Chunithm
+        [TestCase(0.24f, KeyBeamLength.Quarter, 0.074f)]
+        [TestCase(0.106f, KeyBeamLength.Half, 0.096f)] // Voltex
+        [TestCase(0.106f, KeyBeamLength.Quarter, 0.034f)]
+        [TestCase(1f, KeyBeamLength.Half, 0.5f)] // Parallel: depth is screen height, so Half is Long.
+        [TestCase(1f, KeyBeamLength.Quarter, 0.25f)]
+        [TestCase(0.24f, KeyBeamLength.Long, HighwayTrack.BEAM_LENGTH)]
+        [TestCase(1f, KeyBeamLength.Long, HighwayTrack.BEAM_LENGTH)]
+        public void TestBeamDepth(float farWidthRatio, KeyBeamLength length, float depth)
+        {
+            var p = new HighwayProjection(new HighwayLayout
+            {
+                JudgementY = 0.926f,
+                FarY = 0,
+                NearWidth = 0.61f,
+                FarWidthRatio = farWidthRatio,
+                CentreX = 0.5f,
+            }, new Vector2(1920, 1080));
+
+            Assert.That(HighwayTrack.GetBeamDepth(p, 1, length), Is.EqualTo(depth).Within(1e-3f));
+        }
+
+        /// <summary>
+        /// ... measured on screen up to where the track ends, the wall's edge when there is one.
+        /// </summary>
+        [TestCase(1f, KeyBeamLength.Half, 0.5f)]
+        [TestCase(1f, KeyBeamLength.Quarter, 0.25f)]
+        [TestCase(0.6f, KeyBeamLength.Half, 0.5f)]
+        [TestCase(0.6f, KeyBeamLength.Quarter, 0.25f)]
+        public void TestBeamReachesItsShareOfTheTrackOnScreen(float farDepth, KeyBeamLength length, float share)
+        {
+            var p = new HighwayProjection(new HighwayLayout
+            {
+                JudgementY = 0.926f,
+                FarY = 0.05f,
+                NearWidth = 0.61f,
+                FarWidthRatio = 0.24f,
+                CentreX = 0.5f,
+            }, new Vector2(1920, 1080));
+
+            float line = p.YAt(0);
+            float depth = HighwayTrack.GetBeamDepth(p, farDepth, length);
+
+            Assert.That(line - p.YAt(depth), Is.EqualTo(share * (line - p.YAt(farDepth))).Within(1e-2f));
+            Assert.That(depth, Is.LessThan(HighwayTrack.BEAM_LENGTH));
         }
 
         /// <summary>

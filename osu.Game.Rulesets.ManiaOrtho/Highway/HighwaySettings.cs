@@ -99,6 +99,33 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
     }
 
     /// <summary>
+    /// How far up the track the highway's beam in a pressed lane reaches (<see cref="HighwayTrackStyle.Highway"/> only;
+    /// research/game-djmax.md R2).
+    /// </summary>
+    public enum KeyBeamLength
+    {
+        /// <summary>
+        /// Half the track's depth (<see cref="UI.HighwayTrack.BEAM_LENGTH"/>): most of the track's height on screen under a
+        /// tilted camera.
+        /// </summary>
+        [Description("Long")]
+        Long,
+
+        /// <summary>
+        /// Half of the track's height on screen, from the judgement line to where the track ends (the wall or the far edge),
+        /// as DJMAX's Half beam.
+        /// </summary>
+        [Description("Half")]
+        Half,
+
+        /// <summary>
+        /// A quarter of the track's height on screen, as DJMAX's Quarter beam, for players used to IIDX's short beams.
+        /// </summary>
+        [Description("Quarter")]
+        Quarter,
+    }
+
+    /// <summary>
     /// Where a ported skin's key area (everything below its hit position: keys, receptors, stage bottom) goes. Matters most
     /// for skins whose hit position sits well above the bottom of the screen, as IIDX-style skins do.
     /// </summary>
@@ -300,6 +327,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// </summary>
         public float TrackOpacity { get; init; }
 
+        /// <summary>
+        /// How far up the track the beam in a pressed lane reaches (<see cref="HighwayTrackStyle.Highway"/> only). A ported or
+        /// warped skin's lane lights keep the skin's length.
+        /// </summary>
+        public KeyBeamLength KeyBeam { get; init; }
+
         public HighwaySettings()
         {
             CameraMode = HighwayCameraMode.Perspective;
@@ -321,6 +354,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             FarFade = 0;
             HoldOpacity = 1;
             TrackOpacity = 1;
+            KeyBeam = KeyBeamLength.Long;
         }
 
         /// <summary>
