@@ -88,7 +88,9 @@ note the licence in the research note).
 ## Gotchas learned so far
 
 - `ManiaBeatmapConverter(beatmap, ruleset)` decides "is this a mania map" by comparing the source ruleset with the one
-  passed in. `ManiaDifficultyCalculator` compares online IDs. Both must get the mania ruleset (invariant 5).
+  passed in; given ours, mania maps convert like osu!standard maps (wrong columns, notes, star rating and pp).
+  `ManiaDifficultyCalculator` compares online IDs, which only changes its difficulty mod combinations (convert key
+  mods). Both get the mania ruleset (invariant 5); `RulesetParityTest` pins each.
 - `AssemblyRulesetStore` only lists legacy rulesets; the game's `RealmRulesetStore` lists ours. Test discovery inside a
   running game (`[Resolved] RulesetStore`), not with `AssemblyRulesetStore`.
 - `AddUntilStep` times out after 10s of game time. For long maps, wait in checkpoints (see `TestSceneReplayParity`).

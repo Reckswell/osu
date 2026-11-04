@@ -148,7 +148,10 @@ in the end. Live pp and the CSV still apply.
 
 - [ ] Rebrand app name, icon and data folder **[Alpha: name]**; remove or replace the official API endpoints.
   Gate: the build cannot log in to or contact osu! servers (test); separate data folder.
-- [ ] Live pp during play and on results via upstream calculators. Gate: pp equals mania's for the test scores.
+- [x] Live pp during play and on results via upstream calculators. Gate: pp equals mania's for the test scores.
+  (No code: lazer's HUD pp counter and results pp go through the delegated calculators. `TestSceneReplayParity` checks
+  the live counter, `TestSceneResultsPerformanceParity` the results' with no mod, DT, HT, HR, NF and FL. Stable skins
+  need the counter added in the skin editor; DECISIONS 2026-11-04, "Live pp is lazer's own".)
 - [ ] Append each play to a CSV (columns in the design doc). Gate: file written with correct values in a test.
 
 ## M4: Upstream tracking

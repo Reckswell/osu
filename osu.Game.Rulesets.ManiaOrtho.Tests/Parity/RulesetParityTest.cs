@@ -46,6 +46,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             Assert.That(describe(ortho), Is.EqualTo(describe(mania)));
         }
 
+        /// <summary>
+        /// The calculator decides whether a map is a convert from the ruleset it is given; as a convert it would list the key
+        /// mods among its difficulty mod combinations (invariant 5).
+        /// </summary>
+        [TestCaseSource(nameof(sources))]
+        public void TestDifficultyModCombinationsMatchMania(string source)
+        {
+            var working = new TestWorkingBeatmap(PlaytestBeatmaps.Load(source));
+
+            string[] mania = new ManiaRuleset().CreateDifficultyCalculator(working).CreateDifficultyAdjustmentModCombinations().Select(describeMod).ToArray();
+            string[] ortho = new ManiaOrthoRuleset().CreateDifficultyCalculator(working).CreateDifficultyAdjustmentModCombinations().Select(describeMod).ToArray();
+
+            Assert.That(ortho, Is.EqualTo(mania));
+            Assert.That(mania.Any(acronyms => acronyms.Contains('K')), Is.False, "a native mania map lists no key mods");
+
+            static string describeMod(Mod mod) => mod is MultiMod multi ? string.Join("+", multi.Mods.Select(describeMod)) : mod.Acronym;
+        }
+
         [TestCaseSource(nameof(sources))]
         public void TestStarRatingMatchesMania(string source)
         {

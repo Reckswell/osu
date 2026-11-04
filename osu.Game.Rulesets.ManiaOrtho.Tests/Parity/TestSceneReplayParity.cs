@@ -18,13 +18,14 @@ using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osu.Game.Screens.Play;
+using osu.Game.Screens.Play.HUD;
 using osu.Game.Tests.Visual;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 {
     /// <summary>
     /// The core gameplay invariant: the new playfield is visual only, so the same inputs must give the same
-    /// judgements, score and accuracy as osu!mania. Plays one humanised replay through both rulesets and compares.
+    /// judgements, score, accuracy and live pp as osu!mania. Plays one humanised replay through both rulesets and compares.
     /// </summary>
     [HeadlessTest]
     public partial class TestSceneReplayParity : RateAdjustedBeatmapTestScene
@@ -120,6 +121,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
             AddAssert("same judgement sequence", () => ortho.Judgements, () => Is.EqualTo(mania.Judgements));
             AddAssert("same total score", () => ortho.TotalScore, () => Is.EqualTo(mania.TotalScore));
             AddAssert("same accuracy", () => ortho.Accuracy, () => Is.EqualTo(mania.Accuracy));
+            AddAssert("mania showed live pp", () => mania.LivePerformance, () => Is.GreaterThan(0));
+            AddAssert("same live pp", () => ortho.LivePerformance, () => Is.EqualTo(mania.LivePerformance));
         }
 
         private void play(Ruleset ruleset, string source, int seed, string[] mods, System.Action<PlayRecord> store)
@@ -162,6 +165,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
 
             AddUntilStep($"[{ruleset.ShortName}] play to completion", () => currentPlayer.GameplayState.HasCompleted);
 
+            // The HUD's pp counter (in the default skin's layout) rates the play through the score's ruleset as it goes.
+            AddUntilStep($"[{ruleset.ShortName}] live pp counted", () => currentPlayer.ChildrenOfType<PerformancePointsCounter>().Any(c => c.IsValid));
+
             AddStep($"[{ruleset.ShortName}] record", () =>
             {
                 var processor = currentPlayer.GameplayState.ScoreProcessor;
@@ -174,7 +180,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.NativeNotes == true,
                     currentPlayer.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
                     currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.Settings.JudgementLineHeight,
-                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.TrackShown == true));
+                    currentPlayer.ChildrenOfType<HighwayPlayfieldAdjustmentContainer>().SingleOrDefault()?.TrackShown == true,
+                    currentPlayer.ChildrenOfType<PerformancePointsCounter>().First(c => c.IsValid).Current.Value));
             });
 
             AddStep($"[{ruleset.ShortName}] exit player", () => currentPlayer.Exit());
@@ -185,6 +192,6 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Parity
         private record JudgementRecord(double ObjectTime, string ObjectType, HitResult Type, double Offset);
 
         private record PlayRecord(List<JudgementRecord> Judgements, long TotalScore, double Accuracy, string DrawableRulesetType, bool NativeNotes, string[] Mods,
-                                  float? LineHeight, bool HighwayTrack);
+                                  float? LineHeight, bool HighwayTrack, int LivePerformance);
     }
 }

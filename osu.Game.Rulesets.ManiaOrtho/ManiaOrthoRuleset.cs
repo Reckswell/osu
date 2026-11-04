@@ -74,8 +74,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         public override IBeatmapProcessor? CreateBeatmapProcessor(IBeatmap beatmap) => MANIA.CreateBeatmapProcessor(beatmap);
 
-        // Difficulty: must use the mania RulesetInfo. ManiaDifficultyCalculator compares the beatmap's ruleset online ID
-        // with the one it is given to decide whether the map is a convert, which changes star rating.
+        // Difficulty: mania's calculator, with the mania RulesetInfo. Star rating follows the converter above. The calculator
+        // also compares the beatmap's ruleset online ID with the one it is given to decide whether the map is a convert,
+        // which adds the key mods to its list of difficulty mod combinations.
         public override DifficultyCalculator CreateDifficultyCalculator(IWorkingBeatmap beatmap) => MANIA.CreateDifficultyCalculator(beatmap);
 
         public override PerformanceCalculator CreatePerformanceCalculator() => MANIA.CreatePerformanceCalculator();

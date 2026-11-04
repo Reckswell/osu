@@ -579,3 +579,23 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Corrects** C4's premise ("OS key repeat, about 30 Hz", "25-75x beatoraja") and the 2026-11-03 hotkeys entry's
   "repeat on hold" only in that the repeat is osu-framework's, not the OS's.
 - **Revisit** if Alpha finds the held rate too fast.
+
+## 2026-11-04: Live pp is lazer's own
+
+- **Decision**: no code for M3's live pp. Lazer's HUD pp counter and the results screen's pp rate a play through the
+  score's ruleset, and `ManiaOrthoRuleset` hands difficulty and performance to mania, so both show osu!mania's number.
+  Two tests pin it: `TestSceneReplayParity` compares the live counter after each replay, and
+  `TestSceneResultsPerformanceParity` the results' pp (through the game's difficulty cache on an imported chart) with
+  no mod, DT, HT, HR, NF and FL, against mania's own calculators.
+- **Not added**: a pp counter in stable skins' layouts. Lazer's own skins show one; a stable skin's default HUD has none
+  (`LegacySkin`, as in stable). Adding it would change osu!'s HUD for those skins, and the skin editor does it in a few
+  clicks (PLAYTESTING L4). Revisit if Alpha wants it there by default.
+
+## 2026-11-04: Correction to "Converter and difficulty calculator get the mania ruleset" (2026-11-03)
+
+- That entry says the difficulty calculator's ruleset changes star rating. It does not: star rating and pp follow the
+  converter, which the calculator reaches through the beatmap (and in game through the difficulty cache's already
+  converted beatmap). Given ours, `ManiaDifficultyCalculator` would only treat the map as a convert in
+  `CreateDifficultyAdjustmentModCombinations` and list the key mods too. Found by a mutation check for the live pp
+  tests and the review. The decision stands (both get `MANIA`); `TestDifficultyModCombinationsMatchMania` now pins the
+  calculator's half.

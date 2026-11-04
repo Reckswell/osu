@@ -38,10 +38,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// </summary>
         public static string RepoRoot => repoRoot ??= findRepoRoot();
 
+        /// <summary>
+        /// The file behind <see cref="REAL_4K"/>: a 4K chart from osu!mania's own test resources.
+        /// </summary>
+        public static string Real4KPath => Path.Combine(RepoRoot, "osu.Game.Rulesets.Mania.Tests", "Resources", "Testing", "Beatmaps", "4869637.osu");
+
         public static IBeatmap Load(string source)
         {
             if (source == REAL_4K)
-                return Decode(Path.Combine(RepoRoot, "osu.Game.Rulesets.Mania.Tests", "Resources", "Testing", "Beatmaps", "4869637.osu"));
+                return Decode(Real4KPath);
 
             if (source.StartsWith("synthetic-", StringComparison.Ordinal) && source.EndsWith('k')
                                                                          && int.TryParse(source.AsSpan("synthetic-".Length, source.Length - "synthetic-".Length - 1), out int columns))

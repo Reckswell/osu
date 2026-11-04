@@ -12,7 +12,8 @@ Pure maths and data: projection, visible time, wall maths, settings, SR/pp parit
 
 `Parity/TestSceneReplayParity` plays one seeded, humanised replay (autoplay with ~30ms Gaussian timing error, so it
 produces PERFECT through MISS) through osu!mania and through `maniaortho`, then requires the same judgement sequence,
-score and accuracy. Sources: `real-4k` (a real ranked map, 1419 objects), `synthetic-4k`, `synthetic-7k` (stairs,
+score, accuracy and live pp (the HUD's pp counter). `Parity/TestSceneResultsPerformanceParity` checks the results
+screen's pp the same way, with mods. Sources: `real-4k` (a real ranked map, 1419 objects), `synthetic-4k`, `synthetic-7k` (stairs,
 chords, jacks, long notes, SV 0.5x and 1.75x).
 
 Add a case when you add a code path that touches input or judgement, or when Alpha sends a replay (section L4).
@@ -133,6 +134,11 @@ starts nothing when the packaged game is already running. `osu\version.txt` name
   dialog, the second confirms it). The script fails if `%APPDATA%\osu-development` changed during the run.
 - osu-framework's own settings (window, renderer, frame limiter) are in `ortho-data\framework.ini`: the host's
   storage is the game's, so the empty `framework.ini` next to the build only marks it portable.
+- **pp**: the results screen shows each play's pp (mania's calculators, so the same number as osu!mania). During play,
+  lazer's own skins show a live pp counter; a stable skin has none in its layout, so add one with the skin editor
+  (Ctrl+Shift+S during play): "LegacyPerformancePointsCounter" in the components list, on the global HUD layer (every
+  ruleset) or the maniaortho layer (only here; one added on mania's layer does not show here), then save. Lazer saves
+  that layout with its copy of the skin, as new files in its own store; stable's skin files are not changed.
 
 Only Alpha can judge feel. When asking for an L4 session, give Alpha a short list of what to try (for example "7K at
 your usual speed, wall at 30%, tell me if outer lanes are readable") and ask for:
