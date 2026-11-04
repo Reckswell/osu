@@ -63,6 +63,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             setEnv(PlaytestOptions.ENV_NOTES, parsed.GetValueOrDefault("notes"));
             setEnv(PlaytestOptions.ENV_MODS, parsed.GetValueOrDefault("mods"));
             setEnv(PlaytestOptions.ENV_PORT, parsed.ContainsKey("port") ? "1" : null);
+            setEnv(PlaytestOptions.ENV_HUMANISED, parsed.GetValueOrDefault("humanised"));
 
             int[] size = parsed.GetValueOrDefault("size", "1280x720").Split('x').Select(int.Parse).ToArray();
 

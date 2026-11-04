@@ -24,6 +24,7 @@ using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.ManiaOrtho.UI;
 using osu.Game.Rulesets.Objects;
 using osu.Game.Rulesets.UI.Scrolling;
+using osu.Game.Scoring;
 using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
 using SixLabors.ImageSharp;
@@ -96,7 +97,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         [Resolved]
         private SkinManager skins { get; set; } = null!;
 
-        protected override bool Autoplay => true;
+        protected override bool Autoplay => options.HumanisedSeed == null;
+
+        protected override TestPlayer CreatePlayer(Ruleset ruleset)
+        {
+            var player = base.CreatePlayer(ruleset);
+
+            if (options.HumanisedSeed is int seed)
+            {
+                // Attached before gameplay starts, so every note is played by it.
+                var replay = HumanisedReplayGenerator.Generate(PlaytestBeatmaps.Load(options.Beatmap), seed);
+                player.OnLoadComplete += _ => player.DrawableRuleset.SetReplayScore(new Score { Replay = replay, ScoreInfo = new ScoreInfo { Ruleset = ruleset.RulesetInfo } });
+            }
+
+            return player;
+        }
 
         // The player is loaded below, with the chosen mods.
         protected override bool HasCustomSteps => true;
@@ -408,6 +423,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 skin = options.Skin,
                 notes = options.Ruleset == ManiaOrthoRuleset.SHORT_NAME ? (options.Port ? HighwayNoteStyle.Ported : options.NoteStyle).ToString() : null,
                 mods = Player.GameplayState.Mods.Select(m => m.Acronym).ToArray(),
+                replay = options.HumanisedSeed is int humanisedSeed ? $"humanised {humanisedSeed}" : "autoplay",
                 captureTimes = times,
                 captures = captures.Select(Path.GetFileName).ToArray(),
                 clockAtCapture,

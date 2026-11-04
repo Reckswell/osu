@@ -1,4 +1,4 @@
-# Backlog
+﻿# Backlog
 
 Work top to bottom. A task is done when its **Gate** passes and its commit is in. Tick it (`[x]`), add the commit
 hash, and log the iteration in `LOG.md`. Split a task if it will not fit in one iteration; add new tasks where they
@@ -182,7 +182,7 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
       `research/skins-survey.md`). Open: the default key-area variant for raised hit positions (asked on a card).
 - [x] Optional "Hold opacity" 10-100% and "Track opacity" 0-100% settings, and the judgement line lit per lane on a hit
   in the result's colour (`game-sekai.md` K6, K7, K9). Multipliers, default 100%; slot lights retuned after the
-  playtest (DECISIONS 2026-11-04). Open: Great and Meh slot colours seen only in tests (autoplay hits Perfects).
+  playtest (DECISIONS 2026-11-04). Great (orange) and Good (green) slot lights seen in a humanised playtest; Meh (dimmer) only in tests, as seed 4 hits none.
 - [ ] Optional cosmetic camera motion (kiai sway), off by default.
 - [ ] More presets from research. (An Arcaea preset waits on Q19: `game-arcaea.md` R2, R3.)
 - [ ] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long

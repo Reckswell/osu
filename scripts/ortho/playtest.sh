@@ -12,6 +12,8 @@
 #   scripts/ortho/playtest.sh --skin "path/to/Skins/My Skin" --port   (a stable skin folder, drawn by the skin porter)
 #   scripts/ortho/playtest.sh --notes skin                  (maniaortho notes: highway, the default, or skin)
 #   scripts/ortho/playtest.sh --mods HD                     (mod acronyms, comma separated, besides autoplay and no fail)
+#   scripts/ortho/playtest.sh --humanised 4                 (the parity tests' humanised replay with this seed instead of
+#                                                            autoplay, with No Fail: Greats, Goods, Mehs and misses show)
 #
 # The default set: synthetic-7k and real-4k at speed 29 (Alpha's: 405 ms visible on lazer's skins), and synthetic-7k at
 # speed 14 (840 ms), where Chunithm and Sekai players' notes move at the line (research/game-sekai.md K3). Without
@@ -34,7 +36,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --beatmap) beatmaps+=("$2"); shift ;;
     --scroll-speed) speed="$2"; shift ;;
-    --times|--preset|--wall|--skin|--notes|--mods|--set) extra+=("$1" "$2"); shift ;;
+    --times|--preset|--wall|--skin|--notes|--mods|--set|--humanised) extra+=("$1" "$2"); shift ;;
     --size) size="$2"; shift ;;
     --play-to-end|--speed-lock|--port) extra+=("$1") ;;
     --no-baseline) baseline=0 ;;

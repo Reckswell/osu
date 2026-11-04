@@ -33,6 +33,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         public const string ENV_NOTES = "ORTHO_PLAYTEST_NOTES";
         public const string ENV_MODS = "ORTHO_PLAYTEST_MODS";
         public const string ENV_PORT = "ORTHO_PLAYTEST_PORT";
+        public const string ENV_HUMANISED = "ORTHO_PLAYTEST_HUMANISED";
 
         /// <summary>See <see cref="PlaytestBeatmaps.Load"/>.</summary>
         public string Beatmap { get; init; } = "synthetic-7k";
@@ -92,6 +93,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
         /// Mod acronyms to play with besides autoplay (and no fail), such as HD, FI or CO.
         /// </summary>
         public string[] Mods { get; init; } = Array.Empty<string>();
+
+        /// <summary>
+        /// When set, plays the parity tests' humanised replay with this seed (<see cref="HumanisedReplayGenerator"/>: presses
+        /// spread around each note, so Greats, Goods, Mehs and a few misses show) instead of autoplay, which only hits Perfects.
+        /// The scene always plays with No Fail, so the misses never end the play.
+        /// </summary>
+        public int? HumanisedSeed { get; init; }
 
         /// <summary>
         /// Highway settings to set after the preset and wall (maniaortho only), as <c>Name=value</c> with names from
@@ -170,8 +178,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             }
         }
 
-        public Mod[] CreateMods(Ruleset ruleset) => Mods.Select(acronym => ruleset.CreateModFromAcronym(acronym)
-                                                                   ?? throw new ArgumentException($"{ruleset.Description} has no mod \"{acronym}\".")).ToArray();
+        /// <summary>
+        /// The mods to load the player with. Leaves No Fail out: the scene always adds it (<c>PlayerTestScene.AllowFail</c>),
+        /// and a second one would fail the player's load.
+        /// </summary>
+        public Mod[] CreateMods(Ruleset ruleset) => Mods.Where(acronym => !acronym.Equals("NF", StringComparison.OrdinalIgnoreCase))
+                                                        .Select(acronym => ruleset.CreateModFromAcronym(acronym)
+                                                                           ?? throw new ArgumentException($"{ruleset.Description} has no mod \"{acronym}\".")).ToArray();
 
         public SkinInfo CreateSkinInfo() => Skin switch
         {
@@ -214,6 +227,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                 NoteStyle = get(ENV_NOTES) is string n ? Enum.Parse<HighwayNoteStyle>(n, true) : defaults.NoteStyle,
                 Mods = get(ENV_MODS)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? defaults.Mods,
                 Port = get(ENV_PORT) == "1",
+                HumanisedSeed = get(ENV_HUMANISED) is string seed ? int.Parse(seed, CultureInfo.InvariantCulture) : null,
             };
 
             // Fail on a bad --set in every run, including the mania baseline that comes first.

@@ -33,7 +33,9 @@ without `--scroll-speed` use 29: the harness keeps its settings between runs, so
 earlier run left. Each run's folder is `<chart>-speed<N>`, and its summary records the real visible time.
 
 The runner (`dotnet <tests dll> playtest ...`) opens a real window, plays the chart with autoplay, and at each capture
-time stops the clock at exactly that time and saves the frame. Both rulesets are captured at identical times, then
+time stops the clock at exactly that time and saves the frame. Autoplay only hits Perfects; `--humanised <seed>` plays
+the parity tests' humanised replay instead (with No Fail), so Greats, Goods, Mehs and misses show, the same in both
+rulesets. The summary records which (`replay`). Both rulesets are captured at identical times, then
 joined into `compare-*.png` (mania left, maniaortho right). `summary-<ruleset>.json` holds the renderer, window size,
 fps samples and, with `--play-to-end`, final statistics.
 
