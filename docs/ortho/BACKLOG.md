@@ -104,9 +104,11 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
 
 ## M2.5: Alpha plays (L4)
 
-- [ ] Portable full game: `scripts/ortho/play.ps1` keeps the data next to the clone (framework.ini and storage.ini, no
+- [x] Portable full game: `scripts/ortho/play.ps1` keeps the data next to the clone (framework.ini and storage.ini, no
   core patch; DECISIONS 2026-11-04 "Full game"). Gate: `PlayScriptDataFolderTest`; a PC run leaves
-  `%APPDATA%\osu-development` unchanged and fills `ortho-data`.
+  `%APPDATA%\osu-development` unchanged and fills `ortho-data`. (PC run 2026-11-04: build 25 s, "Storage successfully
+  changed to ...\ortho-data", no `%APPDATA%\osu-development`, stable's top level unchanged, nothing sent to
+  osu.ppy.sh; `-QuitAfter` needed a second close request, fixed.)
 - [ ] Alpha's files from stable: osu!'s first-run import of maps, skins and scores from `AppData\Local\osu!` by hard
   links; screenshots moved into stable's `Screenshots` folder; never open `%APPDATA%\osu`. Gate: on Alpha's PC the
   import reports hard links, stable's files unchanged (sizes and times), a screenshot lands in stable's folder.

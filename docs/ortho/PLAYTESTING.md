@@ -118,13 +118,16 @@ powershell -ExecutionPolicy Bypass -File scripts\ortho\play.ps1 -NoBuild # start
   the game closes (and at the next start). Moved, not linked: PowerShell 5.1's `Remove-Item -Recurse` follows a
   junction and would empty stable's folder, and osu!'s own "move data folder" would copy all of it.
 - **Servers**: the Debug build only knows osu!'s development server (dev.ppy.sh); Alpha should not log in. Like every
-  lazer it downloads osu!'s public beatmap metadata file (`online.db`) from assets.ppy.sh, for ranked status. No update
+  lazer it downloads osu!'s public beatmap metadata file (`online.db`, about 86 MB) and the main menu's news banner
+  from assets.ppy.sh. Discord rich presence connects but shows nothing while logged out. No update
   checks (`OSU_EXTERNAL_UPDATE_PROVIDER`), no crash reports (`OSU_DISABLE_ERROR_REPORTING`, and Sentry is off in
   local builds anyway). maniaortho scores are never submittable (invariant 2).
 - **Outside the folder**, as with release lazer: osu.Desktop resets the NVIDIA driver's "threaded optimisation" for
   `osu!.exe` to Auto on start (stable sets it Off for itself).
-- `-QuitAfter 30` closes the game after 30 s, for a remote check. The script fails if `%APPDATA%\osu-development`
-  changed during the run.
+- `-QuitAfter 30` closes the game after 30 s, for a remote check (two close requests: the first opens osu!'s exit
+  dialog, the second confirms it). The script fails if `%APPDATA%\osu-development` changed during the run.
+- osu-framework's own settings (window, renderer, frame limiter) are in `ortho-data\framework.ini`: the host's
+  storage is the game's, so the empty `framework.ini` next to the build only marks it portable.
 
 Only Alpha can judge feel. When asking for an L4 session, give Alpha a short list of what to try (for example "7K at
 your usual speed, wall at 30%, tell me if outer lanes are readable") and ask for:

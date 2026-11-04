@@ -93,8 +93,11 @@ Write-Host "== osu! (data: $Data)"
 $game = Start-Process -FilePath $exe -WorkingDirectory $bin -PassThru
 if ($QuitAfter -gt 0) {
     if (-not $game.WaitForExit($QuitAfter * 1000)) {
-        # A close request makes osu! play its outro and exit, as closing the window does.
+        # At the main menu a close request opens osu!'s "are you sure you want to exit?" dialog, and a second one while
+        # it is open confirms it (MainMenu.OnExiting); osu! then plays its outro and exits, saving everything.
         $game.CloseMainWindow() | Out-Null
+        Start-Sleep -Seconds 3
+        if (-not $game.HasExited) { $game.CloseMainWindow() | Out-Null }
         if (-not $game.WaitForExit(20000)) { $game.Kill(); Write-Host "   osu! did not close; stopped it" }
     }
 }
