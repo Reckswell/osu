@@ -28,15 +28,6 @@ ours do. Its notes get about 5× thicker towards the far end, so far notes stay 
 - **Default until answered**: (c). Nothing is built; the other presets and SPEC 6 are unchanged.
 - **Answer** (Alpha, 2026-11-04): (c), no Arcaea preset.
 
-### Q16. Where a ported skin's key area goes by default
-Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a
-tall key panel there. The camera's judgement line is lower (Chunithm 7.4%). Five placements are built ("Skin key
-area"): Panel (line lifted to the skin's hit position, keys upright below it), Floor (same line, keys lying on the
-floor), Squeezed (camera's line, keys squeezed under it), Receptors (camera's line, keys cropped by the screen edge),
-Hidden (camera's line, no keys). Screenshots: `/mnt/project-files/ortho-agent/skin-port/`. Asked on a decision card.
-- **Default until answered**: Panel. Switching is one default value.
-- **Answer**:
-
 ### Q2. Public name
 The client must not be called "osu!" anything (trademark). What should the game and the ruleset be called?
 - **Default until answered**: internal working name `maniaortho`, no public branding yet. M3 rebrand is blocked.
@@ -147,6 +138,15 @@ tests can replay it on the highway.
 - **Answer**:
 
 ## Answered
+
+### Q16. Where a ported skin's key area goes by default
+Most stable skins put the hit position 16-17% above the bottom with keys or receptors below it; IIDX-style skins put a
+tall key panel there. The camera's judgement line is lower (Chunithm 7.4%). Five placements are built ("Skin key
+area"): Panel (line lifted to the skin's hit position, keys upright below it), Floor (same line, keys lying on the
+floor), Squeezed (camera's line, keys squeezed under it), Receptors (camera's line, keys cropped by the screen edge),
+Hidden (camera's line, no keys). Screenshots: `/mnt/project-files/ortho-agent/skin-port/`. Asked on a decision card.
+- **Default until answered**: Panel. Switching is one default value.
+- **Answer** (Alpha, 2026-11-04, on the decision card): Panel. Already the default; nothing changes.
 
 ### Q15. How maniaortho gets mania maps inside official lazer
 Alpha (2026-11-04): the mod has to install on lazer, sharing files the way lazer does with stable. Lazer loads a
