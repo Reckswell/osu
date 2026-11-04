@@ -5,7 +5,7 @@ Both test suites read these files, so a change on one side that the other does n
 
 | File | What |
 |---|---|
-| `ScoreServerMessages.cs` | The upload (`PlayUpload`) and answer (`PlayResult`) types, compiled into both the game's ruleset and the server. |
+| `Messages/` | The upload (`PlayUpload`, `BeatmapUpload`), answer (`PlayResult`) and protocol (`ScoreServerProtocol`) types, one per file, compiled into both the game's ruleset and the server. |
 | `play-upload.example.json` | The `play` part of `POST /api/plays` (multipart: `play` JSON, `beatmap` the `.osu` file, `replay` the `.osr`, optional). |
 | `play-result.example.json` | The server's answer. |
 | `pp-parity.json` | Star rating and pp of synthetic plays. The game's calculators and osu!'s published ones must both give these. |

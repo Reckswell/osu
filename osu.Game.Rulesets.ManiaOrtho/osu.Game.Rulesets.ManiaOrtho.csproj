@@ -13,6 +13,6 @@
 
   <ItemGroup Label="Score server contract">
     <!-- The upload and answer types, shared with the score server (ortho-server). -->
-    <Compile Include="..\ortho-server\contract\ScoreServerMessages.cs" Link="ScoreServer\ScoreServerMessages.cs" />
+    <Compile Include="..\ortho-server\contract\Messages\*.cs" Link="ScoreServer\Messages\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

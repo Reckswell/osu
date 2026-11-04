@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <!-- The upload and answer types, shared with the game's ruleset. -->
-    <Compile Include="..\contract\ScoreServerMessages.cs" Link="Contract\ScoreServerMessages.cs" />
+    <Compile Include="..\contract\Messages\*.cs" Link="Contract\Messages\%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <AssemblyMetadata Include="OsuCalculatorVersion" Value="$(OsuCalculatorVersion)" />

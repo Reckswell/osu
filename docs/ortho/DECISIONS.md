@@ -1168,7 +1168,7 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   and the next start rates every play again. A newer live version shows on the page and in the toast.
 - **Parity with the game**: `contract/pp-parity.json` is written from the game's calculators (this repo's mania) and
   checked against the server's (osu!'s published ones): six synthetic plays, 4K and 7K, with DT, HT, NF+EZ, HD+MR, all
-  equal. The upload and answer types are one file (`contract/ScoreServerMessages.cs`) compiled into both, so neither side
+  equal. The upload and answer types (`contract/Messages/`) are compiled into both, so neither side
   can rename a field alone.
 - **Map status**: the game sends the status its local database has (`BeatmapInfo.Status`); a stale status (a map ranked
   since the last update) shows as "not ranked" until osu! refreshes it in the game. The server cannot ask osu! (it never

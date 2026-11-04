@@ -6,6 +6,15 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q25. How the game reaches the score server, with osu! kept close to stock
+Alpha (2026-11-04) asked whether Settings > Online > Server is osu!'s own: it is not (release lazer is hard-wired to
+osu.ppy.sh; private lazer servers inject a DLL that rewrites the addresses in memory, or ship a patched build), and
+Alpha wants the client as close to the original as possible. Options on a decision card: keep the setting (7 osu! files,
+about 200 lines, empty = upstream); a smaller patch with no new menus (the osu.exe launcher passes the address);
+no osu! file changed (the maniaortho DLL rewrites the addresses in memory, may break on lazer updates).
+**Default meanwhile**: keep the setting as built.
+**Answer**:
+
 ### Q23. Turn on the daily check that pp match osu!'s servers
 `.github/workflows/ortho-live-mania.yml` (README "Live osu!mania check") opens a pull request when osu!'s servers move to
 a new osu!mania release. It cannot run yet: GitHub Actions are off for this fork, and a scheduled workflow runs only
