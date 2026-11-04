@@ -95,7 +95,12 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   (Shift+F3/Shift+F4 move the wall 5% with a toast; mania's F3/F4 speed keys already worked. `TestSceneHighwayHotkeys`:
   keys still reach mania's input manager, work in a replay player, range, modifiers, no column pressed;
   `TestWallChangesShowAToast`.)
-- [ ] **MG2**: device playtest (L3) with frame times on Alpha's PC; ask Alpha for an L4 session and replays.
+- [x] **MG2**: device playtest (L3) with frame times on Alpha's PC; ask Alpha for an L4 session and replays.
+  (2026-11-04, RTX 5080 + Ryzen 7 9800X3D, 1920x1080 window, D3D11, uncapped: every run at the 1000 Hz ceiling, median
+  frame 0.98 ms in both rulesets; maniaortho's p99 at most 3.93 ms (synthetic 7K; mania 2.67 ms), inside 180 Hz's
+  5.56 ms; worst single frames are one-off hitches in both rulesets, mania's larger. Scores identical in all four pairs
+  (Armageddon 4K and C18H27NO3 7K played to the end, Chunithm; synthetic 7K; Voltex + wall 40%). GPU captures equal the
+  cloud's apart from random particles: `/mnt/project-files/ortho-agent/mg2/`. L4 asked in the thread; Q12, Q13.)
 
 ## M3: Separate client and local scoring
 

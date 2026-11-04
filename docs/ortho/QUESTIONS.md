@@ -67,6 +67,23 @@ the thread; captures in `/mnt/project-files/ortho-agent/track/`.
 - **Default until answered**: (a), "Track: Highway". Switching is one default value (DECISIONS, 2026-11-03).
 - **Answer**:
 
+### Q12. The HUD's key counter over the outer lanes
+In replays and autoplay (or with osu!'s key overlay on), argon's key counter sits at the bottom right over the near end
+of the two or three rightmost lanes at 7K (MG2 captures, `/mnt/project-files/ortho-agent/mg2/`). DECISIONS
+(2026-11-03, "The HUD's key counter stays where the skin puts it") leaves it, since SPEC 7 keeps the osu! HUD.
+- **Options**: (a) leave it; Alpha moves it per ruleset in the skin editor if wanted; (b) a maniaortho default HUD
+  layout that moves it (and the combo counter) off the track, mania's layout untouched.
+- **Default until answered**: (a).
+- **Answer**:
+
+### Q13. Where the full game keeps its data on Alpha's PC (for the L4 session)
+Alpha wants every file kept inside `Documents\Projects\osu!`. The playtest harness is portable now, but the full game
+(`osu.Desktop`, needed for Alpha to play: song select, settings, replays) keeps its data in `%APPDATA%\osu-development`.
+- **Options**: (a) a small portable switch in `osu.Desktop` (data next to the build, inside the folder; a core patch
+  outside `osu.Game/`, listed in README); (b) let the dev build use `%APPDATA%\osu-development`.
+- **Default until answered**: (a) prepared, not used until Alpha says.
+- **Answer**:
+
 ## Answered
 
 ### Q10. Track width at 7K and 10K
