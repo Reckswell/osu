@@ -1183,3 +1183,26 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   those would mean reading the log after every play (it never happened in testing).
 - **Alternatives**: rating at game start (needs a component outside gameplay, a core patch); a settings button (a
   manual step that is easy to forget).
+
+## 2026-11-05: The special column of N+1 maps (M6, Q24)
+
+- **Ask**: Alpha does not play N+1 maps but wants them marked (Q24, "include it as a feature regardless").
+- **Decision**: a map with the `SpecialStyle` flag (stable's "N+1" layout: 8K played as 7 keys and a special key) and
+  an even total key count from 6 has each stage split 1 | N−1 by a group divider beside its special column, instead
+  of the hand split (4 | 4 at 8K). A single stage of an odd count keeps its split: its centre key is the special one
+  already. Two stages count by the total (14K as 7 + 7, 18K as 9 + 9: stable defaults 18K to Left Special Style).
+- **Which side** (research/game-djmax.md R3, verified below): the side the skin's `SpecialStyle` names for the play's
+  key count (`[Mania]`, 1 left, 2 right), read from osu!'s parse of `skin.ini` as `ColumnStart` is; the left when the
+  skin names none or 0, as stable defaults 8K and 10K to "Left Special Style". With two stages the skin's 1 means the
+  outer columns and 2 the inner ones, measured from the centre between the stages, as skinship.xyz documents.
+- **No setting**: the divider is part of the lane guides (their setting turns it off), shows only on maps made for it,
+  and never under the flat camera; a ported skin's own track (which hides the guides) draws its special column with
+  the skin's own per-column images, as stable does.
+- **Visual only**: keys still go to mania's columns and bindings are untouched (a playtest of the same chart with and
+  without the flag scored the same, 318738); no input or judgement path changed, so no parity case.
+- **Seen in the playtest**: the divider is the same group line as the hand split's, but with the flag the centre lane
+  line, vertical and on a pixel boundary, still draws 2 px at full alpha, so 1 | 7 and 4 | 4 differ less than the
+  line widths suggest (1|2 boundary 3 px bright vs 1 px; centre 2 px vs 4 px). Left as it is: Alpha does not play
+  these maps.
+- **Unverified**: whether stable draws its own 10K as one stage (as osu! does, marked 1 | 9) or as 5 + 5.
+- **Reverse**: `LaneGroups.SpecialSide` returning None.

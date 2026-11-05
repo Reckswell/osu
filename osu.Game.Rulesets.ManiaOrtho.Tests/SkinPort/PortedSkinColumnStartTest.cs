@@ -41,6 +41,21 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.SkinPort
         }
 
         /// <summary>
+        /// The side a skin puts an N+1 map's special column on, per key count (research/game-djmax.md R3).
+        /// </summary>
+        [TestCase("SpecialStyle: 1", LegacyManiaSkinConfiguration.LegacySpecialStyle.Left)]
+        [TestCase("SpecialStyle: 2", LegacyManiaSkinConfiguration.LegacySpecialStyle.Right)]
+        [TestCase("SpecialStyle: 0", LegacyManiaSkinConfiguration.LegacySpecialStyle.None)]
+        [TestCase("", null)]
+        public void TestSpecialStyleIsRead(string line, LegacyManiaSkinConfiguration.LegacySpecialStyle? expected)
+        {
+            var skin = new IniSkin($"[General]\nName: test\n\n[Mania]\nKeys: 8\n{line}\n");
+
+            Assert.That(PortedSkin.ReadSpecialStyle(skin, 8), Is.EqualTo(expected));
+            Assert.That(PortedSkin.ReadSpecialStyle(skin, 6), Is.Null, "no [Mania] section for 6K");
+        }
+
+        /// <summary>
         /// A legacy skin parsed from a <c>skin.ini</c> held in memory.
         /// </summary>
         private class IniSkin : LegacySkin

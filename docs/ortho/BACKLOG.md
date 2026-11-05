@@ -201,8 +201,11 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
   (`game-djmax.md` R2). Half and Quarter measured to the wall's edge when there is one (DECISIONS 2026-11-04).
 - [ ] The beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9), only if Alpha's L4 notes say today's
   150 ms ease-out lingers: single captures cannot show it.
-- [ ] **[Alpha: Q24]** Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
+- [x] Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
   R3, extends `topic-wide-keys.md` W1).
+  (Q24: Alpha does not play them but wants it. `LaneGroups.SpecialSide`: an even total key count from 6, the skin's
+  `SpecialStyle` side or the left, outer or inner with two stages; `WideKeysTest`, `PortedSkinColumnStartTest`,
+  `TestSceneHighwayPlayfield.TestSpecialColumn*`; playtest `synthetic-8k-n1`; DECISIONS 2026-11-05.)
 - [x] "Wall scale": set and step the wall in Chunithm's 0-14, IIDX's white number or osu!mania / Quaver's share of the
   lane, or a flat percent (Alpha, 2026-11-04). Choosing a game gives the wall its speed behaviour. Gate: unit tests per
   scale, panel and hotkey scenes. (DECISIONS 2026-11-04, "Wall scale".)

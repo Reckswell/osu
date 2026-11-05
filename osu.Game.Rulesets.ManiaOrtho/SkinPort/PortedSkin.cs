@@ -179,21 +179,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
         /// </summary>
         public static float? ReadColumnStart(ISkinSource skin, int totalColumns)
         {
-            foreach (var source in skin.AllSources)
-            {
-                ISkin s = source;
-
-                while (s is ISkinTransformer transformer)
-                    s = transformer.Skin;
-
-                // The first full skin: beatmap skins carry no mania layout.
-                if (s is not LegacySkin legacy || s is LegacyBeatmapSkin)
-                    continue;
-
-                return ReadColumnStart(legacy, totalColumns);
-            }
-
-            return null;
+            var legacy = fullLegacySkin(skin);
+            return legacy == null ? null : ReadColumnStart(legacy, totalColumns);
         }
 
         /// <summary>
@@ -202,9 +189,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
         /// </summary>
         public static float? ReadColumnStart(LegacySkin skin, int totalColumns)
         {
-            if (mania_configurations?.GetValue(skin) is IDictionary configurations
-                && configurations.Contains(totalColumns)
-                && configurations[totalColumns] is LegacyManiaSkinConfiguration config
+            if (configurationFor(skin, totalColumns) is LegacyManiaSkinConfiguration config
                 && Math.Abs(config.ColumnStart - DEFAULT_COLUMN_START) > 0.01f
                 && float.IsFinite(config.ColumnStart))
             {
@@ -213,6 +198,48 @@ namespace osu.Game.Rulesets.ManiaOrtho.SkinPort
 
             return null;
         }
+
+        /// <summary>
+        /// The skin's <c>SpecialStyle</c> for <paramref name="totalColumns"/> keys (which side of an N+1 map holds its special
+        /// column), or null when the skin is not a stable skin or sets none. osu! (lazer) parses it but does not use it.
+        /// </summary>
+        public static LegacyManiaSkinConfiguration.LegacySpecialStyle? ReadSpecialStyle(ISkinSource skin, int totalColumns)
+        {
+            var legacy = fullLegacySkin(skin);
+            return legacy == null ? null : ReadSpecialStyle(legacy, totalColumns);
+        }
+
+        /// <inheritdoc cref="ReadSpecialStyle(ISkinSource, int)"/>
+        public static LegacyManiaSkinConfiguration.LegacySpecialStyle? ReadSpecialStyle(LegacySkin skin, int totalColumns)
+            => configurationFor(skin, totalColumns)?.SpecialStyle;
+
+        /// <summary>
+        /// The first full stable skin among <paramref name="skin"/>'s sources (beatmap skins carry no mania layout), or null.
+        /// </summary>
+        private static LegacySkin? fullLegacySkin(ISkinSource skin)
+        {
+            foreach (var source in skin.AllSources)
+            {
+                ISkin s = source;
+
+                while (s is ISkinTransformer transformer)
+                    s = transformer.Skin;
+
+                if (s is LegacySkin legacy && s is not LegacyBeatmapSkin)
+                    return legacy;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// osu!'s parse of the skin's <c>[Mania]</c> section for <paramref name="totalColumns"/> keys, or null without one
+        /// (an internal field; <c>SkinPortLayoutTest</c> fails if it is renamed).
+        /// </summary>
+        private static LegacyManiaSkinConfiguration? configurationFor(LegacySkin skin, int totalColumns)
+            => mania_configurations?.GetValue(skin) is IDictionary configurations && configurations.Contains(totalColumns)
+                ? configurations[totalColumns] as LegacyManiaSkinConfiguration
+                : null;
 
         /// <summary>
         /// Whether reading <c>ColumnStart</c> still works with this osu! build (see <see cref="ReadColumnStart(LegacySkin, int)"/>).

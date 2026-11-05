@@ -23,6 +23,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
     /// <list type="bullet">
     /// <item><c>real-4k</c>: a real ranked 4K map from the mania test resources (1419 objects, no audio).</item>
     /// <item><c>synthetic-NK</c> (e.g. <c>synthetic-7k</c>): a generated ~40s chart covering stairs, chords, jacks, long notes, SV changes and a kiai section.</item>
+    /// <item><c>synthetic-NK-n1</c> (e.g. <c>synthetic-8k-n1</c>): the same chart marked for stable's N+1 layout (<c>SpecialStyle</c>).</item>
     /// <item>A path to any <c>.osu</c> file, e.g. one from a local osu! Songs folder.</item>
     /// </list>
     /// </remarks>
@@ -58,6 +59,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
             return stream;
         }
 
+        /// <summary>
+        /// Marks a synthetic chart for stable's N+1 layout: <c>synthetic-8k-n1</c>.
+        /// </summary>
+        public const string N_PLUS_ONE_SUFFIX = "-n1";
+
         public static IBeatmap Load(string source)
         {
             if (source == REAL_4K)
@@ -67,10 +73,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                                                                          && int.TryParse(source.AsSpan("synthetic-".Length, source.Length - "synthetic-".Length - 1), out int columns))
                 return CreateSynthetic(columns);
 
+            // The same chart marked for stable's N+1 layout (SpecialStyle), as 8K maps played as 7 keys and a special key are.
+            if (source.StartsWith("synthetic-", StringComparison.Ordinal) && source.EndsWith(N_PLUS_ONE_SUFFIX, StringComparison.Ordinal))
+            {
+                var beatmap = (ManiaBeatmap)Load(source[..^N_PLUS_ONE_SUFFIX.Length]);
+                beatmap.SpecialStyle = true;
+                return beatmap;
+            }
+
             if (File.Exists(source))
                 return Decode(source);
 
-            throw new ArgumentException($"Unknown beatmap source \"{source}\". Use {REAL_4K}, synthetic-<N>k, or a path to a .osu file.");
+            throw new ArgumentException($"Unknown beatmap source \"{source}\". Use {REAL_4K}, synthetic-<N>k, synthetic-<N>k{N_PLUS_ONE_SUFFIX}, or a path to a .osu file.");
         }
 
         public static Beatmap Decode(string path)

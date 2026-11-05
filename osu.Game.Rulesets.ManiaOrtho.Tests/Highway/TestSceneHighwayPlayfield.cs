@@ -3,9 +3,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using osu.Framework.Allocation;
+using osu.Framework.Extensions;
 using osu.Framework.Extensions.ObjectExtensions;
 using osu.Framework.Graphics;
 using osu.Framework.Testing;
@@ -308,6 +311,68 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddAssert("each stage grouped 3|1|3", () => Enumerable.Range(0, 16).Select(i => highway.Guides.GetLine(i).Kind),
                 () => Is.EqualTo(expectedKinds(7, new[] { 3, 4 }).Concat(expectedKinds(7, new[] { 3, 4 }))));
+        }
+
+        /// <summary>
+        /// A map made for stable's N+1 layout (its <c>SpecialStyle</c> flag) is split 1 | N−1 beside its special column, on the
+        /// left with a skin that names no side (research/game-djmax.md R3). Visual only: the keys still go to mania's columns.
+        /// </summary>
+        [Test]
+        public void TestSpecialColumnDivider()
+        {
+            AddStep("play 8K marked N+1", () =>
+            {
+                chart = "synthetic-8k" + PlaytestBeatmaps.N_PLUS_ONE_SUFFIX;
+                LoadPlayer();
+            });
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1 && highway.Guides.LineCount == 9);
+
+            AddUntilStep("its special column is on the left", () => highway.SpecialSides, () => Is.EqualTo(new[] { SpecialColumnSide.Left }));
+            AddAssert("split 1 | 7", () => Enumerable.Range(0, 9).Select(i => highway.Guides.GetLine(i).Kind),
+                () => Is.EqualTo(expectedKinds(8, new[] { 1 })));
+
+            Task<Live<SkinInfo>?>? rightSkin = null;
+            string folder = Path.Combine(Path.GetTempPath(), $"maniaortho-special-right-{Guid.NewGuid():N}");
+
+            AddStep("a stable skin that puts 8K's special column on the right", () =>
+            {
+                // Written for the test (a skin.ini only); osu! copies it into its own storage.
+                Directory.CreateDirectory(folder);
+                File.WriteAllText(Path.Combine(folder, "skin.ini"), "[General]\nName: special right\n\n[Mania]\nKeys: 8\nSpecialStyle: 2\n");
+                rightSkin = skins.Import(new ImportTask(folder));
+            });
+            AddUntilStep("imported", () => rightSkin?.IsCompleted == true);
+            AddStep("use it", () =>
+            {
+                Directory.Delete(folder, true);
+                skins.CurrentSkinInfo.Value = rightSkin.AsNonNull().GetResultSafely().AsNonNull();
+            });
+
+            AddUntilStep("its special column moves to the right", () => highway.SpecialSides, () => Is.EqualTo(new[] { SpecialColumnSide.Right }));
+            AddAssert("split 7 | 1", () => Enumerable.Range(0, 9).Select(i => highway.Guides.GetLine(i).Kind),
+                () => Is.EqualTo(expectedKinds(8, new[] { 7 })));
+        }
+
+        /// <summary>
+        /// With two stages a skin that names no side (stable's left) puts each stage's special column on its outer side.
+        /// </summary>
+        [Test]
+        public void TestSpecialColumnsOfDualStages()
+        {
+            AddStep("play an osu! beatmap marked N+1 as 8K dual stages", () =>
+            {
+                var marked = osuBeatmapForDualStages();
+                marked.SpecialStyle = true;
+                beatmap = marked;
+
+                var ruleset = CreatePlayerRuleset();
+                LoadPlayer(new[] { ruleset.CreateModFromAcronym("8K").AsNonNull(), ruleset.CreateModFromAcronym("DS").AsNonNull() });
+            });
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1 && drawableRuleset.Playfield.Stages.Count == 2 && highway.Guides.LineCount == 18);
+
+            AddUntilStep("special columns outside", () => highway.SpecialSides, () => Is.EqualTo(new[] { SpecialColumnSide.Left, SpecialColumnSide.Right }));
+            AddAssert("split 1 | 7 and 7 | 1", () => Enumerable.Range(0, 18).Select(i => highway.Guides.GetLine(i).Kind),
+                () => Is.EqualTo(expectedKinds(8, new[] { 1 }).Concat(expectedKinds(8, new[] { 7 }))));
         }
 
         /// <summary>
