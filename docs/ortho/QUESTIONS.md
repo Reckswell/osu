@@ -13,7 +13,7 @@ Alpha wants the client as close to the original as possible. Options on a decisi
 about 200 lines, empty = upstream); a smaller patch with no new menus (the osu.exe launcher passes the address);
 no osu! file changed (the maniaortho DLL rewrites the addresses in memory, may break on lazer updates).
 **Default meanwhile**: keep the setting as built.
-**Answer**:
+**Answer** (Alpha, 2026-11-05, on the card): keep the Server setting. Nothing changes; it stays as built.
 
 ### Q23. Turn on the daily check that pp match osu!'s servers
 `.github/workflows/ortho-live-mania.yml` (README "Live osu!mania check") opens a pull request when osu!'s servers move to
