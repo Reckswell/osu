@@ -6,14 +6,13 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
-### Q25. How the game reaches the score server, with osu! kept close to stock
-Alpha (2026-11-04) asked whether Settings > Online > Server is osu!'s own: it is not (release lazer is hard-wired to
-osu.ppy.sh; private lazer servers inject a DLL that rewrites the addresses in memory, or ship a patched build), and
-Alpha wants the client as close to the original as possible. Options on a decision card: keep the setting (7 osu! files,
-about 200 lines, empty = upstream); a smaller patch with no new menus (the osu.exe launcher passes the address);
-no osu! file changed (the maniaortho DLL rewrites the addresses in memory, may break on lazer updates).
-**Default meanwhile**: keep the setting as built.
-**Answer** (Alpha, 2026-11-05, on the card): keep the Server setting. Nothing changes; it stays as built.
+### Q24. Do you play maps with a scratch column (8K as 7 + 1)?
+Some osu!mania maps set `SpecialStyle`: in stable an 8K map is then played as 7 keys plus one scratch column on the
+skin's side. Mania (lazer) reads the flag but lays the columns out as usual. The research suggests marking that column
+with a stronger divider (1 | 7 instead of the hand split 4 | 4), visual only (`game-djmax.md` R3).
+- **Options**: (a) yes, mark the special column; (b) no, leave it.
+- **Default until answered**: (b). Nothing is built.
+- **Answer**:
 
 ### Q23. Turn on the daily check that pp match osu!'s servers
 `.github/workflows/ortho-live-mania.yml` (README "Live osu!mania check") opens a pull request when osu!'s servers move to
@@ -168,16 +167,25 @@ tests can replay it on the highway.
 
 ## Answered
 
-### Q24. Should the game's own login and leaderboards also use your score server?
+### Q26. Should the game's own login and leaderboards also use your score server?
 The score server (M5) works without logging in: plays go to it from the play log, and its page shows your pp. Lazer's
 own sign-in, profile and beatmap leaderboards could point at it too, but that needs core patches to osu!'s API endpoints
-and a server that answers osu!'s web API shapes (much more of Bancho's surface). Asked on a card in the thread (first numbered Q21 on its branch, which the key binding question also took).
+and a server that answers osu!'s web API shapes (much more of Bancho's surface). Asked on a card in the thread (first numbered Q21, then Q24, on its branch; the base branch took both numbers for other questions).
 **Default meanwhile**: server and its page only; no core patches.
 **Answer** (Alpha, 2026-11-04, on the decision card, then in the thread): yes, sign in from the lazer client "through
 the conventional login methods used by other 3rd party servers ... rather than having to do finnicking around with
 files". Built: Settings > Online > Server, sign-in and registration in lazer's own panel, the profile with the server's
 pp (DECISIONS 2026-11-04, "Signing in to the score server from the game"). Beatmap leaderboards stay off: lazer shows
 online leaderboards only for its four rulesets, and lifting that is another core patch (not asked).
+
+### Q25. How the game reaches the score server, with osu! kept close to stock
+Alpha (2026-11-04) asked whether Settings > Online > Server is osu!'s own: it is not (release lazer is hard-wired to
+osu.ppy.sh; private lazer servers inject a DLL that rewrites the addresses in memory, or ship a patched build), and
+Alpha wants the client as close to the original as possible. Options on a decision card: keep the setting (7 osu! files,
+about 200 lines, empty = upstream); a smaller patch with no new menus (the osu.exe launcher passes the address);
+no osu! file changed (the maniaortho DLL rewrites the addresses in memory, may break on lazer updates).
+**Default meanwhile**: keep the setting as built.
+**Answer** (Alpha, 2026-11-05, on the card): keep the Server setting. Nothing changes; it stays as built.
 
 ### Q21. Share osu!mania's key bindings
 maniaortho kept its own keys (osu! stores them per mode), so keys changed under osu!mania did not carry over. Asked on a

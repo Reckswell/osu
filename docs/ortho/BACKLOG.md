@@ -117,7 +117,8 @@ Status: `[ ]` open, `[~]` in progress (one at a time), `[x]` done, `[!]` blocked
   `scripts/ortho/package.ps1`. Gate: `GameLauncherTest`; on Alpha's PC the package builds and `osu.exe` starts the game
   with its data in `ortho-data`. (PC 2026-11-04: packaged in 24 s, game 354 files / 651 MB, osu.exe 186 KB; started
   from the package with "Storage successfully changed to ...\ortho-data", Velopack skipped, no errors; closed cleanly.)
-- [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays.
+- [ ] L4 session: send Alpha setup steps and a short list of things to try; ask for notes and replays. (Sent
+  2026-11-04, `/mnt/project-files/ortho-agent/l4/try-this.md`; waiting for Alpha's notes.)
 
 ## M2.6: Feel follow-ups from the research baseline
 
@@ -176,8 +177,12 @@ in the end. Live pp and the CSV still apply.
   loop runs the check at the start of each iteration. The score server reads the same version at start and every 12
   hours, `LiveCalculatorVersion`, and `scripts/ortho/server-update` moves the server to it.)
 - [x] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
-  (Done for the score server's plays, `RecalculationTest`. Plays logged only to the CSV, with the setting off, are not
-  rated again; the CSV keeps raw judgements and mods so they could be imported later.)
+  (`PlayLogRatings`: the first play after osu!mania's difficulty calculator version or the checked release changes
+  rates every row of `plays.csv` again from its beatmap, mods and judgement counts, the old file kept; rows whose
+  beatmap is missing wait and are tried after each later play;
+  `PlayLogRatingsTest`, `TestScenePlayLogRecorder.TestPlaysAreRatedAgainAfterACalculatorChange`; DECISIONS 2026-11-04
+  "Saved plays rated again". The score server rates its own plays again when it
+  moves to a new calculator version, `RecalculationTest`.)
 
 ## M5: Optional self-hosted server
 
@@ -194,7 +199,7 @@ matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score ser
   `LiveCalculatorVersionTest`, `RecalculationTest`.
 - [x] The game sends plays (opt-in setting), queues them while the server is away, refuses `ppy.sh`, toasts the pp and
   total. Gate: `ScoreServerClientTest`, `ScoreServerContractTest`, `TestScenePlayToScoreServer`.
-- [x] The game's own sign-in on this server (Alpha, Q24): Settings > Online > Server, registration and sign-in in
+- [x] The game's own sign-in on this server (Alpha, Q26): Settings > Online > Server, registration and sign-in in
   lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.
   Gate: `CustomServerTest`, `CustomServerGameTest`, `TestSceneServerSettings`, `ScoreServerClientTest`, `LazerApiTest`;
   end to end in the real game (register, sign in, stay signed in across a restart, profile).
@@ -210,12 +215,13 @@ matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score ser
   playtest (DECISIONS 2026-11-04). Great (orange) and Good (green) slot lights seen in a humanised playtest; Meh (dimmer) only in tests, as seed 4 hits none.
 - [x] Optional cosmetic camera motion (kiai sway), off by default. ("Kiai sway" 0-100%: the track leans about the
   judgement line with the beat in kiai sections; DECISIONS 2026-11-04.)
-- [ ] More presets from research. (No Arcaea preset: Alpha, Q19.)
+- [ ] **[Alpha: Q17]** More presets from research. (No Arcaea preset: Alpha, Q19. The other notes propose none but
+  Sekai's, which waits on Q17; YARG's guitar-game family is a custom recipe, not a preset, `game-yarg-clonehero.md` Y2.)
 - [x] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long
   (`game-djmax.md` R2). Half and Quarter measured to the wall's edge when there is one (DECISIONS 2026-11-04).
 - [ ] The beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9), only if Alpha's L4 notes say today's
   150 ms ease-out lingers: single captures cannot show it.
-- [ ] Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
+- [ ] **[Alpha: Q24]** Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`
   R3, extends `topic-wide-keys.md` W1).
 - [x] "Wall scale": set and step the wall in Chunithm's 0-14, IIDX's white number or osu!mania / Quaver's share of the
   lane, or a flat percent (Alpha, 2026-11-04). Choosing a game gives the wall its speed behaviour. Gate: unit tests per

@@ -15,6 +15,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Logging;
 using osu.Framework.Platform;
 using osu.Game.Beatmaps;
+using osu.Game.Database;
 using osu.Game.Extensions;
 using osu.Game.Online.API;
 using osu.Game.Overlays;
@@ -64,6 +65,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
         [Resolved]
         private IAPIProvider? api { get; set; }
+
+        [Resolved]
+        private BeatmapManager? beatmapManager { get; set; }
+
+        [Resolved]
+        private RealmAccess? realm { get; set; }
 
         private bool recorded;
 
@@ -240,29 +247,39 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
                     Logger.Error(e, $"This play could not be added to {PlayLog.DIRECTORY}/{PlayLog.FILENAME} (is it open in another program?)");
                 }
 
-                if (upload == null)
-                    return;
+                if (upload != null)
+                {
+                    try
+                    {
+                        byte[]? map = ScoreServerPlays.ReadBeatmapFile(gameStorage, beatmapHash, beatmapMd5);
+                        byte[]? replayFile = replayPath != null && log.Exists(replayPath) ? await File.ReadAllBytesAsync(log.GetFullPath(replayPath)).ConfigureAwait(false) : null;
+
+                        var outcome = map == null
+                            ? new ScoreServerOutcome(ScoreServerOutcomeKind.Refused, null, "this map's file is not in osu!'s file store (is it an unsaved edit?)")
+                            : await new ScoreServerClient(log, signIn: server => ScoreServerSignIn.TokenFor(signedInApi, server))
+                                    .SendAsync(serverAddress, upload, map, replayFile).ConfigureAwait(false);
+
+                        ScoreServerOutcome = outcome;
+
+                        if (outcome.Kind != ScoreServerOutcomeKind.Sent)
+                            Logger.Log($"Score server: {playName}: {outcome.Kind}, {outcome.Message}");
+
+                        notificationOverlay?.Post(ScoreServerToast.Create(outcome, playName));
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e, "This play could not be sent to the score server");
+                    }
+                }
 
                 try
                 {
-                    byte[]? map = ScoreServerPlays.ReadBeatmapFile(gameStorage, beatmapHash, beatmapMd5);
-                    byte[]? replayFile = replayPath != null && log.Exists(replayPath) ? await File.ReadAllBytesAsync(log.GetFullPath(replayPath)).ConfigureAwait(false) : null;
-
-                    var outcome = map == null
-                        ? new ScoreServerOutcome(ScoreServerOutcomeKind.Refused, null, "this map's file is not in osu!'s file store (is it an unsaved edit?)")
-                        : await new ScoreServerClient(log, signIn: server => ScoreServerSignIn.TokenFor(signedInApi, server))
-                                .SendAsync(serverAddress, upload, map, replayFile).ConfigureAwait(false);
-
-                    ScoreServerOutcome = outcome;
-
-                    if (outcome.Kind != ScoreServerOutcomeKind.Sent)
-                        Logger.Log($"Score server: {playName}: {outcome.Kind}, {outcome.Message}");
-
-                    notificationOverlay?.Post(ScoreServerToast.Create(outcome, playName));
+                    // After this play is added (and sent), so it never waits for the others (nor is lost when the game closes meanwhile).
+                    PlayLogRatings.UpdateIfOutdated(log, ruleset, difficultyVersion, beatmapByMd5);
                 }
                 catch (Exception e)
                 {
-                    Logger.Error(e, "This play could not be sent to the score server");
+                    Logger.Error(e, $"The plays in {PlayLog.DIRECTORY}/{PlayLog.FILENAME} could not be rated again; trying again after the next play");
                 }
             });
         }
@@ -283,6 +300,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
                 upload.Settings[column] = row[Array.IndexOf(PlayLog.COLUMNS, column)];
 
             return upload;
+        }
+
+        /// <summary>
+        /// A logged play's beatmap, by the MD5 of its file, as osu! has it now; null when it has none (or outside a game).
+        /// </summary>
+        private WorkingBeatmap? beatmapByMd5(string md5)
+        {
+            if (realm == null || beatmapManager == null || string.IsNullOrEmpty(md5))
+                return null;
+
+            var beatmap = realm.Run(r => r.All<BeatmapInfo>().Where(b => b.MD5Hash == md5).AsEnumerable().FirstOrDefault()?.Detach());
+            return beatmap == null ? null : beatmapManager.GetWorkingBeatmap(beatmap);
         }
 
         /// <summary>
