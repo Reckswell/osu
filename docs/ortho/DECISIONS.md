@@ -1326,3 +1326,28 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   starting the server by hand or with the patcher shows the same plays. Plays in the old `../ortho-scores` stay there.
 - **Asked**: whether to drop the server's own password accounts and lazer's sign-in imitation (Q27). Kept meanwhile.
 
+
+## 2026-11-05: osu! sign-in only (Alpha, Q27)
+
+- **What**: Alpha chose "osu! sign-in only" on the Q27 card ("Accounts come only from signing in with osu!. The server
+  stores no passwords, and the in-game sign-in to it (fork only) goes."). This reverses the in-game sign-in of
+  2026-11-04 ("Signing in to the score server from the game") and Q25's "keep the Server setting".
+- **Server (orthomania `server/`)**: registration, password sign-in, its tokens and the whole imitation of osu!'s web API
+  for lazer (`OrthoServer/Lazer`, `LazerApiTest`) are gone. A game links only through "Link with osu!" (`/api/link`),
+  and a play's bearer token must be a link's. Every request that changes something now needs the game's
+  `X-ManiaOrtho` header, on every path (the `/api/v2` exception went with the lazer routes).
+- **Data from before**: an account made with a password is removed when the server opens its data, with its password
+  hash, e-mail address and sign-in tokens (columns and table dropped, then `VACUUM` with `secure_delete`, so no copy is
+  left in the file's free pages; the test reads every file for the hash). Its plays are kept: they belong to nobody, and
+  the first osu! account takes them (at start if one exists, else when the first one signs in), as the first registered
+  account used to. Alternative: keep those accounts without a way in (plays shown under a name nobody can sign in to,
+  and the hash kept); rejected, "the server stores no passwords".
+- **Fork**: the Server setting's core patches are reverted to upstream exactly (`OsuConfigManager`,
+  `CustomEndpointConfiguration`, `OsuGameBase`, `AllowsPlainHttp` in `EndpointConfiguration`/`APIRequest`/`OAuth`/
+  `APIAccess`, `ServerSettings`, `OnlineSection`, `LoginForm`) with their tests. `ScoreServerSignIn` keeps only the
+  note for the address setting; plays carry `ScoreServerLinking.TokenFor` and nothing else, and the play recorder no
+  longer reads the game's API at all.
+- **Someone who used the Server setting**: `game.ini` may still hold `ServerAddress`, `TokenServer` and the private
+  server's token; upstream ignores the first two. At the next start lazer tries that token against osu! once,
+  osu! refuses it and lazer signs out. The token is dead anyway (the server dropped its tokens table), so nothing of
+  value reaches osu!; nobody's osu! sign-in is affected (theirs was forgotten when they switched servers).

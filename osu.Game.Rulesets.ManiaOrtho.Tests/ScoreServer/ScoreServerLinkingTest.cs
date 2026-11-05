@@ -76,12 +76,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             ScoreServerLinking.Save(config, address, status);
 
             // The link's token goes to that server only.
-            Assert.That(ScoreServerSignIn.TokenFor(config, null, address), Is.EqualTo("ortho_token"));
-            Assert.That(ScoreServerSignIn.TokenFor(config, null, new Uri($"http://localhost:{address.Port}")), Is.Null);
-            Assert.That(ScoreServerSignIn.TokenFor(config, null, new Uri($"http://127.0.0.1:{address.Port + 1}")), Is.Null);
-            Assert.That(ScoreServerSignIn.TokenFor(config, null, new Uri($"https://127.0.0.1:{address.Port}")), Is.Null);
+            Assert.That(ScoreServerLinking.TokenFor(config, address), Is.EqualTo("ortho_token"));
+            Assert.That(ScoreServerLinking.TokenFor(config, new Uri($"http://localhost:{address.Port}")), Is.Null);
+            Assert.That(ScoreServerLinking.TokenFor(config, new Uri($"http://127.0.0.1:{address.Port + 1}")), Is.Null);
+            Assert.That(ScoreServerLinking.TokenFor(config, new Uri($"https://127.0.0.1:{address.Port}")), Is.Null);
 
-            var client = new ScoreServerClient(new NativeStorage(folder), signIn: uri => ScoreServerSignIn.TokenFor(config, null, uri));
+            var client = new ScoreServerClient(new NativeStorage(folder), signIn: uri => ScoreServerLinking.TokenFor(config, uri));
             byte[] map = Encoding.UTF8.GetBytes("osu file format v14");
             var outcome = await client.SendAsync(server.Address, new PlayUpload { Client = ManiaOrthoRuleset.SHORT_NAME, ScoreId = "a" }, map, null).ConfigureAwait(false);
 
@@ -94,7 +94,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
 
             Assert.That(server.Requests.Last().RequestLine, Does.StartWith("DELETE /api/link "));
             Assert.That(server.Requests.Last().Headers["authorization"], Is.EqualTo("Bearer ortho_token"));
-            Assert.That(ScoreServerSignIn.TokenFor(config, null, address), Is.Null);
+            Assert.That(ScoreServerLinking.TokenFor(config, address), Is.Null);
         }
 
         [Test]
@@ -103,6 +103,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             var address = new Uri("http://127.0.0.1:7727");
 
             Assert.That(ScoreServerSignIn.Describe(config, null, "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Not linked"));
+            Assert.That(ScoreServerSignIn.Describe(config, null, "not an address"), Is.Null);
+
+            // Signed in to osu! in the game, not linked: still not linked (osu!'s sign-in is never sent to the score server).
+            var osuSignIn = new DummyAPIAccess { SessionVerificationMethod = null };
+            osuSignIn.Login("osu player", "password");
+            Assert.That(ScoreServerSignIn.Describe(config, osuSignIn, "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Not linked"));
 
             ScoreServerLinking.Save(config, address, JsonConvert.DeserializeObject<LinkStatus>(linked())!);
 

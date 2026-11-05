@@ -71,8 +71,6 @@ namespace osu.Game.Configuration
             // Online settings
             SetDefault(OsuSetting.Username, string.Empty);
             SetDefault(OsuSetting.Token, string.Empty);
-            SetDefault(OsuSetting.ServerAddress, string.Empty);
-            SetDefault(OsuSetting.TokenServer, string.Empty);
 
             SetDefault(OsuSetting.AutomaticallyDownloadMissingBeatmaps, true);
 
@@ -490,16 +488,5 @@ namespace osu.Game.Configuration
         /// </summary>
         PMFriendsOnly,
         HitsoundVolume,
-
-        /// <summary>
-        /// The address of a private server to use instead of osu!'s own (<see cref="Online.CustomEndpointConfiguration"/>). Empty for osu!'s.
-        /// Read once at startup.
-        /// </summary>
-        ServerAddress,
-
-        /// <summary>
-        /// The API address that issued the saved <see cref="Token"/>. Empty for osu!'s, from before private servers could be chosen.
-        /// </summary>
-        TokenServer,
     }
 }

@@ -95,7 +95,7 @@ namespace osu.Game.Online.API
             Endpoints = endpoints;
             NotificationsClient = setUpNotificationsClient();
 
-            authentication = new OAuth(endpoints.APIClientID, endpoints.APIClientSecret, Endpoints.APIUrl, endpoints.AllowsPlainHttp($@"{endpoints.APIUrl}/oauth/token"));
+            authentication = new OAuth(endpoints.APIClientID, endpoints.APIClientSecret, Endpoints.APIUrl);
 
             log = Logger.GetLogger(LoggingTarget.Network);
             log.Add($@"API endpoint root: {Endpoints.APIUrl}");
@@ -509,9 +509,6 @@ namespace osu.Game.Online.API
                 Email = email,
                 Password = password
             };
-
-            if (Endpoints.AllowsPlainHttp(req.Url))
-                req.AllowInsecureRequests = true;
 
             try
             {

@@ -69,8 +69,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
 
         /// <param name="playLog">The play log's folder (<c>maniaortho</c> in the game's data).</param>
         /// <param name="http">For tests; the game shares one client from <see cref="CreateHttpClient"/>.</param>
-        /// <param name="signIn">The token for a server, if the game is linked to or signed in to that very server
-        /// (<see cref="ScoreServerSignIn"/>): plays then go to that account.
+        /// <param name="signIn">The token for a server, if the game is linked to that very server
+        /// (<see cref="ScoreServerLinking.TokenFor"/>): plays then go to that account.
         /// Asked at each send.</param>
         public ScoreServerClient(Storage playLog, HttpClient? http = null, Func<Uri, string?>? signIn = null)
         {
@@ -309,10 +309,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
                         : new ScoreServerOutcome(ScoreServerOutcomeKind.Sent, result, null);
                 }
 
-                // The game's sign-in expired between its refreshes, or the server no longer knows it: the play belongs to that
-                // account, so it waits for the next send (with a fresh sign-in, or none once signed out) instead of being set aside.
+                // The server no longer knows the game's link (unlinked there, unused too long, or its data was reset): the play
+                // belongs to that account, so it waits for the next send (linked again, or not linked at all) instead of being set aside.
                 if (response.StatusCode == HttpStatusCode.Unauthorized)
-                    return new ScoreServerOutcome(ScoreServerOutcomeKind.Queued, null, $"the score server did not accept the game's sign-in{detail(body)}");
+                    return new ScoreServerOutcome(ScoreServerOutcomeKind.Queued, null, $"the score server did not accept the game's link{detail(body)}");
 
                 // An error on the server's side may pass (a restart, a full disk): try again later. A refusal will not.
                 if (status >= 500)

@@ -134,9 +134,6 @@ namespace osu.Game.Online.API
             WebRequest.Failed += Fail;
             WebRequest.AllowRetryOnTimeout = false;
 
-            if (API.Endpoints.AllowsPlainHttp(WebRequest.Url))
-                WebRequest.AllowInsecureRequests = true;
-
             WebRequest.AddHeader(@"Accept-Language", API.Language.ToCultureCode());
             WebRequest.AddHeader(@"x-api-version", API.APIVersion.ToString(CultureInfo.InvariantCulture));
 

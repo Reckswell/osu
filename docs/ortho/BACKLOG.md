@@ -199,18 +199,19 @@ matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score ser
   `LiveCalculatorVersionTest`, `RecalculationTest`.
 - [x] The game sends plays (opt-in setting), queues them while the server is away, refuses `ppy.sh`, toasts the pp and
   total. Gate: `ScoreServerClientTest`, `ScoreServerContractTest`, `TestScenePlayToScoreServer`.
-- [x] The game's own sign-in on this server (Alpha, Q26): Settings > Online > Server, registration and sign-in in
-  lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.
-  Gate: `CustomServerTest`, `CustomServerGameTest`, `TestSceneServerSettings`, `ScoreServerClientTest`, `LazerApiTest`;
-  end to end in the real game (register, sign in, stay signed in across a restart, profile).
+- [x] ~~The game's own sign-in on this server (Alpha, Q26): Settings > Online > Server, registration and sign-in in
+  lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.~~
+  Removed again (Q27, 2026-11-05: osu! sign-in only), with its core patches, the server's password accounts and its
+  imitation of osu!'s web API.
 - [x] The server moves to orthomania (`server/`, Alpha's ask, 2026-11-05) and the patcher can start it for development
   (`/api/health`, `--parent-pid`). Here only `ortho-server/contract` stays, a copy. Gate: orthomania's server tests (90)
   and CI; this repository's contract tests.
 - [x] Sign in with osu! (Alpha's ask): osu!'s public OAuth (`identify` only), the server reads the public profile and
   revokes osu!'s token, no password ever reaches it; "Link with osu!" in maniaortho's settings links the game, whose
   token goes to that server only. Gate: orthomania `OsuSignInTest` (stand-in osu!), `ScoreServerLinkingTest`,
-  `TestSceneHighwaySettings.TestScoreServerLink`; the browser part in a real Chromium. Whether the server's own password
-  accounts go: Q27.
+  `TestSceneHighwaySettings.TestScoreServerLink`; the browser part in a real Chromium. The only way in since Q27: no
+  usernames or passwords on the server, old password accounts cleaned up with their plays kept (orthomania
+  `OsuSignInTest.TestPasswordAccountsFromBeforeAreRemoved`).
 - [ ] Beatmap leaderboards for maniaortho on this server. Lazer's `LeaderboardManager` refuses online leaderboards for
   rulesets other than its four, so this needs another core patch and the server's `beatmaps/{id}/scores`. Not asked.
 

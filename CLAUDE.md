@@ -127,12 +127,12 @@ note the licence in the research note).
   return false (see `HighwayHotkeys`). A key binding container that handles a key swallows it before mania's, and it
   only matches keys whose key-down reached it: osu! takes Shift's own event while watching a replay (fast-forward).
   Read modifiers from the event's state (`e.ShiftPressed`) instead.
-- osu-framework turns every `http://` request into `https://` unless the request sets `AllowInsecureRequests`, so a
-  local server without a certificate is unreachable by default. The game allows plain http only to a custom server on a
-  loopback address (`EndpointConfiguration.AllowsPlainHttp`); keep it that narrow.
-- Lazer treats user id 1 as nobody (no statistics fetched, no avatar), so the score server's accounts start at 2. It
-  fetches `avatar_url` through a store that refuses non-`ppy.sh` hosts with a visible notification and falls back to
-  `a.ppy.sh/{id}` for null: the server sends an empty string. `beatmapset.covers` must be an object (`{}`), never null.
+- osu-framework turns every `http://` request into `https://` unless the request sets `AllowInsecureRequests`. The
+  ruleset reaches the score server with its own `HttpClient` (`ScoreServerClient`, `ScoreServerLinking`), not with
+  osu-framework's requests, so a plain-http server on 127.0.0.1 works; the game itself only ever talks to osu!.
+- The score server knows a player only by linking with osu! ("Link with osu!", the server's own `ortho_` token). Never
+  send lazer's osu! token to it (it can do anything on the account), and never add a sign-in of the server's own
+  (Alpha chose osu! sign-in only, Q27).
 - `DummyAPIAccess.Login` while it is already signed in (its default) keeps the old username: `APIUser` equality is by id
   and both users share the dummy id, so the bindable sees no change. Call `Logout()` first. It also asks for a second
   factor unless `SessionVerificationMethod = null`.

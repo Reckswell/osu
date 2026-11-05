@@ -106,14 +106,8 @@ namespace osu.Game
 
         public virtual bool UseDevelopmentServer => DebugUtils.IsDebugBuild;
 
-        public virtual EndpointConfiguration CreateEndpoints()
-        {
-            // A private server chosen in settings (Settings > Online > Server); osu!'s own addresses are never taken from there.
-            if (CustomEndpointConfiguration.TryCreate(LocalConfig?.Get<string>(OsuSetting.ServerAddress), out var custom))
-                return custom;
-
-            return UseDevelopmentServer ? new DevelopmentEndpointConfiguration() : new ProductionEndpointConfiguration();
-        }
+        public virtual EndpointConfiguration CreateEndpoints() =>
+            UseDevelopmentServer ? new DevelopmentEndpointConfiguration() : new ProductionEndpointConfiguration();
 
         protected override OnlineStore CreateOnlineStore() => new TrustedDomainOnlineStore();
 
@@ -314,7 +308,6 @@ namespace osu.Game
             dependencies.CacheAs<ISkinSource>(SkinManager);
 
             EndpointConfiguration endpoints = CreateEndpoints();
-            CustomEndpointConfiguration.ForgetSignInFromOtherServer(LocalConfig, endpoints);
 
             MessageFormatter.WebsiteRootUrl = endpoints.WebsiteUrl;
 

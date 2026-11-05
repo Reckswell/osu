@@ -6,16 +6,6 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
-### Q27. Drop the score server's own usernames and passwords now that osu! sign-in works?
-The score server moved to orthomania, and accounts there now come from signing in with osu! ("Link with osu!" in
-maniaortho's settings; the server sees only the public profile, never a password). Under the patcher, stock lazer cannot
-reach the server's own sign-in (Q26, Settings > Online > Server), which only this fork has. Asked on a decision card.
-- **Options**: (a) osu! sign-in only: the server's password accounts and lazer's sign-in imitation go, and later the
-  fork's Server setting with them; (b) keep both.
-- **Default until answered**: (b), nothing removed; (a) is recommended (no passwords stored, nothing to leak if people
-  reuse their osu! password).
-- **Answer**:
-
 ### Q24. Do you play maps with a scratch column (8K as 7 + 1)?
 Some osu!mania maps set `SpecialStyle`: in stable an 8K map is then played as 7 keys plus one scratch column on the
 skin's side. Mania (lazer) reads the flag but lays the columns out as usual. The research suggests marking that column
@@ -177,6 +167,18 @@ tests can replay it on the highway.
 
 ## Answered
 
+### Q27. Drop the score server's own usernames and passwords now that osu! sign-in works?
+The score server moved to orthomania, and accounts there now come from signing in with osu! ("Link with osu!" in
+maniaortho's settings; the server sees only the public profile, never a password). Under the patcher, stock lazer cannot
+reach the server's own sign-in (Q26, Settings > Online > Server), which only this fork has. Asked on a decision card.
+- **Options**: (a) osu! sign-in only: the server's password accounts and lazer's sign-in imitation go, and later the
+  fork's Server setting with them; (b) keep both.
+- **Default until answered**: (b), nothing removed; (a) is recommended (no passwords stored, nothing to leak if people
+  reuse their osu! password).
+- **Answer** (Alpha, 2026-11-05, on the card): (a) osu! sign-in only. Done: the server's password accounts, its
+  imitation of osu!'s web API for lazer and the fork's Server setting (all its core patches) are gone; a data folder with
+  password accounts is cleaned up when the server starts, their plays kept (DECISIONS 2026-11-05, "osu! sign-in only").
+
 ### Q26. Should the game's own login and leaderboards also use your score server?
 The score server (M5) works without logging in: plays go to it from the play log, and its page shows your pp. Lazer's
 own sign-in, profile and beatmap leaderboards could point at it too, but that needs core patches to osu!'s API endpoints
@@ -187,6 +189,7 @@ the conventional login methods used by other 3rd party servers ... rather than h
 files". Built: Settings > Online > Server, sign-in and registration in lazer's own panel, the profile with the server's
 pp (DECISIONS 2026-11-04, "Signing in to the score server from the game"). Beatmap leaderboards stay off: lazer shows
 online leaderboards only for its four rulesets, and lifting that is another core patch (not asked).
+**Superseded** by Q27 (2026-11-05): the in-game sign-in to the server is gone; accounts come from "Link with osu!".
 
 ### Q25. How the game reaches the score server, with osu! kept close to stock
 Alpha (2026-11-04) asked whether Settings > Online > Server is osu!'s own: it is not (release lazer is hard-wired to
@@ -196,6 +199,7 @@ about 200 lines, empty = upstream); a smaller patch with no new menus (the osu.e
 no osu! file changed (the maniaortho DLL rewrites the addresses in memory, may break on lazer updates).
 **Default meanwhile**: keep the setting as built.
 **Answer** (Alpha, 2026-11-05, on the card): keep the Server setting. Nothing changes; it stays as built.
+**Superseded** by Q27 (2026-11-05): Alpha chose osu! sign-in only, so the Server setting and its core patches went.
 
 ### Q21. Share osu!mania's key bindings
 maniaortho kept its own keys (osu! stores them per mode), so keys changed under osu!mania did not carry over. Asked on a

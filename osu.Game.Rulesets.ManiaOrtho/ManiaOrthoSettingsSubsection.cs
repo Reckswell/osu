@@ -483,7 +483,7 @@ namespace osu.Game.Rulesets.ManiaOrtho
         {
             base.LoadComplete();
 
-            // Whose account plays go to: the account the game is linked to, or the game's sign-in to this same server.
+            // Whose account plays go to: the account the game is linked to.
             apiState = api?.State.GetBoundCopy();
             apiUser = api?.LocalUser.GetBoundCopy();
             scoreServerAddress.BindValueChanged(_ => showScoreServerSignIn());
