@@ -6,6 +6,16 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
+### Q27. Drop the score server's own usernames and passwords now that osu! sign-in works?
+The score server moved to orthomania, and accounts there now come from signing in with osu! ("Link with osu!" in
+maniaortho's settings; the server sees only the public profile, never a password). Under the patcher, stock lazer cannot
+reach the server's own sign-in (Q26, Settings > Online > Server), which only this fork has. Asked on a decision card.
+- **Options**: (a) osu! sign-in only: the server's password accounts and lazer's sign-in imitation go, and later the
+  fork's Server setting with them; (b) keep both.
+- **Default until answered**: (b), nothing removed; (a) is recommended (no passwords stored, nothing to leak if people
+  reuse their osu! password).
+- **Answer**:
+
 ### Q24. Do you play maps with a scratch column (8K as 7 + 1)?
 Some osu!mania maps set `SpecialStyle`: in stable an 8K map is then played as 7 keys plus one scratch column on the
 skin's side. Mania (lazer) reads the flag but lays the columns out as usual. The research suggests marking that column

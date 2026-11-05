@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using ManiaOrtho.ScoreServerContract;
 using NUnit.Framework;
 using osu.Framework.Allocation;
 using osu.Framework.Audio.Sample;
@@ -30,6 +31,7 @@ using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.Mods;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.ScoreServer;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
@@ -611,6 +613,46 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
         {
             showPanel();
         }
+
+        /// <summary>
+        /// "Link with osu!" under the score server address, and what the address's note says about whose account plays go to.
+        /// </summary>
+        [Test]
+        public void TestScoreServerLink()
+        {
+            AddStep("not linked, local server", () =>
+            {
+                ScoreServerLinking.Clear(gameConfig.ScoreServer);
+                gameConfig.ScoreServer.SetValue(ScoreServerSetting.ScoreServerAddress, ScoreServerConfigManager.DEFAULT_ADDRESS);
+            });
+            showPanel();
+
+            AddAssert("offers to link", () => linkButton.Text.ToString(), () => Is.EqualTo("Link with osu!"));
+            AddAssert("plays go to the first account", addressNote, () => Does.StartWith("Not linked"));
+
+            // As the osu! account the game is signed in with.
+            AddStep("linked as osu player", () => ScoreServerLinking.Save(gameConfig.ScoreServer, new Uri(ScoreServerConfigManager.DEFAULT_ADDRESS),
+                new LinkStatus { Status = LinkStatus.LINKED, Token = "ortho_token", Username = "osu player", OsuUserId = API.LocalUser.Value.Id }));
+            AddAssert("offers to unlink", () => linkButton.Text.ToString(), () => Is.EqualTo("Unlink osu player"));
+            AddAssert("plays go to that account", addressNote, () => Is.EqualTo("Plays go to osu player's account (linked with osu!)."));
+
+            AddStep("linked as another osu! account", () => ScoreServerLinking.Save(gameConfig.ScoreServer, new Uri(ScoreServerConfigManager.DEFAULT_ADDRESS),
+                new LinkStatus { Status = LinkStatus.LINKED, Token = "ortho_token_2", Username = "osu player", OsuUserId = API.LocalUser.Value.Id + 1 }));
+            AddAssert("says the game is signed in as someone else", addressNote, () => Does.Contain("but the game is signed in to osu! as"));
+
+            AddStep("another address", () => gameConfig.ScoreServer.SetValue(ScoreServerSetting.ScoreServerAddress, "http://localhost:7727"));
+            AddAssert("says the link is elsewhere", addressNote, () => Does.StartWith("The game is linked to 127.0.0.1:7727"));
+            AddStep("back", () => gameConfig.ScoreServer.SetValue(ScoreServerSetting.ScoreServerAddress, ScoreServerConfigManager.DEFAULT_ADDRESS));
+
+            AddStep("unlink", () => linkButton.TriggerClick());
+            AddAssert("forgotten", () => ScoreServerLinking.Current(gameConfig.ScoreServer), () => Is.Null);
+            AddAssert("offers to link again", () => linkButton.Text.ToString(), () => Is.EqualTo("Link with osu!"));
+        }
+
+        private ScoreServerLinkButton linkButton => this.ChildrenOfType<ScoreServerLinkButton>().Single();
+
+        private string addressNote() => this.ChildrenOfType<SettingsItemV2>().Single(i => i.ChildrenOfType<FormTextBox>().Any(b => b.Caption.ToString() == "Score server address"))
+                                             .Note.Value?.Text.ToString() ?? string.Empty;
 
         /// <param name="skin">A skin to show the panel with, in place of the game's.</param>
         private void showPanel(ISkinSource? skin = null)

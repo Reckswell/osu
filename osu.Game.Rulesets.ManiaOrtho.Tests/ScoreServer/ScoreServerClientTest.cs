@@ -209,18 +209,19 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
 
             Assert.Multiple(() =>
             {
-                Assert.That(ScoreServerSignIn.Describe(new DummyAPIAccess(), "http://127.0.0.1:7727"), Is.Null, "on osu!'s servers");
-                Assert.That(ScoreServerSignIn.Describe(null, "http://127.0.0.1:7727"), Is.Null);
-                Assert.That(ScoreServerSignIn.Describe(api, "not an address"), Is.Null);
+                Assert.That(ScoreServerSignIn.Describe(null, new DummyAPIAccess(), "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Not linked"),
+                    "on osu!'s servers");
+                Assert.That(ScoreServerSignIn.Describe(null, null, "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Not linked"));
+                Assert.That(ScoreServerSignIn.Describe(null, api, "not an address"), Is.Null);
 
-                Assert.That(ScoreServerSignIn.Describe(api, "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Sign in (top right)"));
+                Assert.That(ScoreServerSignIn.Describe(null, api, "http://127.0.0.1:7727")?.Text.ToString(), Does.StartWith("Sign in (top right)"));
 
                 api.Login("Alpha", "password");
-                var mine = ScoreServerSignIn.Describe(api, "http://127.0.0.1:7727/");
+                var mine = ScoreServerSignIn.Describe(null, api, "http://127.0.0.1:7727/");
                 Assert.That(mine?.Type, Is.EqualTo(SettingsNote.Type.Informational));
                 Assert.That(mine?.Text.ToString(), Is.EqualTo("Plays go to Alpha's account on this server."));
 
-                var elsewhere = ScoreServerSignIn.Describe(api, "http://localhost:7727");
+                var elsewhere = ScoreServerSignIn.Describe(null, api, "http://localhost:7727");
                 Assert.That(elsewhere?.Type, Is.EqualTo(SettingsNote.Type.Warning));
                 Assert.That(elsewhere?.Text.ToString(), Does.StartWith("The game is connected to http://127.0.0.1:7727, not to this address"));
             });

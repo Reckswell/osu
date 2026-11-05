@@ -9,12 +9,21 @@ using osu.Game.Overlays.Settings;
 namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
 {
     /// <summary>
-    /// When the game is signed in to the score server itself (Settings &gt; Online &gt; Server is the same address as the score
-    /// server's), plays are sent with that sign-in, so they go to the signed-in account. osu!'s own sign-in is never sent:
-    /// only a private server's (<see cref="CustomEndpointConfiguration"/>), and only to that same server.
+    /// Whose account plays go to. When the game is linked to the score server by signing in with osu!
+    /// (<see cref="ScoreServerLinking"/>), plays carry the server's token for this game, to that server only. Otherwise, when the
+    /// game is signed in to the score server itself (Settings &gt; Online &gt; Server is the same address as the score server's,
+    /// this fork only), plays carry that sign-in. osu!'s own sign-in is never sent: only a private server's
+    /// (<see cref="CustomEndpointConfiguration"/>), and only to that same server.
     /// </summary>
     public static class ScoreServerSignIn
     {
+        /// <summary>
+        /// The token plays to <paramref name="server"/> carry: the game's link to that server, else the game's sign-in to that
+        /// very server, else none.
+        /// </summary>
+        public static string? TokenFor(ScoreServerConfigManager? config, IAPIProvider? api, Uri server)
+            => ScoreServerLinking.TokenFor(config, server) ?? TokenFor(api, server);
+
         /// <summary>
         /// The game's access token for <paramref name="server"/>, or null when the game is not signed in to exactly that server
         /// (same scheme, host and port).
@@ -32,13 +41,43 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
         }
 
         /// <summary>
-        /// What the score server address setting says about the game's sign-in: whose account plays go to, or that the game is
-        /// signed in to another address. Nothing while the game is on osu!'s servers.
+        /// What the score server address setting says about whose account plays go to: the account the game is linked to, or
+        /// the one it is signed in to on that server, or that neither applies to this address.
         /// </summary>
-        public static SettingsNote.Data? Describe(IAPIProvider? api, string? scoreServerAddress)
+        public static SettingsNote.Data? Describe(ScoreServerConfigManager? config, IAPIProvider? api, string? scoreServerAddress)
+        {
+            var server = ScoreServerClient.ParseAddress(scoreServerAddress, out _);
+
+            if (ScoreServerLinking.Current(config) is { } link && server != null)
+            {
+                if (!SameServer(link.Server, server))
+                {
+                    return new SettingsNote.Data($"The game is linked to {link.Server.Authority}, not to this address, so plays sent here go to the score "
+                                                 + "server's first account. Link with osu! again for this address.", SettingsNote.Type.Warning);
+                }
+
+                // Signed in to osu! in the game as someone else than the account the link signed in with.
+                if (api != null && api.Endpoints is not CustomEndpointConfiguration && api.State.Value == APIState.Online && link.OsuUserId > 0
+                    && api.LocalUser.Value.Id != link.OsuUserId)
+                {
+                    return new SettingsNote.Data($"Plays go to {link.Username}'s account, but the game is signed in to osu! as {api.LocalUser.Value.Username}. "
+                                                 + "Unlink and link with osu! again to use that account.", SettingsNote.Type.Warning);
+                }
+
+                return new SettingsNote.Data($"Plays go to {link.Username}'s account (linked with osu!).", SettingsNote.Type.Informational);
+            }
+
+            return describeSignIn(api, server)
+                   ?? (server == null
+                       ? null
+                       : new SettingsNote.Data("Not linked: plays go to the score server's first account. Press \"Link with osu!\" to send them to yours.",
+                           SettingsNote.Type.Informational));
+        }
+
+        private static SettingsNote.Data? describeSignIn(IAPIProvider? api, Uri? server)
         {
             if (api?.Endpoints is not CustomEndpointConfiguration custom
-                || ScoreServerClient.ParseAddress(scoreServerAddress, out _) is not Uri server
+                || server == null
                 || !Uri.TryCreate(custom.Address, UriKind.Absolute, out Uri? signedIn))
                 return null;
 

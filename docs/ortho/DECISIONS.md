@@ -1296,3 +1296,33 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Not taken**: `BeatmapImporterTests.TestImportFailsWithFilenamesDifferingOnlyInCase` also failed once on CI (SharpCompress
   "duplicate key" while the test builds its archive, then the test host crashed); it passed on the base branch's run and
   locally, upstream has no fix, and no code it runs was changed here. Left to upstream.
+
+## 2026-11-05: The score server moves to orthomania, and links with osu! sign-in
+
+- **Why**: Alpha asked to move the server into the new orthomania repository (beside the patcher, in its own folder),
+  to let the patcher start it for development, and for "native osu! login ... it only has public login apis/information
+  and protects the login users from having their actual passwords leaked".
+- **Where**: orthomania `server/` (code, tests, scripts, README). Here, `ortho-server/` keeps only `contract/`, because the
+  ruleset compiles it; it is a copy of orthomania's `server/contract`, changed there first. `scripts/ortho/server*` and
+  the server step of `check.sh` are gone; the server's tests run in orthomania's CI.
+- **Sign-in**: osu!'s public OAuth, authorization code grant, `identify` scope only, as osu!'s API documentation
+  describes it. The password is typed only on osu.ppy.sh. The server swaps the one-time code for a token with its own
+  client secret (an OAuth application the server's owner registers; kept in the data folder, never in a repository), reads
+  `/api/v2/me` (id, username, picture, country), revokes the token at once and keeps nothing of osu!'s. It talks only to
+  `https://osu.ppy.sh` and follows no redirect.
+- **Not done, on purpose**: sending lazer's own osu! token to the server to learn who is playing. It would be seamless,
+  but that token can do anything lazer can on the player's account (chat, score submission), and it would leave the
+  player's machine for a third-party server. Neither is acceptable, and invariant 2 already forbids the game sending
+  osu!'s sign-in anywhere.
+- **The game's side**: a device-style link, like a TV app signing in through a phone. "Link with osu!" asks the server
+  for a link, opens its address in the browser (checked to be the score server's own), and polls until the player has
+  signed in. The game then holds the server's own token (`ortho_...`), sent with plays to that same server only (scheme,
+  host and port, as the fork's sign-in token). It takes precedence over the fork's sign-in to the server. The note under
+  the address warns when the link is to another address, or to another osu! account than the one the game is signed in to.
+- **A sign-in finishes only in the browser that started it**: each one has its own state, used once and gone after 10
+  minutes, tied to the browser by an HttpOnly, SameSite=Lax cookie (checked in a real Chromium, with osu! on another
+  site), so a sign-in started elsewhere cannot be finished on someone else's link.
+- **Data folder**: `%LOCALAPPDATA%\orthomania\server`, the one the patcher's dev option passes, for the scripts too, so
+  starting the server by hand or with the patcher shows the same plays. Plays in the old `../ortho-scores` stay there.
+- **Asked**: whether to drop the server's own password accounts and lazer's sign-in imitation (Q27). Kept meanwhile.
+

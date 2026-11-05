@@ -7,13 +7,13 @@ using osu.Game.Rulesets.Configuration;
 namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
 {
     /// <summary>
-    /// Whether, and where, plays go to the player's own score server (<c>ortho-server</c>). Stored under this ruleset next to
+    /// Whether, and where, plays go to the player's own score server (orthomania's <c>server/</c>). Stored under this ruleset next to
     /// mania's and the highway's settings, so its keys share no name with theirs. Off unless the player turns it on.
     /// </summary>
     public class ScoreServerConfigManager : RulesetConfigManager<ScoreServerSetting>
     {
         /// <summary>
-        /// Where <c>scripts/ortho/server</c> runs the server: this computer only.
+        /// Where orthomania's <c>server/scripts/server</c> runs the server: this computer only.
         /// </summary>
         public const string DEFAULT_ADDRESS = "http://127.0.0.1:7727";
 
@@ -28,6 +28,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
 
             SetDefault(ScoreServerSetting.ScoreServerEnabled, false);
             SetDefault(ScoreServerSetting.ScoreServerAddress, DEFAULT_ADDRESS);
+
+            SetDefault(ScoreServerSetting.LinkServer, string.Empty);
+            SetDefault(ScoreServerSetting.LinkToken, string.Empty);
+            SetDefault(ScoreServerSetting.LinkUsername, string.Empty);
+            SetDefault(ScoreServerSetting.LinkOsuUserId, 0, 0, int.MaxValue);
         }
     }
 
@@ -35,5 +40,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
     {
         ScoreServerEnabled,
         ScoreServerAddress,
+
+        /// <summary>
+        /// The server the game is linked to by signing in with osu! (<see cref="ScoreServerLinking"/>); its token goes only there.
+        /// </summary>
+        LinkServer,
+
+        /// <summary>
+        /// The server's own token for this game (never osu!'s), sent with each play to <see cref="LinkServer"/>.
+        /// </summary>
+        LinkToken,
+
+        LinkUsername,
+        LinkOsuUserId,
     }
 }

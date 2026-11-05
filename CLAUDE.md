@@ -13,7 +13,7 @@ Alpha (the owner) about every step. Read `docs/ortho/README.md` once for the ful
 |---|---|
 | `osu.Game.Rulesets.ManiaOrtho/` | The ruleset. Delegates everything except the playfield to `ManiaRuleset`. |
 | `ManiaOrtho.Launcher/` | `osu.exe`, the launcher of the packaged game Alpha plays (`scripts/ortho/package.ps1`). Not part of the game. |
-| `ortho-server/` | Alpha's local score server: stores plays the game sends, rates them with osu!'s published mania calculators at the live version. Own solution-less projects on NuGet `ppy.osu.Game`, not the repo's. `contract/` is shared with the game. |
+| `ortho-server/contract/` | What the game and Alpha's score server agree on (upload, answer and link messages, examples, `pp-parity.json`). The server itself moved to `reckswell/orthomania` (`server/`); this is a copy of its `server/contract`, changed there first. |
 | `osu.Game.Rulesets.ManiaOrtho.Tests/` | Parity tests, playtest harness (`Playtest/`), visual test scenes. `dotnet run` opens the test browser. |
 | `docs/ortho/SPEC.md` | What the gameplay must look and feel like. The source of truth for behaviour. |
 | `docs/ortho/BACKLOG.md` | Milestones and tasks with acceptance gates. Work top to bottom. |
@@ -36,8 +36,6 @@ scripts/ortho/live-mania.sh             # is mania's scoring and difficulty code
 scripts/ortho/cloud-setup.sh --force    # install .NET 10, Mesa, Xvfb, ImageMagick on a fresh Linux container
 scripts/ortho/play.ps1                  # Windows: the full game with maniaortho, data kept next to the clone (PLAYTESTING L4)
 scripts/ortho/package.ps1               # Windows: package it as Documents\Projects\osu!\osu\osu.exe for Alpha; rerun after changes
-scripts/ortho/server.sh                 # the local score server on 127.0.0.1:7727 (server.ps1 on Windows; data in ../ortho-scores)
-scripts/ortho/server-update.sh          # move the server to osu!'s live mania calculator version after a pp rework
 dotnet run --project osu.Game.Rulesets.ManiaOrtho.Tests   # interactive visual test browser (needs a display)
 ```
 
@@ -52,7 +50,7 @@ from runs on Alpha's machine.
    Add a parity case whenever you add a code path that could touch input or judgement.
 2. **Never submittable.** `ManiaOrthoRuleset` must not implement `ILegacyRuleset` and must keep a negative online ID.
    Never add code that calls osu! score-submission, multiplayer or spectator endpoints. Plays may go only to Alpha's own
-   score server (`ortho-server`, opt-in setting); `ScoreServerClient` never contacts a `ppy.sh` address and never follows
+   score server (orthomania's `server/`, opt-in setting), with its own token from linking with osu! (never osu!'s); `ScoreServerClient` never contacts a `ppy.sh` address and never follows
    a redirect (`ScoreServerClientTest`), keep it that way.
 3. **Settings, not mods.** Camera, walls, lane cover and skin choices are ruleset settings. They must never change
    scoring, so they must never be mods.
@@ -119,11 +117,12 @@ note the licence in the research note).
   hosts included: `dotnet test` then uses the test build output as storage and deletes it on cleanup, and every later
   test fails with "Could not load file or assembly". The playtest harness (portable) removes the one it writes and
   `check.sh` removes a stale one; never leave one in a test build output.
-- The score server builds against NuGet `ppy.osu.Game*` at `ortho-server/calculator-version.txt`, never against this
-  repo's projects (two `osu.Game` assemblies would clash). What the game and server share lives in `ortho-server/contract`
-  and is compiled into both. `pp-parity.json` holds the game's own stars and pp for synthetic plays; regenerate it with
-  `ORTHO_WRITE_PP_PARITY=1` only when a calculator change is intended, and the server's tests then show whether osu!'s
-  live version agrees.
+- The score server (orthomania, `server/`) builds against NuGet `ppy.osu.Game*` at its `calculator-version.txt`, never
+  against this repo's projects (two `osu.Game` assemblies would clash). What the game and server share is in
+  `ortho-server/contract` here, a copy of orthomania's `server/contract`: change it there first, then copy it (with the
+  licence header). `pp-parity.json` holds the game's own stars and pp for synthetic plays; regenerate it with
+  `ORTHO_WRITE_PP_PARITY=1` only when a calculator change is intended, copy it to orthomania, and the server's tests there
+  show whether osu!'s live version agrees.
 - To watch a key without changing what mania receives, handle `OnKeyDown` outside the ruleset's input manager and
   return false (see `HighwayHotkeys`). A key binding container that handles a key swallows it before mania's, and it
   only matches keys whose key-down reached it: osu! takes Shift's own event while watching a replay (fast-forward).

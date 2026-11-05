@@ -21,7 +21,7 @@ using osu.Framework.Platform;
 namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
 {
     /// <summary>
-    /// Sends plays to the player's own score server (<c>ortho-server</c>). Every play is first written to
+    /// Sends plays to the player's own score server (orthomania's <c>server/</c>). Every play is first written to
     /// <see cref="OUTBOX_DIRECTORY"/> and leaves it only once the server stored it or refused it for good, so a server that is
     /// away, a wrong address or the game closing mid-send loses nothing; plays go out oldest first.
     /// It never sends anything to osu!'s servers (CLAUDE.md invariant 2): an address on <c>ppy.sh</c> is never contacted, and
@@ -69,8 +69,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
 
         /// <param name="playLog">The play log's folder (<c>maniaortho</c> in the game's data).</param>
         /// <param name="http">For tests; the game shares one client from <see cref="CreateHttpClient"/>.</param>
-        /// <param name="signIn">The game's sign-in token for a server, if the game is signed in to that very server
-        /// (<see cref="ScoreServerSignIn.TokenFor"/>): plays then go to that account. Asked at each send.</param>
+        /// <param name="signIn">The token for a server, if the game is linked to or signed in to that very server
+        /// (<see cref="ScoreServerSignIn"/>): plays then go to that account.
+        /// Asked at each send.</param>
         public ScoreServerClient(Storage playLog, HttpClient? http = null, Func<Uri, string?>? signIn = null)
         {
             outbox = playLog.GetFullPath(OUTBOX_DIRECTORY);

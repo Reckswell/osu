@@ -12,6 +12,7 @@ using osu.Game.Database;
 using osu.Game.Graphics.UserInterfaceV2;
 using osu.Game.Localisation;
 using osu.Game.Online.API;
+using osu.Game.Online.API.Requests.Responses;
 using osu.Game.Overlays.Settings;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
@@ -52,7 +53,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         private SettingsItemV2 scoreServerAddressItem = null!;
         private Bindable<string> scoreServerAddress = null!;
+        private ScoreServerLinkButton scoreServerLink = null!;
         private IBindable<APIState>? apiState;
+        private IBindable<APIUser>? apiUser;
 
         /// <summary>
         /// Keeps this ruleset's section of the key binding settings on osu!mania's keys, which gameplay uses. Here because this
@@ -435,8 +438,8 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 new SettingsItemV2(new FormCheckBox
                 {
                     Caption = "Send plays to my score server",
-                    HintText = "Off by default. Each pass and fail also goes to your own score server (ortho-server, started with "
-                               + "scripts/ortho/server), which rates it with osu!'s live osu!mania pp and keeps an unofficial total. "
+                    HintText = "Off by default. Each pass and fail also goes to your own score server (orthomania's, started with "
+                               + "server/scripts/server), which rates it with osu!'s live osu!mania pp and keeps an unofficial total. "
                                + "Nothing is sent to osu!. If the server is not running, plays wait and go with the next one.",
                     Current = config.ScoreServer.GetBindable<bool>(ScoreServerSetting.ScoreServerEnabled),
                 })
@@ -447,13 +450,13 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 {
                     Caption = "Score server address",
                     HintText = $"Where your score server listens ({ScoreServerConfigManager.DEFAULT_ADDRESS} on this computer). osu!'s own "
-                               + "servers (ppy.sh) are refused. Signed in to it (Settings > Online > Server, same address), your plays "
-                               + "go to your account there.",
+                               + "servers (ppy.sh) are refused. Linked with osu! (below), your plays go to your account there.",
                     Current = scoreServerAddress = config.ScoreServer.GetBindable<string>(ScoreServerSetting.ScoreServerAddress),
                 })
                 {
                     Keywords = new[] { "pp", "server", "address", "url" },
                 },
+                scoreServerLink = new ScoreServerLinkButton(config.ScoreServer, scoreServerAddress),
                 new SettingsButtonV2
                 {
                     Text = "Open my score page",
@@ -464,7 +467,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
             };
         }
 
-        private void showScoreServerSignIn() => scoreServerAddressItem.Note.Value = ScoreServerSignIn.Describe(api, scoreServerAddress.Value);
+        private void showScoreServerSignIn()
+            => scoreServerAddressItem.Note.Value = scoreServerLink.Message.Value
+                                                   ?? ScoreServerSignIn.Describe(((ManiaOrthoRulesetConfigManager)Config).ScoreServer, api, scoreServerAddress.Value);
 
         private void openScorePage()
         {
@@ -478,10 +483,14 @@ namespace osu.Game.Rulesets.ManiaOrtho
         {
             base.LoadComplete();
 
-            // Whose account plays go to: the game's sign-in when it is signed in to this same server.
+            // Whose account plays go to: the account the game is linked to, or the game's sign-in to this same server.
             apiState = api?.State.GetBoundCopy();
+            apiUser = api?.LocalUser.GetBoundCopy();
             scoreServerAddress.BindValueChanged(_ => showScoreServerSignIn());
+            scoreServerLink.Message.BindValueChanged(_ => showScoreServerSignIn());
+            ((ManiaOrthoRulesetConfigManager)Config).ScoreServer.GetBindable<string>(ScoreServerSetting.LinkToken).BindValueChanged(_ => showScoreServerSignIn());
             apiState?.BindValueChanged(_ => Schedule(showScoreServerSignIn));
+            apiUser?.BindValueChanged(_ => Schedule(showScoreServerSignIn));
             showScoreServerSignIn();
 
             if (realm != null)

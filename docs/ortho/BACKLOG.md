@@ -203,6 +203,14 @@ matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score ser
   lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.
   Gate: `CustomServerTest`, `CustomServerGameTest`, `TestSceneServerSettings`, `ScoreServerClientTest`, `LazerApiTest`;
   end to end in the real game (register, sign in, stay signed in across a restart, profile).
+- [x] The server moves to orthomania (`server/`, Alpha's ask, 2026-11-05) and the patcher can start it for development
+  (`/api/health`, `--parent-pid`). Here only `ortho-server/contract` stays, a copy. Gate: orthomania's server tests (90)
+  and CI; this repository's contract tests.
+- [x] Sign in with osu! (Alpha's ask): osu!'s public OAuth (`identify` only), the server reads the public profile and
+  revokes osu!'s token, no password ever reaches it; "Link with osu!" in maniaortho's settings links the game, whose
+  token goes to that server only. Gate: orthomania `OsuSignInTest` (stand-in osu!), `ScoreServerLinkingTest`,
+  `TestSceneHighwaySettings.TestScoreServerLink`; the browser part in a real Chromium. Whether the server's own password
+  accounts go: Q27.
 - [ ] Beatmap leaderboards for maniaortho on this server. Lazer's `LeaderboardManager` refuses online leaderboards for
   rulesets other than its four, so this needs another core patch and the server's `beatmaps/{id}/scores`. Not asked.
 
