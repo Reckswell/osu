@@ -90,7 +90,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.ScoreServer
             }
 
             if (!string.IsNullOrEmpty(result.LiveCalculatorVersion))
-                text.Append(CultureInfo.InvariantCulture, $" osu! now rates with {result.LiveCalculatorVersion}: run scripts/ortho/server-update.");
+                text.Append(CultureInfo.InvariantCulture, $" osu! now rates with {result.LiveCalculatorVersion}: update the score server (server/scripts/server-update).");
         }
 
         private static string lowerFirst(string? reason)

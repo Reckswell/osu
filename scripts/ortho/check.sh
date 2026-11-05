@@ -45,17 +45,8 @@ if [ $status -ne 0 ]; then
   exit 1
 fi
 
-echo "== score server tests"
-# The local score server (ortho-server): its pp must equal the game's on the contract's plays (pp-parity.json).
-set +e
-dotnet test ortho-server/OrthoServer.Tests -nologo -warnaserror >"$log" 2>&1
-status=$?
-set -e
-grep -E "error|Failed |Error Message|Expected|But was|Passed!|Failed!" "$log" || true
-if [ $status -ne 0 ]; then
-  echo "SCORE SERVER TESTS FAILED (full log: $log)"
-  exit 1
-fi
+# The score server lives in orthomania (server/); its tests run there. The contract it shares with the game is checked here
+# (ScoreServerContractTest, ScoreServerParityTest).
 
 if [ "$run_mania" = 1 ]; then
   echo "== osu!mania tests"

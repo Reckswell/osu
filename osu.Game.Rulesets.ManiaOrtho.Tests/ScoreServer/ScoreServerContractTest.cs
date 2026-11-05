@@ -86,6 +86,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             Assert.That(toast, Is.EqualTo("Unofficial pp, Song [Hard]: 123.45pp, #3 of your best plays. Total 1,234.56pp (+12.34)."));
         }
 
+        [TestCase("link-start.example.json", typeof(LinkStart))]
+        [TestCase("link-status.example.json", typeof(LinkStatus))]
+        public void TestLinkExamplesRead(string file, Type type)
+        {
+            string json = File.ReadAllText(ScoreServerParityTest.ContractPath(file));
+            object read = JsonConvert.DeserializeObject(json, type, new JsonSerializerSettings { MissingMemberHandling = MissingMemberHandling.Error })!;
+
+            Assert.That(JObject.FromObject(read).Properties().Select(p => p.Name), Is.EquivalentTo(JObject.Parse(json).Properties().Select(p => p.Name)));
+        }
+
         [Test]
         public void TestToastSaysWhenThePlayDoesNotCount()
         {
@@ -113,7 +123,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.ScoreServer
             string toast = ScoreServerToast.Describe(new ScoreServerOutcome(ScoreServerOutcomeKind.Sent, result, null) { SentFromOutbox = 2 }, "Song");
 
             Assert.That(toast, Does.Contain("The game showed 98.50pp: its copy of the calculator differs from the server's (2026.730.0)."));
-            Assert.That(toast, Does.Contain("osu! now rates with 2026.1201.0: run scripts/ortho/server-update."));
+            Assert.That(toast, Does.Contain("osu! now rates with 2026.1201.0: update the score server (server/scripts/server-update)."));
             Assert.That(toast, Does.EndWith("2 earlier plays sent too."));
         }
 

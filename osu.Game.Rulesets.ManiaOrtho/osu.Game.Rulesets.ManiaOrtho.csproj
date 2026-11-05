@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup Label="Score server contract">
-    <!-- The upload and answer types, shared with the score server (ortho-server). -->
+    <!-- The upload, answer and link types, shared with the score server (orthomania's server/; a copy, see ortho-server/README.md). -->
     <Compile Include="..\ortho-server\contract\Messages\*.cs" Link="ScoreServer\Messages\%(Filename)%(Extension)" />
   </ItemGroup>
 

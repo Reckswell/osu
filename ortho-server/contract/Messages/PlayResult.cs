@@ -8,7 +8,7 @@ using Newtonsoft.Json;
 namespace ManiaOrtho.ScoreServerContract
 {
     /// <summary>
-    /// The server's answer to an upload. Field names are pinned by <c>ortho-server/contract/play-result.example.json</c>.
+    /// The server's answer to an upload. Field names are pinned by <c>contract/play-result.example.json</c>.
     /// </summary>
     public class PlayResult
     {
