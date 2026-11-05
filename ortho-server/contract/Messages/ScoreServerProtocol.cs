@@ -2,7 +2,8 @@
 // See the LICENCE file in the repository root for full licence text.
 
 // Shared by the game and the server, so one namespace for both projects.
-// ReSharper disable once CheckNamespace
+// ReSharper disable CheckNamespace
+
 namespace ManiaOrtho.ScoreServerContract
 {
     public static class ScoreServerProtocol
