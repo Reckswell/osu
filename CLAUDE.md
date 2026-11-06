@@ -13,6 +13,7 @@ Alpha (the owner) about every step. Read `docs/ortho/README.md` once for the ful
 |---|---|
 | `osu.Game.Rulesets.ManiaOrtho/` | The ruleset. Delegates everything except the playfield to `ManiaRuleset`. |
 | `ManiaOrtho.Launcher/` | `osu.exe`, the launcher of the packaged game Alpha plays (`scripts/ortho/package.ps1`). Not part of the game. |
+| `ortho-server/contract/` | What the game and Alpha's score server agree on (upload, answer and link messages, examples, `pp-parity.json`). The server itself moved to `reckswell/orthomania` (`server/`); this is a copy of its `server/contract`, changed there first. |
 | `osu.Game.Rulesets.ManiaOrtho.Tests/` | Parity tests, playtest harness (`Playtest/`), visual test scenes. `dotnet run` opens the test browser. |
 | `docs/ortho/SPEC.md` | What the gameplay must look and feel like. The source of truth for behaviour. |
 | `docs/ortho/BACKLOG.md` | Milestones and tasks with acceptance gates. Work top to bottom. |
@@ -48,7 +49,9 @@ from runs on Alpha's machine.
    osu!mania. `TestSceneReplayParity` and `RulesetParityTest` enforce this; never weaken, skip or delete them.
    Add a parity case whenever you add a code path that could touch input or judgement.
 2. **Never submittable.** `ManiaOrthoRuleset` must not implement `ILegacyRuleset` and must keep a negative online ID.
-   Never add code that calls osu! score-submission, multiplayer or spectator endpoints.
+   Never add code that calls osu! score-submission, multiplayer or spectator endpoints. Plays may go only to Alpha's own
+   score server (orthomania's `server/`, opt-in setting), with its own token from linking with osu! (never osu!'s); `ScoreServerClient` never contacts a `ppy.sh` address and never follows
+   a redirect (`ScoreServerClientTest`), keep it that way.
 3. **Settings, not mods.** Camera, walls, lane cover and skin choices are ruleset settings. They must never change
    scoring, so they must never be mods.
 4. **Tiny core diff.** Do not edit `osu.Game/` or `osu.Game.Rulesets.Mania/` unless a backlog task explicitly allows it.
@@ -114,10 +117,28 @@ note the licence in the research note).
   hosts included: `dotnet test` then uses the test build output as storage and deletes it on cleanup, and every later
   test fails with "Could not load file or assembly". The playtest harness (portable) removes the one it writes and
   `check.sh` removes a stale one; never leave one in a test build output.
+- The score server (orthomania, `server/`) builds against NuGet `ppy.osu.Game*` at its `calculator-version.txt`, never
+  against this repo's projects (two `osu.Game` assemblies would clash). What the game and server share is in
+  `ortho-server/contract` here, a copy of orthomania's `server/contract`: change it there first, then copy it (with the
+  licence header). `pp-parity.json` holds the game's own stars and pp for synthetic plays; regenerate it with
+  `ORTHO_WRITE_PP_PARITY=1` only when a calculator change is intended, copy it to orthomania, and the server's tests there
+  show whether osu!'s live version agrees.
 - To watch a key without changing what mania receives, handle `OnKeyDown` outside the ruleset's input manager and
   return false (see `HighwayHotkeys`). A key binding container that handles a key swallows it before mania's, and it
   only matches keys whose key-down reached it: osu! takes Shift's own event while watching a replay (fast-forward).
   Read modifiers from the event's state (`e.ShiftPressed`) instead.
+- osu-framework turns every `http://` request into `https://` unless the request sets `AllowInsecureRequests`. The
+  ruleset reaches the score server with its own `HttpClient` (`ScoreServerClient`, `ScoreServerLinking`), not with
+  osu-framework's requests, so a plain-http server on 127.0.0.1 works; the game itself only ever talks to osu!.
+- The score server knows a player only by linking with osu! ("Link with osu!", the server's own `ortho_` token). Never
+  send lazer's osu! token to it (it can do anything on the account), and never add a sign-in of the server's own
+  (Alpha chose osu! sign-in only, Q27).
+- `DummyAPIAccess.Login` while it is already signed in (its default) keeps the old username: `APIUser` equality is by id
+  and both users share the dummy id, so the bindable sees no change. Call `Logout()` first. It also asks for a second
+  factor unless `SessionVerificationMethod = null`.
+- Driving the real game under Xvfb with `xdotool`: mouse motion reaches SDL only with `SDL_VIDEO_X11_XINPUT2=0`, and
+  the window is 1366x768, so start Xvfb with `-screen 0 1366x768x24`. Type into a text box only after clicking it, or
+  the keys reach the menu's hotkeys.
 
 ## Code conventions (from upstream; CI enforces most)
 

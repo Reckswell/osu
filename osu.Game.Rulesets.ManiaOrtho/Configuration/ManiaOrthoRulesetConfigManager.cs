@@ -8,26 +8,31 @@ using osu.Game.Rulesets.Configuration;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.ScoreServer;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Configuration
 {
     /// <summary>
     /// This ruleset's settings: osu!mania's own (scroll speed, note colouring), which <c>DrawableManiaRuleset</c> reads
-    /// from this type, plus the highway settings in <see cref="Highway"/>.
+    /// from this type, plus the highway settings in <see cref="Highway"/> and the score server's in <see cref="ScoreServer"/>.
     /// </summary>
     /// <remarks>
     /// Highway settings need their own enum, and a <see cref="RulesetConfigManager{TLookup}"/> has exactly one, so they live
-    /// in a second manager stored under the same ruleset. Keys are enum member names and the two enums share none.
+    /// in a second manager stored under the same ruleset (and the score server's in a third). Keys are enum member names and
+    /// the enums share none.
     /// None of these settings affect judgement or scoring (CLAUDE.md invariant 3).
     /// </remarks>
     public class ManiaOrthoRulesetConfigManager : ManiaRulesetConfigManager
     {
         public HighwayConfigManager Highway { get; }
 
+        public ScoreServerConfigManager ScoreServer { get; }
+
         public ManiaOrthoRulesetConfigManager(SettingsStore? settings, RulesetInfo ruleset, int? variant = null)
             : base(settings, ruleset, variant)
         {
             Highway = new HighwayConfigManager(settings, ruleset, variant);
+            ScoreServer = new ScoreServerConfigManager(settings, ruleset, variant);
 
             // The camera defines the direction (SPEC 3): notes always come down the track, whatever was stored.
             SetValue(ManiaRulesetSetting.ScrollDirection, ManiaScrollingDirection.Down);
@@ -45,7 +50,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             base.Dispose(isDisposing);
 
             if (isDisposing)
+            {
                 Highway.Dispose();
+                ScoreServer.Dispose();
+            }
         }
     }
 

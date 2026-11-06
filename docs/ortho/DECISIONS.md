@@ -1184,6 +1184,173 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
 - **Alternatives**: rating at game start (needs a component outside gameplay, a core patch); a settings button (a
   manual step that is easy to forget).
 
+## 2026-11-04: A local score server rates plays with osu!'s published calculators
+
+- **What**: Alpha asked for "my own local server which imitates but does not copy bancho", with "its own separate scoring
+  system (that 1:1 matches and updates alongside osu!'s own rework systems)", for personal use. `ortho-server/` is a small
+  ASP.NET Core server on 127.0.0.1:7727 with SQLite; the game sends each logged play when the new "Send plays to my score
+  server" setting is on (off by default).
+- **1:1 with osu!**: the server does not reimplement pp. It references NuGet `ppy.osu.Game.Rulesets.Mania` at the version
+  osu!'s live score processor (`ppy/osu-queue-score-statistics`, newest release tag by version) depends on, today
+  2026.730.0, and applies `ScorePerformanceProcessor`'s rules for a lazer score: passes only, Ranked or Approved maps,
+  every mod `Ranked` (default settings), Classic not allowed. Totals follow `UserTotalPerformanceAggregateHelper` and the
+  preserve rule (`CheckIsUserHigh`): best pp and best score per map and mod set kept, best 1000 by pp, best per map,
+  0.95^n, bonus (417 - 1/3)(1 - 0.995^n), accuracy the same way.
+- **Following reworks**: the server reads the live version at start and every 12 h (git's smart-HTTP ref list and the
+  raw csproj on GitHub; api.github.com is not needed); `server-update` writes it to `calculator-version.txt`, rebuilds,
+  and the next start rates every play again. A newer live version shows on the page and in the toast.
+- **Parity with the game**: `contract/pp-parity.json` is written from the game's calculators (this repo's mania) and
+  checked against the server's (osu!'s published ones): six synthetic plays, 4K and 7K, with DT, HT, NF+EZ, HD+MR, all
+  equal. The upload and answer types (`contract/Messages/`) are compiled into both, so neither side
+  can rename a field alone.
+- **Map status**: the game sends the status its local database has (`BeatmapInfo.Status`); a stale status (a map ranked
+  since the last update) shows as "not ranked" until osu! refreshes it in the game. The server cannot ask osu! (it never
+  contacts osu!'s API).
+- **Not Bancho**: no osu! protocol, no logins, no osu! passwords, no beatmap mirroring; map files come from the player's own
+  game. `ScoreServerClient` refuses any `ppy.sh` host before sending (invariant 2 reworded to say so). Whether lazer's own
+  login and leaderboards should point at it is Q26 (needs core patches; default: no).
+- **Delivery**: each play is written to `maniaortho/outbox` first and leaves it only once the server stored it (or had it:
+  `score_id` is stored once) or refused it, so nothing is lost to a closed game, a server that is away or a wrong address;
+  one send at a time, oldest first. Redirects are never followed (a redirect could carry the play to any host, osu!'s
+  included): a 3xx, 404, 405 or an answer that is not a score server's keeps the plays waiting with "is the address
+  right?". A 5xx keeps them waiting too, but a play the server fails on five times is set aside so it cannot hold up the
+  rest; a 4xx refusal sets the play aside in `outbox refused` with the reason. Disk errors on one queued play skip it, not
+  the queue. POSTs carry an `X-ManiaOrtho` header that the server requires, so a web page open in a browser cannot post to
+  it (CORS preflight). The toast gives the play's pp, its place among the best plays and the new total with its change.
+- **Where it is not exactly osu!**: (1) osu! applies the preserve rule when a score arrives and deletes the others for good;
+  the server keeps every play and applies the rule over all of them each time, so after a rework a play osu! would
+  already have deleted can count (slightly higher totals, only after a rework). Kept: deleting plays is not reversible and
+  a local record is worth more. (2) osu! reads stars and attributes stored as floats by its separate difficulty
+  calculator deploy; the server computes them in doubles, so pp can differ in the second decimal. (3) osu!'s pp
+  blacklist of a few maps is not known here. (4) Map status is the game's local copy (above).
+- **Alternatives**: rating in the game only (no history across reworks, which Alpha wanted); a Bancho-compatible server
+  such as a fork of an existing private server (osu! protocol, AGPL code, logins: far more than asked and closer to
+  osu!'s services); building the server against this repo's projects (two `osu.Game` assemblies; also drifts with the
+  fork rather than osu!'s live version).
+- **Reverse**: turn the setting off (nothing is sent); delete `ortho-server/`, `osu.Game.Rulesets.ManiaOrtho/ScoreServer`
+  and the recorder's upload block.
+
+## 2026-11-04: Signing in to the score server from the game (Alpha, Q26)
+
+- **What**: Alpha chose "Also log in to it in-game" on the Q26 card, then asked for "the conventional login methods used
+  by other 3rd party servers, so that i can ideally connect, then log in through the lazer client, rather than having to
+  do finnicking around with files". Lazer private servers are reached by pointing every endpoint at one address; the
+  server then answers lazer's OAuth and `/api/v2` shapes. Done the same way here, with the address as a setting
+  (Settings > Online > Server) rather than a patched binary, an environment variable or a file to edit.
+- **Game (core patches, listed in README)**: `OsuSetting.ServerAddress`, read once at start by `CreateEndpoints`
+  (restart to change, as the endpoints are fixed for the game's lifetime and every online component holds them). A
+  `ppy.sh` host is never taken there, so the setting cannot be used to talk to osu! under another configuration.
+  A saved sign-in belongs to the server that issued it: `OsuSetting.TokenServer` records the API address the saved token
+  came from, and at start a token from another server is forgotten before the API reads it (a token saved before this
+  patch is osu!'s, so nobody is signed out of osu! by the update). Confirming a different address also signs out at
+  once. Found by review: signing in again before restarting, or editing `game.ini`, would otherwise have sent osu!'s token
+  to the private server at the next start (or the reverse).
+  The sign-in panel names the server, so the private sign-in cannot be mistaken for osu!'s.
+- **Plain http, loopback only**: osu-framework upgrades http to https on every request (`AllowInsecureRequests`). The
+  server has no certificate and should not need one on 127.0.0.1, so `EndpointConfiguration.AllowsPlainHttp` lets
+  requests, sign-in and registration use http only when the custom server is itself http on a loopback address and the
+  request goes to that same scheme and authority. A server on another machine is reached over https only: an http
+  address there is taken as https (the framework would upgrade API requests anyway, but the SignalR hubs and the play
+  uploads would not, and they carry the token). Alternatives: a local certificate (setup Alpha asked to avoid); allowing
+  http to any custom address (passwords and tokens in plain text on a network).
+- **Server**: accounts of its own (PBKDF2-SHA256, 600k iterations as OWASP gives for SHA-256, each hash keeping its
+  count; an unknown name is checked against a dummy hash so timing does not tell which names exist; tokens stored as
+  SHA-256; access a day, refresh 90 days, rotated on use), registration through lazer's own Register screen (`POST /users`), the routes lazer calls after
+  sign-in answered in the shapes of lazer's types (`LazerApiTest` deserializes each with NuGet `ppy.osu.Game`), empty
+  answers for friends, chat, notifications and the like so no screen shows errors. Written from lazer's client code
+  (MIT) and observed requests; no code from AGPL private servers (read for reference only).
+- **Details lazer forced**: account ids start at 2 (lazer treats user 1 as nobody: no statistics, no avatar); avatars
+  are an empty string (any other host triggers lazer's "blocking resource lookup" notification, and null falls back to
+  `a.ppy.sh/{id}`, someone else's picture); beatmap covers are `{}` unless the play has an osu! beatmapset id.
+- **maniaortho shown as osu!mania**: lazer's profile ruleset selector lists only its four rulesets, so the server's
+  maniaortho pp, rank and plays are the user's osu!mania statistics on this server (4K/7K as osu!mania's variants). The
+  game never submits osu!mania scores here: lazer's solo submission (`beatmaps/{id}/solo/scores`) is refused with 403,
+  and lazer makes no submission token for non-legacy rulesets anyway (invariant 2 unchanged: maniaortho plays still go
+  only through `ScoreServerClient`).
+- **Plays and accounts**: an upload carrying the game's sign-in (`Authorization: Bearer`) goes to that account;
+  `ScoreServerSignIn` hands the token over only when the game is signed in to a custom server at the score server's
+  exact scheme and authority, never to a `ppy.sh` host. Plays sent with no sign-in, and those stored before any account
+  existed, belong to the first account (the owner), so the old flow keeps working and nothing is orphaned. An upload with a
+  sign-in the server does not know (expired, signed out) is refused with 401 and waits in the game's outbox for the
+  next send, rather than going to the owner. The score server address setting says whose account plays go to, and
+  warns when the game is signed in to another address (`localhost` in one setting and `127.0.0.1` in the other are
+  different servers to it: the token is only sent to the exact address that issued it).
+- **Web pages**: a request that changes something and carries `Origin` or `Sec-Fetch-Site` (browsers add them, the game
+  never does) is refused on every path, so a web page cannot register, sign in or post on Alpha's behalf; the
+  `X-ManiaOrtho` rule for `/api` posts stays.
+- **Not served**: SignalR hubs (multiplayer, spectating, live metadata; lazer retries them quietly), chat, beatmap
+  listing, and beatmap leaderboards (lazer's `LeaderboardManager` refuses online leaderboards for non-legacy rulesets;
+  lifting that is another core patch, not asked; backlog M5).
+- **Reverse**: leave the address empty (the game is exactly upstream's again); delete the core patches listed in README,
+  `ortho-server/OrthoServer/Accounts` and `Lazer`, and `ScoreServerSignIn`.
+
+## 2026-11-04: osu!'s own fix for an intermittent skin editor test, taken early
+
+- **Why**: GitHub's Linux test jobs failed on this branch and on its base the same way:
+  `TestSceneSoloResultsScreenV2.TestDisplay` (osu.Game.Tests) hides the skin editor before it has loaded, and
+  `SkinEditor.Save` dereferences a bindable that loading sets. osu.Game.Tests failing also stops osu!mania's and
+  osu!taiko's suites from running in CI (MSB4181: their projects reference osu.Game.Tests).
+- **What**: upstream commit `0e39a5eecf` ("Fix intermittent test", ppy/osu master, 2026-11-03), cherry-picked as is
+  with `-x`. It is osu!'s code, not a fork patch: the next upstream merge brings the identical change, so it adds
+  nothing to the core diff and is not listed under core patches. Nothing in gameplay, scoring or the ruleset changes.
+- **Not taken**: `BeatmapImporterTests.TestImportFailsWithFilenamesDifferingOnlyInCase` also failed once on CI (SharpCompress
+  "duplicate key" while the test builds its archive, then the test host crashed); it passed on the base branch's run and
+  locally, upstream has no fix, and no code it runs was changed here. Left to upstream.
+
+## 2026-11-05: The score server moves to orthomania, and links with osu! sign-in
+
+- **Why**: Alpha asked to move the server into the new orthomania repository (beside the patcher, in its own folder),
+  to let the patcher start it for development, and for "native osu! login ... it only has public login apis/information
+  and protects the login users from having their actual passwords leaked".
+- **Where**: orthomania `server/` (code, tests, scripts, README). Here, `ortho-server/` keeps only `contract/`, because the
+  ruleset compiles it; it is a copy of orthomania's `server/contract`, changed there first. `scripts/ortho/server*` and
+  the server step of `check.sh` are gone; the server's tests run in orthomania's CI.
+- **Sign-in**: osu!'s public OAuth, authorization code grant, `identify` scope only, as osu!'s API documentation
+  describes it. The password is typed only on osu.ppy.sh. The server swaps the one-time code for a token with its own
+  client secret (an OAuth application the server's owner registers; kept in the data folder, never in a repository), reads
+  `/api/v2/me` (id, username, picture, country), revokes the token at once and keeps nothing of osu!'s. It talks only to
+  `https://osu.ppy.sh` and follows no redirect.
+- **Not done, on purpose**: sending lazer's own osu! token to the server to learn who is playing. It would be seamless,
+  but that token can do anything lazer can on the player's account (chat, score submission), and it would leave the
+  player's machine for a third-party server. Neither is acceptable, and invariant 2 already forbids the game sending
+  osu!'s sign-in anywhere.
+- **The game's side**: a device-style link, like a TV app signing in through a phone. "Link with osu!" asks the server
+  for a link, opens its address in the browser (checked to be the score server's own), and polls until the player has
+  signed in. The game then holds the server's own token (`ortho_...`), sent with plays to that same server only (scheme,
+  host and port, as the fork's sign-in token). It takes precedence over the fork's sign-in to the server. The note under
+  the address warns when the link is to another address, or to another osu! account than the one the game is signed in to.
+- **A sign-in finishes only in the browser that started it**: each one has its own state, used once and gone after 10
+  minutes, tied to the browser by an HttpOnly, SameSite=Lax cookie (checked in a real Chromium, with osu! on another
+  site), so a sign-in started elsewhere cannot be finished on someone else's link.
+- **Data folder**: `%LOCALAPPDATA%\orthomania\server`, the one the patcher's dev option passes, for the scripts too, so
+  starting the server by hand or with the patcher shows the same plays. Plays in the old `../ortho-scores` stay there.
+- **Asked**: whether to drop the server's own password accounts and lazer's sign-in imitation (Q27). Kept meanwhile.
+
+
+## 2026-11-05: osu! sign-in only (Alpha, Q27)
+
+- **What**: Alpha chose "osu! sign-in only" on the Q27 card ("Accounts come only from signing in with osu!. The server
+  stores no passwords, and the in-game sign-in to it (fork only) goes."). This reverses the in-game sign-in of
+  2026-11-04 ("Signing in to the score server from the game") and Q25's "keep the Server setting".
+- **Server (orthomania `server/`)**: registration, password sign-in, its tokens and the whole imitation of osu!'s web API
+  for lazer (`OrthoServer/Lazer`, `LazerApiTest`) are gone. A game links only through "Link with osu!" (`/api/link`),
+  and a play's bearer token must be a link's. Every request that changes something now needs the game's
+  `X-ManiaOrtho` header, on every path (the `/api/v2` exception went with the lazer routes).
+- **Data from before**: an account made with a password is removed when the server opens its data, with its password
+  hash, e-mail address and sign-in tokens (columns and table dropped, then `VACUUM` with `secure_delete`, so no copy is
+  left in the file's free pages; the test reads every file for the hash). Its plays are kept: they belong to nobody, and
+  the first osu! account takes them (at start if one exists, else when the first one signs in), as the first registered
+  account used to. Alternative: keep those accounts without a way in (plays shown under a name nobody can sign in to,
+  and the hash kept); rejected, "the server stores no passwords".
+- **Fork**: the Server setting's core patches are reverted to upstream exactly (`OsuConfigManager`,
+  `CustomEndpointConfiguration`, `OsuGameBase`, `AllowsPlainHttp` in `EndpointConfiguration`/`APIRequest`/`OAuth`/
+  `APIAccess`, `ServerSettings`, `OnlineSection`, `LoginForm`) with their tests. `ScoreServerSignIn` keeps only the
+  note for the address setting; plays carry `ScoreServerLinking.TokenFor` and nothing else, and the play recorder no
+  longer reads the game's API at all.
+- **Someone who used the Server setting**: `game.ini` may still hold `ServerAddress`, `TokenServer` and the private
+  server's token; upstream ignores the first two. At the next start lazer tries that token against osu! once,
+  osu! refuses it and lazer signs out. The token is dead anyway (the server dropped its tokens table), so nothing of
+  value reaches osu!; nobody's osu! sign-in is affected (theirs was forgotten when they switched servers).
 ## 2026-11-05: The special column of N+1 maps (M6, Q24)
 
 - **Ask**: Alpha does not play N+1 maps but wants them marked (Q24, "include it as a feature regardless").

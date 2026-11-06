@@ -174,17 +174,46 @@ in the end. Live pp and the CSV still apply.
   (Built: `scripts/ortho/live-mania.sh` and `.github/workflows/ortho-live-mania.yml`, README "Live osu!mania check";
   offline test in `check.sh`; the workflow's steps simulated locally with release 2026.916.0 made the proposal commit.
   Waits for Q23: Actions are off for this fork and a schedule runs only from the default branch. Meanwhile the work
-  loop runs the check at the start of each iteration.)
+  loop runs the check at the start of each iteration. The score server reads the same version at start and every 12
+  hours, `LiveCalculatorVersion`, and `scripts/ortho/server-update` moves the server to it.)
 - [x] Recalculate stored scores when the calculator version changes. Gate: simulated bump recalculates every score.
   (`PlayLogRatings`: the first play after osu!mania's difficulty calculator version or the checked release changes
   rates every row of `plays.csv` again from its beatmap, mods and judgement counts, the old file kept; rows whose
   beatmap is missing wait and are tried after each later play;
   `PlayLogRatingsTest`, `TestScenePlayLogRecorder.TestPlaysAreRatedAgainAfterACalculatorChange`; DECISIONS 2026-11-04
-  "Saved plays rated again".)
+  "Saved plays rated again". The score server rates its own plays again when it
+  moves to a new calculator version, `RecalculationTest`.)
 
 ## M5: Optional self-hosted server
 
-Only after Alpha confirms. See the design doc's "Local-only vs self-hosted server".
+Alpha confirmed (2026-11-04): a local server of their own, "imitates but does not copy bancho", its own scoring that
+matches osu!'s and follows its reworks. DECISIONS 2026-11-04, "A local score server".
+
+- [x] Server: stores plays, rates them with osu!'s published mania calculators at the live version, osu!'s pp rules and
+  total (preserve rule, best per map, 1000 scores, weighting, bonus), score page. Gate: `ProfileCalculatorTest`,
+  `PlayCalculatorTest`, `ServerApiTest` (real port, 127.0.0.1 only).
+- [x] Same pp as the game. Gate: `pp-parity.json` written by the game's calculators (`ScoreServerParityTest`) and met by
+  the server's (`PpParityTest`); end-to-end, six plays sent through the game's client to the real server came back with
+  the game's pp to the last digit.
+- [x] Follows osu!'s reworks: live version check, `server-update`, every play rated again on start. Gate:
+  `LiveCalculatorVersionTest`, `RecalculationTest`.
+- [x] The game sends plays (opt-in setting), queues them while the server is away, refuses `ppy.sh`, toasts the pp and
+  total. Gate: `ScoreServerClientTest`, `ScoreServerContractTest`, `TestScenePlayToScoreServer`.
+- [x] ~~The game's own sign-in on this server (Alpha, Q26): Settings > Online > Server, registration and sign-in in
+  lazer's panel, the profile shows the server's rank, pp, best and recent plays, plays go under the signed-in account.~~
+  Removed again (Q27, 2026-11-05: osu! sign-in only), with its core patches, the server's password accounts and its
+  imitation of osu!'s web API.
+- [x] The server moves to orthomania (`server/`, Alpha's ask, 2026-11-05) and the patcher can start it for development
+  (`/api/health`, `--parent-pid`). Here only `ortho-server/contract` stays, a copy. Gate: orthomania's server tests (90)
+  and CI; this repository's contract tests.
+- [x] Sign in with osu! (Alpha's ask): osu!'s public OAuth (`identify` only), the server reads the public profile and
+  revokes osu!'s token, no password ever reaches it; "Link with osu!" in maniaortho's settings links the game, whose
+  token goes to that server only. Gate: orthomania `OsuSignInTest` (stand-in osu!), `ScoreServerLinkingTest`,
+  `TestSceneHighwaySettings.TestScoreServerLink`; the browser part in a real Chromium. The only way in since Q27: no
+  usernames or passwords on the server, old password accounts cleaned up with their plays kept (orthomania
+  `OsuSignInTest.TestPasswordAccountsFromBeforeAreRemoved`).
+- [ ] Beatmap leaderboards for maniaortho on this server. Lazer's `LeaderboardManager` refuses online leaderboards for
+  rulesets other than its four, so this needs another core patch and the server's `beatmaps/{id}/scores`. Not asked.
 
 ## M6: Polish
 

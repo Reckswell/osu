@@ -1,5 +1,6 @@
 #!/bin/bash
-# Fast gate for every change: style-enforced build plus the ruleset's own tests (parity + unit + headless smoke).
+# Fast gate for every change: style-enforced build plus the ruleset's own tests (parity + unit + headless smoke) and the
+# score server's.
 #   scripts/ortho/check.sh            # ~2-3 min warm
 #   scripts/ortho/check.sh --mania    # also run osu!mania's own test suite (do this when touching mania or osu.Game)
 #   scripts/ortho/check.sh --filter X # pass an NUnit filter through to the ruleset tests
@@ -43,6 +44,9 @@ if [ $status -ne 0 ]; then
   echo "RULESET TESTS FAILED (full log: $log)"
   exit 1
 fi
+
+# The score server lives in orthomania (server/); its tests run there. The contract it shares with the game is checked here
+# (ScoreServerContractTest, ScoreServerParityTest).
 
 if [ "$run_mania" = 1 ]; then
   echo "== osu!mania tests"

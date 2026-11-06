@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using ManiaOrtho.ScoreServerContract;
 using Newtonsoft.Json;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
@@ -16,11 +17,13 @@ using osu.Framework.Platform;
 using osu.Game.Beatmaps;
 using osu.Game.Database;
 using osu.Game.Extensions;
+using osu.Game.Overlays;
 using osu.Game.Replays;
 using osu.Game.Rulesets.Mania.Beatmaps;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
 using osu.Game.Rulesets.ManiaOrtho.Highway;
+using osu.Game.Rulesets.ManiaOrtho.ScoreServer;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Scoring;
 using osu.Game.Scoring.Legacy;
@@ -30,11 +33,17 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 {
     /// <summary>
     /// Adds the play to <see cref="PlayLog"/> once it is passed or failed, and saves its replay as an osu!mania replay
-    /// (<c>.osr</c>). Quits, replays and autoplay are not logged. It only reads the score processor, the replay and the
+    /// (<c>.osr</c>). Quits, replays and autoplay are not logged. If the player turned it on, the play then goes to their own
+    /// score server (<see cref="ScoreServerClient"/>), never to osu!'s. It only reads the score processor, the replay and the
     /// settings, so it cannot change judging or scoring (invariant 1).
     /// </summary>
     public partial class PlayLogRecorder : Component
     {
+        /// <summary>
+        /// The play log's columns the score server keeps with each play, for the player's records.
+        /// </summary>
+        public static readonly string[] SCORE_SERVER_SETTINGS = { "preset", "camera", "wall", "wall_scale", "lift", "wall_keeps_visible_time", "scroll_speed" };
+
         private readonly IBindable<bool> hasReplayLoaded;
         private readonly ManiaOrthoRulesetConfigManager? config;
 
@@ -48,6 +57,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
         private Storage storage { get; set; } = null!;
 
         [Resolved]
+        private INotificationOverlay? notifications { get; set; }
+
+        [Resolved]
+        private OsuGameBase? game { get; set; }
+
+        [Resolved]
         private BeatmapManager? beatmapManager { get; set; }
 
         [Resolved]
@@ -59,6 +74,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
         /// The write of this play's row and replay, once it has started.
         /// </summary>
         public Task? Writing { get; private set; }
+
+        /// <summary>
+        /// What happened when the play was sent to the score server, once <see cref="Writing"/> is done; null if it was not sent.
+        /// </summary>
+        public ScoreServerOutcome? ScoreServerOutcome { get; private set; }
 
         public PlayLogRecorder(IBindable<bool> hasReplayLoaded, ManiaOrthoRulesetConfigManager? config)
         {
@@ -139,9 +159,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
             set(row, "meh", count(score, HitResult.Meh));
             set(row, "miss", count(score, HitResult.Miss));
             int difficultyVersion = ruleset.CreateDifficultyCalculator(new FlatWorkingBeatmap(state.Beatmap)).Version;
+
             set(row, "difficulty_version", difficultyVersion.ToString(CultureInfo.InvariantCulture));
             set(row, "mods_json", JsonConvert.SerializeObject(score.APIMods));
-            set(row, "score_id", state.Score.ScoreInfo.ID.ToString());
+            string scoreId = state.Score.ScoreInfo.ID.ToString();
+
+            set(row, "score_id", scoreId);
 
             if (config != null)
             {
@@ -156,6 +179,26 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
                 set(row, "scroll_speed", config.Get<double>(ManiaRulesetSetting.ScrollSpeed).ToString(CultureInfo.InvariantCulture));
             }
 
+            PlayUpload? upload = null;
+
+            try
+            {
+                upload = scoreServerUpload(score, beatmap, (state.Beatmap as ManiaBeatmap)?.TotalColumns ?? 0, scoreId, difficultyVersion, row);
+            }
+            catch (Exception e)
+            {
+                // The log and the replay come first.
+                Logger.Error(e, "This play could not be prepared for the score server");
+            }
+
+            string? serverAddress = config?.ScoreServer.Get<string>(ScoreServerSetting.ScoreServerAddress);
+            string beatmapHash = beatmap.Hash;
+            string beatmapMd5 = beatmap.MD5Hash;
+            string playName = beatmap.GetDisplayTitle();
+            var gameStorage = storage;
+            var notificationOverlay = notifications;
+            var scoreServerConfig = config?.ScoreServer;
+
             // Started here, as the results screen does: the lookup copies the play's mods, whose bindables belong to this thread.
             var difficulty = difficultyCache?.GetDifficultyAsync(beatmap, ruleset.RulesetInfo, score.Mods) ?? Task.FromResult<StarDifficulty?>(null);
             var log = storage.GetStorageForDirectory(PlayLog.DIRECTORY);
@@ -163,9 +206,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
             return Task.Run(async () =>
             {
+                string? replayPath = null;
+
                 try
                 {
-                    set(row, "replay", saveReplay(log, score, replay, playable));
+                    replayPath = saveReplay(log, score, replay, playable);
+                    set(row, "replay", replayPath);
                 }
                 catch (Exception e)
                 {
@@ -178,8 +224,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
 
                     if (rating?.DifficultyAttributes != null)
                     {
+                        double? pp = ruleset.CreatePerformanceCalculator()?.Calculate(score, rating.Value.DifficultyAttributes).Total;
+
                         set(row, "stars", rating.Value.Stars.ToString("0.0000", CultureInfo.InvariantCulture));
-                        set(row, "pp", ruleset.CreatePerformanceCalculator()?.Calculate(score, rating.Value.DifficultyAttributes).Total.ToString("0.00", CultureInfo.InvariantCulture));
+                        set(row, "pp", pp?.ToString("0.00", CultureInfo.InvariantCulture));
+
+                        if (upload != null)
+                        {
+                            upload.ClientStars = rating.Value.Stars;
+                            upload.ClientPp = pp;
+                        }
                     }
 
                     PlayLog.Append(log, row);
@@ -189,9 +243,34 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
                     Logger.Error(e, $"This play could not be added to {PlayLog.DIRECTORY}/{PlayLog.FILENAME} (is it open in another program?)");
                 }
 
+                if (upload != null)
+                {
+                    try
+                    {
+                        byte[]? map = ScoreServerPlays.ReadBeatmapFile(gameStorage, beatmapHash, beatmapMd5);
+                        byte[]? replayFile = replayPath != null && log.Exists(replayPath) ? await File.ReadAllBytesAsync(log.GetFullPath(replayPath)).ConfigureAwait(false) : null;
+
+                        var outcome = map == null
+                            ? new ScoreServerOutcome(ScoreServerOutcomeKind.Refused, null, "this map's file is not in osu!'s file store (is it an unsaved edit?)")
+                            : await new ScoreServerClient(log, signIn: server => ScoreServerLinking.TokenFor(scoreServerConfig, server))
+                                    .SendAsync(serverAddress, upload, map, replayFile).ConfigureAwait(false);
+
+                        ScoreServerOutcome = outcome;
+
+                        if (outcome.Kind != ScoreServerOutcomeKind.Sent)
+                            Logger.Log($"Score server: {playName}: {outcome.Kind}, {outcome.Message}");
+
+                        notificationOverlay?.Post(ScoreServerToast.Create(outcome, playName));
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Error(e, "This play could not be sent to the score server");
+                    }
+                }
+
                 try
                 {
-                    // After this play is added, so it never waits for the others (nor is lost when the game closes meanwhile).
+                    // After this play is added (and sent), so it never waits for the others (nor is lost when the game closes meanwhile).
                     PlayLogRatings.UpdateIfOutdated(log, ruleset, difficultyVersion, beatmapByMd5);
                 }
                 catch (Exception e)
@@ -199,6 +278,24 @@ namespace osu.Game.Rulesets.ManiaOrtho.Scoring
                     Logger.Error(e, $"The plays in {PlayLog.DIRECTORY}/{PlayLog.FILENAME} could not be rated again; trying again after the next play");
                 }
             });
+        }
+
+        /// <summary>
+        /// The play as the score server receives it, if the player sends plays there; its stars and pp are added once known.
+        /// </summary>
+        private PlayUpload? scoreServerUpload(ScoreInfo score, BeatmapInfo beatmap, int keys, string scoreId, int difficultyVersion, string?[] row)
+        {
+            if (config?.ScoreServer.Get<bool>(ScoreServerSetting.ScoreServerEnabled) != true)
+                return null;
+
+            var upload = ScoreServerPlays.Create(score, beatmap, keys, scoreId, game?.Version);
+
+            upload.ClientDifficultyVersion = difficultyVersion;
+
+            foreach (string column in SCORE_SERVER_SETTINGS)
+                upload.Settings[column] = row[Array.IndexOf(PlayLog.COLUMNS, column)];
+
+            return upload;
         }
 
         /// <summary>

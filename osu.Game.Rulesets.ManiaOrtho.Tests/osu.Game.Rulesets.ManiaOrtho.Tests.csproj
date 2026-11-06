@@ -19,4 +19,8 @@
     <!-- The osu.exe launcher's logic (folders, ini files, screenshots), tested without starting a game. -->
     <ProjectReference Include="..\ManiaOrtho.Launcher\ManiaOrtho.Launcher.csproj"/>
   </ItemGroup>
+  <ItemGroup Label="Score server contract">
+    <!-- The same synthetic maps the score server's tests rate (ortho-server/contract, a copy of orthomania's server/contract). -->
+    <Compile Include="..\ortho-server\contract\SyntheticManiaMap.cs" Link="ScoreServer\SyntheticManiaMap.cs"/>
+  </ItemGroup>
 </Project>
