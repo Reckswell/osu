@@ -6,14 +6,6 @@ reads this file at the start of every iteration, applies answers, and moves them
 
 ## Open
 
-### Q24. Do you play maps with a scratch column (8K as 7 + 1)?
-Some osu!mania maps set `SpecialStyle`: in stable an 8K map is then played as 7 keys plus one scratch column on the
-skin's side. Mania (lazer) reads the flag but lays the columns out as usual. The research suggests marking that column
-with a stronger divider (1 | 7 instead of the hand split 4 | 4), visual only (`game-djmax.md` R3).
-- **Options**: (a) yes, mark the special column; (b) no, leave it.
-- **Default until answered**: (b). Nothing is built.
-- **Answer**:
-
 ### Q23. Turn on the daily check that pp match osu!'s servers
 `.github/workflows/ortho-live-mania.yml` (README "Live osu!mania check") opens a pull request when osu!'s servers move to
 a new osu!mania release. It cannot run yet: GitHub Actions are off for this fork, and a scheduled workflow runs only
@@ -200,6 +192,15 @@ no osu! file changed (the maniaortho DLL rewrites the addresses in memory, may b
 **Default meanwhile**: keep the setting as built.
 **Answer** (Alpha, 2026-11-05, on the card): keep the Server setting. Nothing changes; it stays as built.
 **Superseded** by Q27 (2026-11-05): Alpha chose osu! sign-in only, so the Server setting and its core patches went.
+
+### Q24. Do you play maps with a scratch column (8K as 7 + 1)?
+Some osu!mania maps set `SpecialStyle`: in stable an 8K map is then played as 7 keys plus one scratch column on the
+skin's side. Mania (lazer) reads the flag but lays the columns out as usual. The research suggests marking that column
+with a stronger divider (1 | 7 instead of the hand split 4 | 4), visual only (`game-djmax.md` R3).
+- **Options**: (a) yes, mark the special column; (b) no, leave it.
+- **Default until answered**: (b). Nothing is built.
+- **Answer** (Alpha, 2026-11-05): "no, but include it as a feature regardless". Built: N+1 maps are split 1 | N−1
+  beside their special column (DECISIONS 2026-11-05).
 
 ### Q21. Share osu!mania's key bindings
 maniaortho kept its own keys (osu! stores them per mode), so keys changed under osu!mania did not carry over. Asked on a

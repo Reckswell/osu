@@ -247,6 +247,13 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         private ISkinSource? skinSource;
 
         /// <summary>
+        /// Each stage's special column, for an N+1 map (<see cref="LaneGroups.SpecialSide"/>): read with the skin.
+        /// </summary>
+        public IReadOnlyList<SpecialColumnSide> SpecialSides => specialSides;
+
+        private SpecialColumnSide[] specialSides = Array.Empty<SpecialColumnSide>();
+
+        /// <summary>
         /// One upright judgement display per stage, in <see cref="Overlay"/>.
         /// </summary>
         public IReadOnlyList<HighwayJudgementLayer> JudgementLayers => judgementLayers;
@@ -848,6 +855,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             portSearches--;
 
             var playfield = drawableRuleset.Playfield;
+            updateSpecialSides(playfield);
+
             PortedSkin? port = null;
 
             try
@@ -956,6 +965,34 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
+        /// Where each stage's special column is: only for a map made for stable's N+1 layout, on the skin's side.
+        /// </summary>
+        private void updateSpecialSides(ManiaPlayfield playfield)
+        {
+            var stages = playfield.Stages;
+            var sides = new SpecialColumnSide[stages.Count];
+            bool specialStyle = drawableRuleset.Beatmap.SpecialStyle;
+
+            LegacyManiaSkinConfiguration.LegacySpecialStyle? skinStyle = null;
+
+            try
+            {
+                if (specialStyle && skinSource != null)
+                    skinStyle = PortedSkin.ReadSpecialStyle(skinSource, playfield.TotalColumns);
+            }
+            catch (Exception e)
+            {
+                // A divider is not worth breaking gameplay over: the left side, stable's default.
+                Logger.Error(e, "The skin's SpecialStyle could not be read; marking the special column on the left.");
+            }
+
+            for (int i = 0; i < sides.Length; i++)
+                sides[i] = LaneGroups.SpecialSide(specialStyle, skinStyle, playfield.TotalColumns, i, sides.Length);
+
+            specialSides = sides;
+        }
+
+        /// <summary>
         /// Puts a guide line on each stage edge and between each pair of neighbouring columns, where the warp draws them.
         /// </summary>
         private void updateGuideLines(RectangleF source)
@@ -984,6 +1021,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
             for (int i = 0; i < stages.Count; i++)
             {
                 var columns = stages[i].Columns;
+                var special = i < specialSides.Length ? specialSides[i] : SpecialColumnSide.None;
                 float previousRight = 0;
 
                 for (int j = 0; j < columns.Length; j++)
@@ -993,10 +1031,10 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                     float right = toLane(quad.BottomRight);
 
                     // The left edge of the stage, then the middle of each gap between columns; hand groups by the stage's own key
-                    // count, so dual stages are grouped each on its own.
+                    // count (or its special column), so dual stages are grouped each on its own.
                     Guides.SetLine(index++, j == 0 ? left : (previousRight + left) / 2,
                         j == 0 ? HighwayGuides.GuideLineKind.Edge
-                        : LaneGroups.StartsGroup(columns.Length, j) ? HighwayGuides.GuideLineKind.Group
+                        : LaneGroups.StartsGroup(columns.Length, j, special) ? HighwayGuides.GuideLineKind.Group
                         : HighwayGuides.GuideLineKind.Lane);
                     previousRight = right;
 

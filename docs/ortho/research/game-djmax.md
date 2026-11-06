@@ -329,7 +329,24 @@ skin's side (Left by default) instead of N/2 | N/2.
 - It needs no core change: the flag is on the beatmap.
 - Which column stable treats as special for each skin setting is unverified. Read stable's `SkinMania.cs` (linked from
   `LegacyManiaSkinConfiguration.cs:79`) before implementing.
-- Worth doing only if Alpha plays N+1 maps; check his library first.
+- Worth doing only if Alpha plays N+1 maps; check their library first.
+
+**Checked 2026-11-05** (stable's `SkinMania.cs` is not readable from here: `peppy/osu-stable-reference` is not public
+to this session, so these are documentation and forum sources):
+
+- The skin's `[Mania]` `SpecialStyle`: 0 none, 1 "left (SP) or outer (DP) lane", 2 "right (SP) or inner (DP) lane",
+  for even key counts above 4; "for DP, the centre between the stages is used for determining positions"
+  ([skinship.xyz ini reference](https://skinship.xyz/wiki/ini)).
+- "When using SpecialStyle the furthest left or right lane will use the special key and note with the other keys
+  ordered like in 5K"; the old `SpecialStyleLeft` line was replaced by `SpecialStyle` 0/1/2
+  ([osu! forum, mania skinning](https://osu.ppy.sh/forum/p/6884683)).
+- Stable "defaults to Normal Style for most keycounts, except for 8K, 10K and 18K where it defaults to Left Special
+  Style" (2015, [osu! forum](https://osu.ppy.sh/community/forums/topics/309587)); the osu! wiki's key tables mark the
+  special key S1 in 6K(L), 6K(R), 8K(L) and 8K(R) ([osu!mania](https://osu.ppy.sh/wiki/Osu!mania)).
+- The beatmap's `SpecialStyle`: "Whether or not the "N+1" style key layout is used for osu!mania", 0 or 1, default 0
+  ([.osu file format](https://osu.ppy.sh/wiki/Osu)). How stable picks the side for a flagged map when the skin names
+  none is not documented; we use the left (stable's 8K and 10K default).
+- Licences: documentation and forum posts, read for facts only; nothing copied.
 
 ### R4. Speed: a data point, no change (SPEC 3)
 
