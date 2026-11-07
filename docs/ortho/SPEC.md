@@ -84,6 +84,10 @@ Requirements:
 - The track keeps one width for every key count, as Chunithm's field does: more keys means narrower lanes, and the
   outermost lanes lean the same at 4K and 10K (Alpha, QUESTIONS Q10). Each preset sets the width, except under a
   ported skin at "Skin position and width" (§8), where the skin's own lane widths set it.
+- **Width by lane** (Alpha, 2026-11-07, decision card): optionally the Highway track takes its width from a lane width
+  instead, so its narrowest lane (between two dividers) is that wide at the judgement line and the track grows with the
+  key count, up to the screen. One track width stays the default. The default skin's track only: ported and warped skin
+  stages keep their own widths.
 - Fixed lanes, one key per lane, same default bindings as mania. Key presses light the lane (SDVX-style beam rising
   from the judgement line) and the receptor at the line.
 

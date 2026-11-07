@@ -262,6 +262,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, speedScale);
                     break;
 
+                case HighwaySetting.WidthMode:
+                    var widthMode = Enum.Parse<HighwayWidthMode>(value, true);
+                    config?.SetValue(setting, widthMode);
+                    break;
+
                 case HighwaySetting.WallKeepsVisibleTime:
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:

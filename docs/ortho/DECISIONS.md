@@ -1268,3 +1268,21 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   notes early enough to judge them. Left as is: a stored speed faster than a scale's range shows as the range end
   (GN 150, its label's time is the range end's; the toast and osu!mania's slider show the real time), and osu!mania's
   slider shows the speed to 0.1 (17.1 for 17.128, under 1 ms apart).
+
+## 2026-11-07: Width by lane (Alpha)
+
+- **Alpha chose** on a decision card: track width stays the default (one width for every key count, Q10), and a new
+  Lane mode gives each lane a set width so 4K is narrower than 10K.
+- **Decision**: "Width by" Track / Lane and "Lane width" (2-25% of the screen per lane, default 10%), preferences
+  outside the presets. In Lane mode the Highway track is wide enough that its narrowest lane is the lane width at the
+  judgement line (argon's wider 7K centre lane keeps its proportion), no wider than the screen. Measured from the
+  previous frame's lanes, whose shares do not depend on the track's width.
+- **Default skin only** (Alpha): applies when the Highway track is drawn (Track "Highway", or "Skin (ported)" with a
+  skin the porter cannot read). A ported stage keeps its own lane widths, or the track width at "Skin position"; the
+  warped skin stage keeps the track width.
+- **Lane** means what the guides divide: a column and half the gap on each side (argon's 2-unit spacing), so lanes
+  between dividers are exactly the lane width; a stage's outer lanes run to its edge and are half a gap narrower
+  (playtester measured lanes 3% wide when the column body alone was used).
+- **Left as is** (gameplay-reviewer): the first frame after loading has no measured lanes and assumes equal ones (argon
+  7K: one frame at 7 lane widths, then 8), during the intro.
+- **Reverse**: "Width by" Track.

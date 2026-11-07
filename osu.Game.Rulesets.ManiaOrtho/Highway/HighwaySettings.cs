@@ -99,6 +99,19 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
     }
 
     /// <summary>
+    /// What sets the default skin's track width (Alpha 2026-11-07, on a decision card): one width for every key count, as
+    /// Chunithm's field (QUESTIONS Q10), or a width per lane, so more keys make a wider track.
+    /// </summary>
+    public enum HighwayWidthMode
+    {
+        [Description("Track (same for every key count)")]
+        Track,
+
+        [Description("Lane (grows with the key count)")]
+        Lane,
+    }
+
+    /// <summary>
     /// How far up the track the highway's beam in a pressed lane reaches (<see cref="HighwayTrackStyle.Highway"/> only;
     /// research/game-djmax.md R2).
     /// </summary>
@@ -231,6 +244,38 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         /// The track's width at the judgement line.
         /// </summary>
         public float TrackWidth { get; init; }
+
+        /// <summary>
+        /// Whether <see cref="TrackWidth"/> or <see cref="LaneWidth"/> sets the track's width. A preference outside the presets,
+        /// for the highway's own track only: a ported skin's track keeps its own widths, or <see cref="TrackWidth"/> at "Skin
+        /// position", and the warped skin stage keeps <see cref="TrackWidth"/>.
+        /// </summary>
+        public HighwayWidthMode WidthMode { get; init; }
+
+        /// <summary>
+        /// One lane's width at the judgement line, as a share of the screen width, in <see cref="HighwayWidthMode.Lane"/>.
+        /// </summary>
+        public float LaneWidth { get; init; }
+
+        public const float DEFAULT_LANE_WIDTH = 0.1f;
+        public const float MIN_LANE_WIDTH = 0.02f;
+        public const float MAX_LANE_WIDTH = 0.25f;
+
+        /// <summary>
+        /// The highway track's width at the judgement line: the track width, or in lane mode wide enough that its narrowest lane
+        /// is <see cref="LaneWidth"/> (a skin's wider special lane keeps its proportion), no wider than the screen.
+        /// </summary>
+        /// <param name="columns">The beatmap's columns, all stages.</param>
+        /// <param name="narrowestLane">The narrowest lane as a share of the track, or 0 before the lanes are measured (equal
+        /// lanes are then assumed).</param>
+        public float HighwayTrackWidth(int columns, float narrowestLane = 0)
+        {
+            if (WidthMode != HighwayWidthMode.Lane || columns <= 0)
+                return TrackWidth;
+
+            float lanes = narrowestLane > 0 ? 1 / narrowestLane : columns;
+            return Math.Clamp(lanes * LaneWidth, HighwayLayout.MIN_NEAR_WIDTH, 1);
+        }
 
         /// <summary>
         /// The fraction of the track, from the far edge, hidden behind the wall (Chunithm's field wall, IIDX SUDDEN+).
@@ -404,6 +449,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             KiaiSway = 0;
             WallScale = WallScale.Percent;
             SpeedScale = SpeedScale.Mania;
+            WidthMode = HighwayWidthMode.Track;
+            LaneWidth = DEFAULT_LANE_WIDTH;
         }
 
         /// <summary>

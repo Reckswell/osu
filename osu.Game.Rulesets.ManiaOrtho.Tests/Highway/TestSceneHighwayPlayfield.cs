@@ -77,6 +77,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
                 highwayConfig.SetValue(HighwaySetting.LaneGuides, true);
                 highwayConfig.SetValue(HighwaySetting.SkinHitTarget, false);
                 highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Highway);
+                highwayConfig.GetBindable<HighwayWidthMode>(HighwaySetting.WidthMode).SetDefault();
+                highwayConfig.GetBindable<float>(HighwaySetting.LaneWidth).SetDefault();
                 skins.CurrentSkinInfo.SetDefault();
             });
 
@@ -256,6 +258,77 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Highway
 
             AddStep("flat camera", () => highwayConfig.SetValue(HighwaySetting.CameraMode, HighwayCameraMode.Flat));
             AddUntilStep("no wall when flat", () => !highway.Wall.IsPresent);
+        }
+
+        /// <summary>
+        /// "Width by" Lane (Alpha 2026-11-07): each lane of the Highway track is the lane width at the judgement line (argon's
+        /// wider 7K centre lane keeps its proportion), up to a track as wide as the screen; a ported skin's stage and the warped
+        /// skin stage keep their own widths.
+        /// </summary>
+        [TestCase(4, 0.08f)]
+        [TestCase(7, 0.08f)]
+        [TestCase(10, 0.15f)] // more lanes than fit: the whole screen
+        public void TestLaneWidth(int columns, float laneWidth)
+        {
+            AddStep($"lanes {laneWidth:P0} wide", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.WidthMode, HighwayWidthMode.Lane);
+                highwayConfig.SetValue(HighwaySetting.LaneWidth, laneWidth);
+            });
+            AddStep($"play {columns}K", () =>
+            {
+                chart = $"synthetic-{columns}k";
+                LoadPlayer();
+            });
+            AddUntilStep("player loaded", () => Player.IsLoaded && Player.Alpha == 1 && highway.ColumnLanes.Length == columns);
+
+            if (columns * laneWidth >= 1)
+                AddUntilStep("the whole screen", () => highway.Projection.Layout.NearWidth, () => Is.EqualTo(1).Within(1e-4f));
+            else
+            {
+                // Between two dividers (the outer lanes also run to the stage edge, half a gap short).
+                AddUntilStep("the narrowest lane is the lane width", () => Enumerable.Range(1, highway.Guides.LineCount - 3)
+                                                                                     .Min(i => highway.Guides.GetLine(i + 1).Lane - highway.Guides.GetLine(i).Lane)
+                                                                       * highway.Projection.Layout.NearWidth,
+                    () => Is.EqualTo(laneWidth).Within(1e-4f));
+            }
+
+            AddStep("track width instead", () => highwayConfig.SetValue(HighwaySetting.WidthMode, HighwayWidthMode.Track));
+            AddUntilStep("the preset's track width", () => highway.Projection.Layout.NearWidth, () => Is.EqualTo(HighwayPresets.Get(HighwayPreset.Chunithm).TrackWidth).Within(1e-4f));
+
+            AddStep("lanes again, warped skin stage", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.WidthMode, HighwayWidthMode.Lane);
+                highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Skin);
+            });
+            AddUntilStep("the skin stage keeps the track width", () => highway.Projection.Layout.NearWidth,
+                () => Is.EqualTo(HighwayPresets.Get(HighwayPreset.Chunithm).TrackWidth).Within(1e-4f));
+        }
+
+        /// <summary>
+        /// A ported skin's stage keeps its own lane widths in lane mode: the porter is not the default skin.
+        /// </summary>
+        [Test]
+        public void TestLaneWidthLeavesPortedStagesAlone()
+        {
+            float? portedWidth = null;
+
+            AddStep("classic skin, ported track", () =>
+            {
+                skins.CurrentSkinInfo.Value = DefaultLegacySkin.CreateInfo().ToLiveUnmanaged();
+                highwayConfig.SetValue(HighwaySetting.Track, HighwayTrackStyle.Ported);
+            });
+            AddUntilStep("ported", () => highway.PortedTrackShown);
+            AddStep("note its width", () => portedWidth = highway.Projection.Layout.NearWidth);
+
+            AddStep("lanes 20% wide", () =>
+            {
+                highwayConfig.SetValue(HighwaySetting.WidthMode, HighwayWidthMode.Lane);
+                highwayConfig.SetValue(HighwaySetting.LaneWidth, 0.2f);
+            });
+            AddWaitStep("a few frames", 3);
+            AddAssert("same width", () => highway.Projection.Layout.NearWidth, () => Is.EqualTo(portedWidth).Within(1e-4f));
+            AddAssert("not 80%", () => highway.Projection.Layout.NearWidth, () => Is.Not.EqualTo(0.8f).Within(0.01f));
         }
 
         [Test]

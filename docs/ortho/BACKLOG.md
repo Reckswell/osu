@@ -202,6 +202,8 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
 - [x] Speed in other games' numbers (Alpha's ask, 2026-11-07): "Speed scale" with Chunithm, SDVX, IIDX green number,
   Project Sekai, BanG Dream!, Arcaea, DJMAX, Quaver and StepMania CMod, F3/F4 in the game's steps, the toast in its
   numbers (`research/topic-speed-scales.md`; DECISIONS 2026-11-07).
+- [x] Lane width for the default skin (Alpha's ask, 2026-11-07, decision card): "Width by" Track (default) / Lane, with a
+  lane width; ported and warped skin stages keep their widths.
 - [x] Share osu!mania's keys as a switch (Alpha's ask, 2026-11-07).
 - [ ] The beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9), only if Alpha's L4 notes say today's
   150 ms ease-out lingers: single captures cannot show it.

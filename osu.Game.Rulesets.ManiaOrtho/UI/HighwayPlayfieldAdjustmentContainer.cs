@@ -380,6 +380,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             var layout = Settings.ToLayout();
 
+            // The highway's own track (the default skin) can be as wide as its lanes (Alpha 2026-11-07); a ported or warped
+            // skin stage keeps its own widths.
+            if (Settings.Track == HighwayTrackStyle.Highway || (Settings.Track == HighwayTrackStyle.Ported && Port == null))
+                layout = layout with { NearWidth = Settings.HighwayTrackWidth(drawableRuleset.Beatmap.TotalColumns, narrowestLane()) };
+
             // The skin's layout moves the camera's track: its line lifted for the key area, its stage's position and width.
             if (PortedTrackShown && Port != null)
                 layout = SkinPortLayout.Adjust(layout, Settings.KeyArea, Settings.StageFit, FlatStage, Port.Stages.Length > 0 ? Port.Stages[0].ColumnStart : null,
@@ -990,6 +995,44 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
                 sides[i] = LaneGroups.SpecialSide(specialStyle, skinStyle, playfield.TotalColumns, i, sides.Length);
 
             specialSides = sides;
+        }
+
+        /// <summary>
+        /// The narrowest lane as a share of the track, as measured last frame (shares do not depend on the track's width), or 0
+        /// before the columns are measured.
+        /// </summary>
+        /// <remarks>
+        /// A lane is what the guides divide: its column and half of the gap on each side (the skin's column spacing), so the
+        /// lanes between two dividers come out at the lane width. A stage's outer lanes count the gap on their inner side twice.
+        /// </remarks>
+        private float narrowestLane()
+        {
+            var stages = drawableRuleset.Playfield.Stages;
+            float narrowest = 0;
+            int first = 0;
+
+            for (int i = 0; i < stages.Count; i++)
+            {
+                int last = first + stages[i].Columns.Length - 1;
+
+                if (last >= columnLanes.Length)
+                    break;
+
+                for (int j = first; j <= last; j++)
+                {
+                    float before = j > first ? columnLanes[j].X - columnLanes[j - 1].Y : 0;
+                    float after = j < last ? columnLanes[j + 1].X - columnLanes[j].Y : 0;
+                    float gap = j == first ? after : j == last ? before : (before + after) / 2;
+                    float width = columnLanes[j].Y - columnLanes[j].X + gap;
+
+                    if (width > 0 && (narrowest == 0 || width < narrowest))
+                        narrowest = width;
+                }
+
+                first = last + 1;
+            }
+
+            return narrowest;
         }
 
         /// <summary>

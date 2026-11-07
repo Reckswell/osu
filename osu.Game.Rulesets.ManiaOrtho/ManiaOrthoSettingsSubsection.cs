@@ -77,6 +77,9 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         private bool syncingSpeed;
 
+        private SettingsItemV2 laneWidthSlider = null!;
+        private Bindable<HighwayWidthMode> widthMode = null!;
+
         /// <summary>
         /// The values the scroll speed's visible time depends on, kept to show it again when one changes.
         /// </summary>
@@ -272,15 +275,39 @@ namespace osu.Game.Rulesets.ManiaOrtho
                     DisplayAsPercentage = true,
                     KeyboardStep = 0.01f,
                 }),
+                new SettingsItemV2(new FormEnumDropdown<HighwayWidthMode>
+                {
+                    Caption = "Width by",
+                    HintText = "What sets the Highway track's width: one track width for every key count, as in Chunithm, or a width "
+                               + "per lane, so 4K is narrower than 7K. The default skin's track only: ported skins keep their own lane "
+                               + "widths.",
+                    Current = widthMode = highway.GetBindable<HighwayWidthMode>(HighwaySetting.WidthMode),
+                })
+                {
+                    Keywords = new[] { "lane width", "column width", "track width", "thin", "thick" },
+                },
                 new SettingsItemV2(new FormSliderBar<float>
                 {
                     Caption = "Track width",
                     HintText = "Width of the track at the judgement line, as a share of the screen width. A ported skin at \"Skin position "
-                               + "and width\" uses the skin's own width instead.",
+                               + "and width\" uses the skin's own width instead. With \"Width by\" on Lane, the Highway track uses the lane "
+                               + "width instead.",
                     Current = highway.GetBindable<float>(HighwaySetting.TrackWidth),
                     DisplayAsPercentage = true,
                     KeyboardStep = 0.01f,
                 }),
+                laneWidthSlider = new SettingsItemV2(new FormSliderBar<float>
+                {
+                    Caption = "Lane width",
+                    HintText = "Width of each lane at the judgement line, as a share of the screen width; the Highway track is that many "
+                               + "lanes wide, up to the whole screen. Ported skins keep their own lane widths.",
+                    Current = highway.GetBindable<float>(HighwaySetting.LaneWidth),
+                    DisplayAsPercentage = true,
+                    KeyboardStep = 0.005f,
+                })
+                {
+                    Keywords = new[] { "column width", "thin", "thick", "lane size" },
+                },
                 new SettingsItemV2(new FormSliderBar<float>
                 {
                     Caption = "Judgement line height",
@@ -526,6 +553,12 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
             foreach (var (scale, units) in speedUnits)
                 units.BindValueChanged(e => setSpeed(scale, e.NewValue));
+
+            widthMode.BindValueChanged(e =>
+            {
+                laneWidthSlider.CanBeShown.Value = e.NewValue == HighwayWidthMode.Lane;
+                laneWidthSlider.Alpha = e.NewValue == HighwayWidthMode.Lane ? 1 : 0;
+            }, true);
 
             speedScale.BindValueChanged(e =>
             {

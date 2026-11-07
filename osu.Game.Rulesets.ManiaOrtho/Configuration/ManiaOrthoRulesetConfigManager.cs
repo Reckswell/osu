@@ -208,6 +208,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.WallScale, defaults.WallScale);
             SetDefault(HighwaySetting.ShareManiaKeys, true);
             SetDefault(HighwaySetting.SpeedScale, defaults.SpeedScale);
+            SetDefault(HighwaySetting.WidthMode, defaults.WidthMode);
+            SetDefault(HighwaySetting.LaneWidth, defaults.LaneWidth, HighwaySettings.MIN_LANE_WIDTH, HighwaySettings.MAX_LANE_WIDTH, 0.001f);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
             SetDefault(HighwaySetting.FineScrollSpeed, 0.0, 0, SpeedScales.MAX_MANIA_SPEED, SpeedScales.MANIA_SPEED_PRECISION);
         }
@@ -242,6 +244,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             KiaiSway = Get<float>(HighwaySetting.KiaiSway),
             WallScale = Get<WallScale>(HighwaySetting.WallScale),
             SpeedScale = Get<SpeedScale>(HighwaySetting.SpeedScale),
+            WidthMode = Get<HighwayWidthMode>(HighwaySetting.WidthMode),
+            LaneWidth = Get<float>(HighwaySetting.LaneWidth),
         };
 
         /// <summary>
@@ -330,6 +334,16 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         /// scroll speed setting.
         /// </summary>
         SpeedScale,
+
+        /// <summary>
+        /// Whether the track width or the lane width sets the highway track's width (<see cref="HighwaySettings.WidthMode"/>).
+        /// </summary>
+        WidthMode,
+
+        /// <summary>
+        /// One lane's width at the judgement line in lane mode (<see cref="HighwaySettings.LaneWidth"/>).
+        /// </summary>
+        LaneWidth,
 
         /// <summary>
         /// Whether maniaortho plays with the keys bound for osu!mania, the two key binding sections kept equal
