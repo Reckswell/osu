@@ -199,6 +199,10 @@ Only after Alpha confirms. See the design doc's "Local-only vs self-hosted serve
   Sekai's, which waits on Q17; YARG's guitar-game family is a custom recipe, not a preset, `game-yarg-clonehero.md` Y2.)
 - [x] Optional "Key beam" length: Long (today) / Half / Quarter of the track's height on screen, default Long
   (`game-djmax.md` R2). Half and Quarter measured to the wall's edge when there is one (DECISIONS 2026-11-04).
+- [x] Speed in other games' numbers (Alpha's ask, 2026-11-07): "Speed scale" with Chunithm, SDVX, IIDX green number,
+  Project Sekai, BanG Dream!, Arcaea, DJMAX, Quaver and StepMania CMod, F3/F4 in the game's steps, the toast in its
+  numbers (`research/topic-speed-scales.md`; DECISIONS 2026-11-07).
+- [x] Share osu!mania's keys as a switch (Alpha's ask, 2026-11-07).
 - [ ] The beam's release as Quaver's (off in 60-100 ms, `game-quaver.md` QV9), only if Alpha's L4 notes say today's
   150 ms ease-out lingers: single captures cannot show it.
 - [x] Low priority: for `SpecialStyle` (N+1 key) maps, a 1 | N−1 divider marking the special column (`game-djmax.md`

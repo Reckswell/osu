@@ -1,5 +1,7 @@
 # Project Sekai (Colorful Stage!)
 
+> **Update (2026-11-07, `topic-speed-scales.md`):** the official range 1.0-12.0 now has a source [SS29].
+
 Last checked: 2026-11-04
 
 ## Summary

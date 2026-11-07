@@ -1229,3 +1229,42 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   changes. Not covered by a test: the headless test host keeps other realm instances open, so `BlockAllOperations`
   times out compacting before it calls the subscriptions. Also fixed: the settings test now asserts the panel's mirror
   stops and starts (`MirroringKeys`) instead of only waiting five steps, and the mirror's remarks name the switch.
+
+## 2026-11-07: Speed in other games' numbers (Alpha)
+
+- **Alpha asked** for approach speed presets based on SDVX, Chunithm and other games, researched, instead of only
+  osu!mania's speed. Research: `research/topic-speed.md` and the new `research/topic-speed-scales.md` (SDVX lane speed,
+  Arcaea confirmed by a frame capture, DJMAX's speed fixed across BPMs since 2020, BanG Dream!).
+- **Decision**: a "Speed scale" setting, as the wall scale before it: osu!mania (default, unchanged), Chunithm, SDVX,
+  IIDX (green number), Project Sekai, BanG Dream!, Arcaea, DJMAX, Quaver, StepMania / Etterna (CMod). Only the chosen
+  scale's slider shows; it shows and sets the one stored speed, osu!mania's scroll speed, so switching keeps the speed
+  and nothing outside the display changes (the time range is all a speed sets; invariant 1). Scales and formulas are in
+  `SpeedScales`, tested against each game's own figures.
+- **What a number means**: the time that game gives notes. For every game but IIDX it is the time to cross the whole
+  track at the current speed (those games keep the speed under a cover), so under a wall that keeps the visible time the
+  number follows the slower notes. IIDX's green number is the time visible below the wall (Floating Hi-Speed keeps it).
+  The skin's hit position (mania scales its time range by it), the mods' rate and the flat camera are accounted for, so
+  a number gives its time whatever the skin.
+- **Stored finer and faster**: maniaortho stores the speed at 0.0001 up to 60 (osu!mania: 0.1 up to 40), so every step of
+  every scale lands on its own speed and reads back as itself (`SpeedScaleTest`), and Chunithm's 16 to 19 fit. The
+  osu!mania slider still moves in 0.1. osu!mania's limits read the stored speed before maniaortho widens them, so a
+  hidden copy (`FineScrollSpeed`) brings it back on load (`TestFineSpeedPersists`).
+- **Steps**: each game's own (Chunithm 0.25 then whole numbers past 15, SDVX 0.01 with 0.1 per key press, green number 1
+  with 10 per press, Sekai 0.01 with 0.1 per press, BanG Dream!, Arcaea and DJMAX 0.1, Quaver 0.1 with 1 per press, CMod
+  10). F3/F4 step the chosen scale (from between two numbers the first press lands on the next), osu!mania's own still by
+  one, and the toast shows "Chunithm 9.25 · 593 ms visible".
+- **Left out**: SONIC (73 ms) and BPM-dependent modes (IIDX classic hi-speed, StepMania x-mods): mania keeps a constant
+  time range, so a speed that follows the map's BPM would need a new code path. DJMAX qualifies since its 2020 change.
+  Sekai's and BanG Dream!'s notes also grow as they approach (eased); here they come at a steady speed (Q17 holds the
+  Sekai preset with that curve).
+- **Applies with every skin**: speed is the player's, not the skin's, so Alpha's "base game default skin only" was read
+  as applying to the lane width; a ported skin plays at the same speed numbers.
+- **Unverified**: SDVX's arcade timing (the formula is the clones', within about 7%), BanG Dream!'s official timing (a fan
+  recreation's), DJMAX's constant (a fan measurement). The hints say so.
+- **Review** (gameplay-reviewer): fixed the speed lost on restart (see "Stored finer"), sliders that showed a number
+  past the fastest speed (a wall that keeps the visible time makes Chunithm 19 unreachable: the slider moves back to
+  the number reached), and round trips now walk every finest step (which needed 0.0001). Speed 60 shows notes for
+  less time than Easy's widest hit window: `TestJudgementParityAtTheFastestSpeed` pins that upstream still starts
+  notes early enough to judge them. Left as is: a stored speed faster than a scale's range shows as the range end
+  (GN 150, its label's time is the range end's; the toast and osu!mania's slider show the real time), and osu!mania's
+  slider shows the speed to 0.1 (17.1 for 17.128, under 1 ms apart).

@@ -1,5 +1,8 @@
 # Sound Voltex: track camera and highway geometry
 
+> **Update (2026-11-07, `topic-speed-scales.md`):** EG's lane speed (1-10) is the older games' BPM × HS over 100;
+> by the clones' constant T = 4800 / lane speed ms (the arcade is unmeasured).
+
 Last checked: 2026-11-03
 
 ## Summary

@@ -261,6 +261,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
         public WallScale WallScale { get; init; }
 
         /// <summary>
+        /// The numbers the scroll speed is set, stepped and shown in (<see cref="Highway.SpeedScale"/>). Display only: the speed
+        /// itself is osu!mania's scroll speed setting.
+        /// </summary>
+        public SpeedScale SpeedScale { get; init; }
+
+        /// <summary>
         /// Whether to draw guide lines along the lane boundaries (Chunithm's guidelines). Tilted cameras only.
         /// </summary>
         public bool LaneGuides { get; init; }
@@ -397,6 +403,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Highway
             KeyBeam = KeyBeamLength.Long;
             KiaiSway = 0;
             WallScale = WallScale.Percent;
+            SpeedScale = SpeedScale.Mania;
         }
 
         /// <summary>

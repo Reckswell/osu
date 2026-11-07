@@ -21,7 +21,7 @@ maniaortho keeps its own copy of these, as osu! does for every mode.
 
 | Setting | maniaortho | Checked |
 |---|---|---|
-| Scroll speed | Same setting and range. F3/F4 change it in play. Shown as the time notes are visible on the highway. | Test: `TestScrollSpeedChangesApply`, `TestSceneHighwayHotkeys.TestF3AndF4StillChangeTheScrollSpeed`, `TestSceneVisibleTime` |
+| Scroll speed | Same setting, stored finer (0.0001) and up to 60 instead of 40, so other games' speed numbers each land on their own speed ("Speed scale", 2026-11-07); the osu!mania slider still moves in 0.1. F3/F4 change it in play by one, or by one step of the chosen game. Shown as the time notes are visible on the highway. | Test: `TestScrollSpeedChangesApply`, `TestSceneHighwayHotkeys.TestF3AndF4StillChangeTheScrollSpeed`, `TestSceneVisibleTime` |
 | Scroll direction | Not offered: the camera sets the direction (SPEC 3, DECISIONS "Scroll direction"). | By design |
 | Timing-based note colouring | Highway notes and ported skin notes take the snap colour mania gives each note. With lazer's default skin, mania multiplies that colour into the column's colour (its note bodies come out darker or redder; the arrow and edge show the snap colour itself), and the highway draws the snap colour as is. | Test: `TestSceneHighwayNativeNotes`; capture with argon and the ported classic skin at 7K |
 | Touch overlay | **Was missing** from maniaortho's settings; added. The same buttons appear along the bottom, and a touch presses its column and lights its lane. | Test: `TestSceneHighwaySettings.TestTouchOverlayOffered` (the box sets it), `TestSceneSettingsParity.TestTouchOverlay` (both rulesets) |

@@ -76,7 +76,7 @@ unverified; they look derived from its layout (1176-px lane art).
 | Arcaea (official) | speed 1.0-6.5 in 0.1 steps | ArcCreate shows drop rate / 30 | T = 3333 / s ms by ArcCreate's scale (4.0 = 833 ms); the official mapping is unverified | relative to the chart's base BPM | **track**, linear in depth | `game-arcaea.md` |
 | StepMania / Etterna | x-mod, C-mod, M-mod | field pixels: 64 px per beat × x; C: 64 px × C/60 per s | visible field px / speed: Overhead 360/C s, Hallway 38% longer | x: BPM; C: none; M: max BPM | flat field, then rotated (**track**) | `game-stepmania-etterna.md`, [SM1] |
 | Quaver | scroll speed 5.0-100.0 (default 15.0), F3/F4 ±1.0, small ±0.1 | px per ms = (S/10) / (20 × rate) × scaling | lane px / speed | its own charts: none; osu! maps: BPM changes become SV relative to the most common BPM, as in lazer mania (`game-quaver.md`) | flat | [Q1] |
-| DJMAX RESPECT V | speed 1.00-9.00 in 0.10 steps (default 2.00), changeable in play | BPM × speed | T ≈ 323,143 / (speed × BPM) ms by an MIT fan calculator (units unverified): 2.00 at 120 BPM = 1346 ms | multiplies BPM | flat | `game-djmax.md` |
+| DJMAX RESPECT V | speed 1.00-9.00 in 0.10 steps (default 2.00), changeable in play | visible time | T ≈ 2693 / s ms (corrected 2026-11-07, `topic-speed-scales.md`; the BPM-scaled 323,143 / (speed × BPM) was the PS4 game's) | none since 2020-08-06 | flat | `game-djmax.md`, `topic-speed-scales.md` |
 
 Sekai durations, from the Sonolus formula:
 
@@ -243,9 +243,7 @@ Covers are in `topic-covers.md`; the rest does not concern speed.
 - Sekai: whether the official game uses the Sonolus engine's layout. (The curve and formula now fit a player's
   captures of the official game at speeds 9-12 within 0.1-1.5%, and typical speeds are 10-11.6: `game-sekai.md`.)
 - SDVX EG: how lane speed maps to visible time.
-- Arcaea: whether the official 1.0-6.5 maps to drop rate as ArcCreate's × 30 (ArcCreate's default 150 = 667 ms is the
-  clone's; its scale gives notes 8-13 screen heights per second at the line, against 4-5 for Chunithm and Sekai players,
-  so `game-arcaea.md` doubts it).
+- Arcaea: resolved (2026-11-07): a frame-stepped capture of the official game confirms 3333 / s ms (`topic-speed-scales.md`).
 - Clone Hero: closed source; not checked.
 - YARG's `CurveFactor` bend is ignored in the r = 0.448 used here (`game-yarg-clonehero.md` measures it).
 

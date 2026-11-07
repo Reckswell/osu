@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using osu.Framework.Bindables;
 using osu.Framework.Configuration.Tracking;
 using osu.Game.Configuration;
 using osu.Game.Rulesets.Configuration;
@@ -29,10 +30,48 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         {
             Highway = new HighwayConfigManager(settings, ruleset, variant);
 
+            keepFineScrollSpeed();
+
             // The camera defines the direction (SPEC 3): notes always come down the track, whatever was stored.
             SetValue(ManiaRulesetSetting.ScrollDirection, ManiaScrollingDirection.Down);
             GetOriginalBindable<ManiaScrollingDirection>(ManiaRulesetSetting.ScrollDirection).Disabled = true;
         }
+
+        protected override void InitialiseDefaults()
+        {
+            base.InitialiseDefaults();
+
+            // Finer and up to faster than osu!mania's (0.1, 1-40), so every speed scale's numbers land on their own speeds
+            // (SpeedScale). Display only: the time range is all a speed changes.
+            var speed = (BindableDouble)GetOriginalBindable<double>(ManiaRulesetSetting.ScrollSpeed);
+            speed.MaxValue = SpeedScales.MAX_MANIA_SPEED;
+            speed.Precision = SpeedScales.MANIA_SPEED_PRECISION;
+        }
+
+        /// <summary>
+        /// Brings back the stored speed at maniaortho's precision and range, and keeps a copy of it from now on.
+        /// </summary>
+        /// <remarks>
+        /// osu!mania's defaults read the stored speed into its own limits (0.1, up to 40) before <see cref="InitialiseDefaults"/>
+        /// widens them, so the finer, faster speed would be lost on every start. The copy is used only while osu!mania's limits
+        /// would read it as the stored speed, so a speed stored without one is kept.
+        /// </remarks>
+        private void keepFineScrollSpeed()
+        {
+            var speed = GetOriginalBindable<double>(ManiaRulesetSetting.ScrollSpeed);
+            double fine = Highway.Get<double>(HighwaySetting.FineScrollSpeed);
+
+            // Within one of osu!mania's 0.1 steps: its rounding of a half step may go either way.
+            if (fine >= 1 && Math.Abs(Math.Min(fine, mania_max_speed) - speed.Value) < 0.1 + 1e-6)
+                speed.Value = fine;
+
+            speed.BindValueChanged(e => Highway.SetValue(HighwaySetting.FineScrollSpeed, e.NewValue), true);
+        }
+
+        /// <summary>
+        /// osu!mania's own fastest speed.
+        /// </summary>
+        private const double mania_max_speed = 40;
 
         /// <summary>
         /// None: mania's scroll speed toast shows <c>11485 / speed</c>, not the time notes are visible on the highway. A play's
@@ -168,7 +207,9 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.KiaiSway, defaults.KiaiSway, 0f, 1f, 0.01f);
             SetDefault(HighwaySetting.WallScale, defaults.WallScale);
             SetDefault(HighwaySetting.ShareManiaKeys, true);
+            SetDefault(HighwaySetting.SpeedScale, defaults.SpeedScale);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
+            SetDefault(HighwaySetting.FineScrollSpeed, 0.0, 0, SpeedScales.MAX_MANIA_SPEED, SpeedScales.MANIA_SPEED_PRECISION);
         }
 
         /// <summary>
@@ -200,6 +241,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             KeyBeam = Get<KeyBeamLength>(HighwaySetting.KeyBeam),
             KiaiSway = Get<float>(HighwaySetting.KiaiSway),
             WallScale = Get<WallScale>(HighwaySetting.WallScale),
+            SpeedScale = Get<SpeedScale>(HighwaySetting.SpeedScale),
         };
 
         /// <summary>
@@ -284,6 +326,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         SideStageLean,
 
         /// <summary>
+        /// The units the scroll speed is set and shown in (<see cref="Highway.SpeedScale"/>); the speed itself stays osu!mania's
+        /// scroll speed setting.
+        /// </summary>
+        SpeedScale,
+
+        /// <summary>
         /// Whether maniaortho plays with the keys bound for osu!mania, the two key binding sections kept equal
         /// (<see cref="KeyBindingMirror"/>), or with its own.
         /// </summary>
@@ -293,6 +341,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.
         /// </summary>
         SkinPortDefaultsApplied,
+
+        /// <summary>
+        /// Not shown: osu!mania's scroll speed at maniaortho's precision and range (0 before it is first stored), which
+        /// osu!mania's limits would round and cap as they read it (<see cref="ManiaOrthoRulesetConfigManager"/>).
+        /// </summary>
+        FineScrollSpeed,
 
         /// <summary>
         /// Not shown: whether the one-time move of a stored "Skin position" stage fit to the skin's own width

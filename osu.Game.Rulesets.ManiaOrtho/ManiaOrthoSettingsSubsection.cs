@@ -3,8 +3,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
+using osu.Framework.Extensions;
 using osu.Framework.Graphics;
 using osu.Framework.Localisation;
 using osu.Game.Beatmaps;
@@ -57,7 +59,23 @@ namespace osu.Game.Rulesets.ManiaOrtho
         public bool MirroringKeys => keyBindingMirror != null;
 
         private HighwayConfigManager highway = null!;
-        private FormSliderBar<double> scrollSpeed = null!;
+
+        /// <summary>
+        /// osu!mania's scroll speed setting, the one stored speed every speed scale shows.
+        /// </summary>
+        private Bindable<double> maniaSpeed = null!;
+
+        private Bindable<SpeedScale> speedScale = null!;
+
+        /// <summary>
+        /// The speed in each scale's numbers, kept in step with <see cref="maniaSpeed"/>; only the chosen scale's slider shows.
+        /// </summary>
+        private readonly Dictionary<SpeedScale, BindableDouble> speedUnits = new Dictionary<SpeedScale, BindableDouble>();
+
+        private readonly Dictionary<SpeedScale, FormSliderBar<double>> speedBars = new Dictionary<SpeedScale, FormSliderBar<double>>();
+        private readonly Dictionary<SpeedScale, SettingsItemV2> speedSliders = new Dictionary<SpeedScale, SettingsItemV2>();
+
+        private bool syncingSpeed;
 
         /// <summary>
         /// The values the scroll speed's visible time depends on, kept to show it again when one changes.
@@ -148,17 +166,61 @@ namespace osu.Game.Rulesets.ManiaOrtho
                 Keywords = new[] { "cover", "lane cover", "osu!mania", "quaver" },
             };
 
+            maniaSpeed = config.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed);
+            speedScale = highway.GetBindable<SpeedScale>(HighwaySetting.SpeedScale);
+
+            foreach (var scale in Enum.GetValues<SpeedScale>())
+            {
+                var range = SpeedScales.RangeOf(scale);
+                var units = speedUnits[scale] = new BindableDouble { MinValue = range.Min, MaxValue = range.Max, Precision = range.Precision };
+
+                var bar = speedBars[scale] = scale == SpeedScale.Mania
+                    ? new FormSliderBar<double>
+                    {
+                        Caption = RulesetSettingsStrings.ScrollSpeed,
+                        HintText = "Shown as the time notes are visible, from the wall (or the far end) to the judgement line, with the "
+                                   + "current skin, wall and camera at the selected beatmap's key count. In gameplay, F3 and F4 change it.",
+                        Current = units,
+                        KeyboardStep = 1,
+                        LabelFormat = scrollSpeedLabel,
+                    }
+                    : new FormSliderBar<double>
+                    {
+                        Caption = SpeedScales.Caption(scale),
+                        HintText = SpeedScales.Explain(scale) + " Shown with the time notes are visible. In gameplay, F3 and F4 move one step.",
+                        Current = units,
+                        KeyboardStep = (float)range.KeyStep,
+                        LabelFormat = v => gameSpeedLabel(scale, v),
+                    };
+
+                speedSliders[scale] = new SettingsItemV2(bar)
+                {
+                    Keywords = new[] { "scroll speed", "note speed", "hi-speed", "approach", scale.GetDescription() },
+                };
+            }
+
             Children = new Drawable[]
             {
-                new SettingsItemV2(scrollSpeed = new FormSliderBar<double>
+                new SettingsItemV2(new FormEnumDropdown<SpeedScale>
                 {
-                    Caption = RulesetSettingsStrings.ScrollSpeed,
-                    HintText = "Shown as the time notes are visible, from the wall (or the far end) to the judgement line, with the "
-                               + "current skin, wall and camera at the selected beatmap's key count. In gameplay, F3 and F4 change it.",
-                    Current = config.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed),
-                    KeyboardStep = 1,
-                    LabelFormat = scrollSpeedLabel,
-                }),
+                    Caption = "Speed scale",
+                    HintText = "The numbers the speed is set in: osu!mania's scroll speed, or another game's own speed, each giving the "
+                               + "time that game gives notes. Only the numbers change: the speed is one setting, so switching keeps it.",
+                    Current = speedScale,
+                })
+                {
+                    Keywords = new[] { "scroll speed", "note speed", "hi-speed", "chunithm", "sdvx", "iidx", "green number", "sekai", "bandori", "arcaea", "djmax", "quaver", "cmod" },
+                },
+                speedSliders[SpeedScale.Mania],
+                speedSliders[SpeedScale.Chunithm],
+                speedSliders[SpeedScale.Sdvx],
+                speedSliders[SpeedScale.Iidx],
+                speedSliders[SpeedScale.Sekai],
+                speedSliders[SpeedScale.BanGDream],
+                speedSliders[SpeedScale.Arcaea],
+                speedSliders[SpeedScale.Djmax],
+                speedSliders[SpeedScale.Quaver],
+                speedSliders[SpeedScale.StepMania],
                 new SettingsItemV2(new FormCheckBox
                 {
                     Caption = RulesetSettingsStrings.TimingBasedColouring,
@@ -459,6 +521,21 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
             showVisibleTimeOnChange(highway.GetBindable<float>(HighwaySetting.Wall));
 
+            // Every scale follows the stored speed, and sets it when moved.
+            maniaSpeed.BindValueChanged(_ => showSpeedInScales(null), true);
+
+            foreach (var (scale, units) in speedUnits)
+                units.BindValueChanged(e => setSpeed(scale, e.NewValue));
+
+            speedScale.BindValueChanged(e =>
+            {
+                foreach (var (scale, slider) in speedSliders)
+                {
+                    slider.CanBeShown.Value = scale == e.NewValue;
+                    slider.Alpha = scale == e.NewValue ? 1 : 0;
+                }
+            }, true);
+
             // The other scales follow the wall, and set it when moved. The screen-based ones depend on the camera.
             wall.BindValueChanged(_ => showWallInOtherScales(null));
             showWallInOtherScalesOnChange(highway.GetBindable<float>(HighwaySetting.FarWidthRatio));
@@ -560,7 +637,97 @@ namespace osu.Game.Rulesets.ManiaOrtho
         // Setting the label's format shows the value again. Once, however many inputs changed while the panel was hidden.
         private void showVisibleTime() => Scheduler.AddOnce(formatScrollSpeed);
 
-        private void formatScrollSpeed() => scrollSpeed.LabelFormat = scrollSpeedLabel;
+        /// <summary>
+        /// Shows the speed again in every scale and label, after something they depend on changed (skin, wall, camera, beatmap,
+        /// mods).
+        /// </summary>
+        private void formatScrollSpeed()
+        {
+            showSpeedInScales(null);
+
+            foreach (var (scale, bar) in speedBars)
+                bar.LabelFormat = scale == SpeedScale.Mania ? scrollSpeedLabel : v => gameSpeedLabel(scale, v);
+        }
+
+        /// <summary>
+        /// Shows the speed in each scale but <paramref name="except"/> (the one just moved, so it is not nudged under the
+        /// pointer by rounding).
+        /// </summary>
+        private void showSpeedInScales(SpeedScale? except)
+        {
+            if (syncingSpeed)
+                return;
+
+            syncingSpeed = true;
+
+            try
+            {
+                var context = speedContext();
+
+                foreach (var (scale, units) in speedUnits)
+                {
+                    if (scale != except)
+                        units.Value = context.ToUnits(scale, maniaSpeed.Value);
+                }
+            }
+            finally
+            {
+                syncingSpeed = false;
+            }
+        }
+
+        /// <summary>
+        /// Sets the speed from <paramref name="value"/> of <paramref name="scale"/>, moved on its slider: the nearest number the
+        /// game offers (Chunithm's whole numbers past 15). A number past the fastest or slowest speed stored (a high wall
+        /// that keeps the visible time makes notes faster) moves the slider back to the one reached.
+        /// </summary>
+        private void setSpeed(SpeedScale scale, double value)
+        {
+            if (syncingSpeed)
+                return;
+
+            syncingSpeed = true;
+            bool reached;
+
+            try
+            {
+                var context = speedContext();
+                double units = SpeedScales.Snap(scale, value);
+                speedUnits[scale].Value = units;
+                maniaSpeed.Value = context.FromUnits(scale, units);
+                reached = Math.Abs(context.ToUnits(scale, maniaSpeed.Value) - units) < SpeedScales.RangeOf(scale).Precision / 2;
+            }
+            finally
+            {
+                syncingSpeed = false;
+            }
+
+            showSpeedInScales(reached ? scale : null);
+        }
+
+        /// <summary>
+        /// The skin's line for the selected beatmap's key count, the selected mods' rate, the wall and the camera.
+        /// </summary>
+        private SpeedContext speedContext()
+        {
+            var settings = highway.Current;
+            var selectedMods = mods?.Value ?? Array.Empty<Mod>();
+            float hitPosition = skin == null ? Stage.HIT_TARGET_POSITION : VisibleTime.HitPosition(skin, keyCount(selectedMods));
+
+            return new SpeedContext(hitPosition, ModUtils.CalculateRateWithMods(selectedMods), settings.ToScroll(), settings.CameraMode == HighwayCameraMode.Flat);
+        }
+
+        /// <summary>
+        /// "9.25 (593 ms visible)": a game's number, with how long notes are visible at it.
+        /// </summary>
+        private LocalisableString gameSpeedLabel(SpeedScale scale, double units)
+        {
+            var context = speedContext();
+            double visible = context.Milliseconds(context.FromUnits(scale, units), true);
+            string number = units.ToString("F" + SpeedScales.RangeOf(scale).Decimals, CultureInfo.InvariantCulture);
+
+            return $"{number} ({Math.Round(visible).ToString(CultureInfo.InvariantCulture)} ms visible)";
+        }
 
         /// <summary>
         /// Mania's label ("405ms (speed 29.0)"), with how long notes are visible on the highway in place of
@@ -570,12 +737,7 @@ namespace osu.Game.Rulesets.ManiaOrtho
         /// </summary>
         private LocalisableString scrollSpeedLabel(double speed)
         {
-            var settings = highway.Current;
-            var selectedMods = mods?.Value ?? Array.Empty<Mod>();
-            float hitPosition = skin == null ? Stage.HIT_TARGET_POSITION : VisibleTime.HitPosition(skin, keyCount(selectedMods));
-            double visible = VisibleTime.Of(DrawableManiaRuleset.ComputeScrollTime(speed), hitPosition, ModUtils.CalculateRateWithMods(selectedMods), settings.ToScroll(),
-                settings.CameraMode == HighwayCameraMode.Flat);
-
+            double visible = speedContext().Milliseconds(speed, true);
             return RulesetSettingsStrings.ScrollSpeedTooltip((int)Math.Round(visible), speed);
         }
 

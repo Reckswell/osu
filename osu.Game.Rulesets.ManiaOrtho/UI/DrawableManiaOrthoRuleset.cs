@@ -10,6 +10,7 @@ using osu.Game.Rulesets.Mania;
 using osu.Game.Rulesets.Mania.Configuration;
 using osu.Game.Rulesets.Mania.UI;
 using osu.Game.Rulesets.ManiaOrtho.Configuration;
+using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.ManiaOrtho.Scoring;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Rulesets.UI;
@@ -91,6 +92,23 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         /// settings is kept equal to osu!mania's by <see cref="KeyBindingMirror"/>.
         /// </remarks>
         protected override PassThroughInputManager CreateInputManager() => new ManiaOrthoInputManager(Ruleset.RulesetInfo, Variant);
+
+        /// <summary>
+        /// F3 and F4: one step of the chosen speed scale (Chunithm's 0.25, a green number's 10, ...), or osu!mania's one speed.
+        /// </summary>
+        protected override void AdjustScrollSpeed(int amount)
+        {
+            var config = Config as ManiaOrthoRulesetConfigManager;
+            var scale = config?.Highway.Get<SpeedScale>(HighwaySetting.SpeedScale) ?? SpeedScale.Mania;
+
+            if (config == null || scale == SpeedScale.Mania || Toasts == null)
+            {
+                base.AdjustScrollSpeed(amount);
+                return;
+            }
+
+            config.SetValue(ManiaRulesetSetting.ScrollSpeed, Toasts.SpeedContext.Step(scale, config.Get<double>(ManiaRulesetSetting.ScrollSpeed), amount));
+        }
 
         protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
         {

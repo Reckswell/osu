@@ -1,5 +1,8 @@
 # Arcaea (lowiro): ground track
 
+> **Correction (2026-11-07, `topic-speed-scales.md`):** the 3333 / speed ms scale is confirmed by a frame-stepped
+> capture of the official game [SS13]; the doubt below no longer stands.
+
 Last checked: 2026-11-04
 
 ## Summary

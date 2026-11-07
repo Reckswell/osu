@@ -57,6 +57,11 @@ Requirements:
   it in screen space.
 - Scroll velocity (SV) changes behave exactly as in mania (the same algorithm: sequential, or constant with the
   Constant Speed mod; mania has no overlapping mode).
+- **Speed scale** (Alpha, 2026-11-07): the speed can be set in another game's numbers instead of osu!mania's: Chunithm,
+  SDVX (lane speed), IIDX (green number), Project Sekai, BanG Dream!, Arcaea, DJMAX, Quaver or StepMania's CMod. Each
+  number gives the time that game gives notes (`research/topic-speed.md`, `research/topic-speed-scales.md`): across the
+  whole track for every game but IIDX, whose green number is the time visible below the wall. The speed stays osu!mania's
+  one setting (stored finer, up to 60), so switching scales keeps it; F3/F4 move one of the chosen game's steps.
 - Upscroll is not offered in this ruleset (the camera defines direction). Mania's scroll direction setting is ignored
   here, and that is recorded as a decision.
 

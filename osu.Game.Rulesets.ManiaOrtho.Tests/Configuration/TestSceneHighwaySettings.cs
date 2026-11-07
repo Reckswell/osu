@@ -73,6 +73,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                 }
 
                 gameConfig.Highway.GetBindable<bool>(HighwaySetting.ShareManiaKeys).SetDefault();
+                gameConfig.Highway.GetBindable<SpeedScale>(HighwaySetting.SpeedScale).SetDefault();
+                gameConfig.GetBindable<double>(ManiaRulesetSetting.ScrollSpeed).SetDefault();
             });
         }
 
@@ -325,6 +327,35 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                            && config.Get<double>(ManiaRulesetSetting.ScrollSpeed) == 29.0;
                 }
             });
+        }
+
+        /// <summary>
+        /// The speed is stored finer and up to faster than osu!mania's limits, which read it first as the config loads: it
+        /// comes back as it was set, not rounded to 0.1 or capped at 40.
+        /// </summary>
+        [TestCase(52.4)]
+        [TestCase(17.1283)]
+        [TestCase(40.0)]
+        [TestCase(8.0)]
+        public void TestFineSpeedPersists(double speed)
+        {
+            AddStep($"store speed {speed}", () =>
+            {
+                using (var config = create())
+                    config.SetValue(ManiaRulesetSetting.ScrollSpeed, speed);
+            });
+
+            AddAssert("read back as it was", () =>
+            {
+                using (var config = create())
+                    return config.Get<double>(ManiaRulesetSetting.ScrollSpeed);
+            }, () => Is.EqualTo(speed).Within(1e-9));
+
+            AddAssert("and again", () =>
+            {
+                using (var config = create())
+                    return config.Get<double>(ManiaRulesetSetting.ScrollSpeed);
+            }, () => Is.EqualTo(speed).Within(1e-9));
         }
 
         [Test]
@@ -618,6 +649,49 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
         }
 
         /// <summary>
+        /// "Speed scale" (Alpha 2026-11-07): the chosen game's slider shows the one stored speed in its numbers, moving it sets the
+        /// speed, and every scale follows a change made elsewhere (F3/F4, another scale).
+        /// </summary>
+        [Test]
+        public void TestSpeedScale()
+        {
+            AddStep("osu!mania speed 29", () => gameConfig.SetValue(ManiaRulesetSetting.ScrollSpeed, 29.0));
+            showPanel();
+
+            AddStep("Chunithm's numbers", () => gameConfig.Highway.SetValue(HighwaySetting.SpeedScale, SpeedScale.Chunithm));
+            AddAssert("only its slider shown", () => shown(speedBar("Speed (Chunithm)")) && !shown(speedBar("Scroll speed")));
+            AddAssert("speed 29 is about Chunithm 13.75 to 14", () => speedBar("Speed (Chunithm)").Current.Value, () => Is.InRange(13.5, 14.25));
+
+            AddStep("slide to Chunithm 10", () => speedBar("Speed (Chunithm)").Current.Value = 10);
+            AddAssert("the speed is Chunithm 10's 549 ms", () => gameConfig.Get<double>(ManiaRulesetSetting.ScrollSpeed),
+                () => Is.InRange(20.0, 22.0)); // 11485 / 549 = 20.9, times the skin's hit position factor
+            AddAssert("osu!mania's slider follows", () => speedBar("Scroll speed").Current.Value,
+                () => Is.EqualTo(Math.Round(gameConfig.Get<double>(ManiaRulesetSetting.ScrollSpeed), 1)).Within(1e-9));
+            AddAssert("the green number follows", () => speedBar("Green number (IIDX)").Current.Value, () => Is.InRange(310, 350));
+
+            AddStep("Chunithm 15.5", () => speedBar("Speed (Chunithm)").Current.Value = 15.5);
+            AddAssert("snaps to a whole number past 15", () => speedBar("Speed (Chunithm)").Current.Value, () => Is.EqualTo(16));
+
+            // A wall that keeps the visible time makes notes cross the track faster than the fastest speed can show them.
+            AddStep("a high wall that keeps the visible time", () =>
+            {
+                gameConfig.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, true);
+                gameConfig.Highway.SetValue(HighwaySetting.Wall, 0.6f);
+            });
+            AddStep("slide to Chunithm 19", () => speedBar("Speed (Chunithm)").Current.Value = 19);
+            AddAssert("the fastest speed", () => gameConfig.Get<double>(ManiaRulesetSetting.ScrollSpeed), () => Is.EqualTo(SpeedScales.MAX_MANIA_SPEED));
+            AddAssert("the slider shows the number reached", () => speedBar("Speed (Chunithm)").Current.Value, () => Is.LessThan(19));
+            AddStep("no wall", () => gameConfig.Highway.SetValue(HighwaySetting.Wall, 0f));
+
+            AddStep("speed 8 elsewhere", () => gameConfig.SetValue(ManiaRulesetSetting.ScrollSpeed, 8.0));
+            AddAssert("Chunithm's slider follows", () => speedBar("Speed (Chunithm)").Current.Value, () => Is.InRange(3.5, 4.0));
+        }
+
+        private static bool shown(Drawable setting) => setting.FindClosestParent<SettingsItemV2>()?.Alpha == 1;
+
+        private FormSliderBar<double> speedBar(string caption) => this.ChildrenOfType<FormSliderBar<double>>().Single(b => b.Caption.ToString() == caption);
+
+        /// <summary>
         /// "Share osu!mania's keys" (Alpha 2026-11-07): while on, the panel keeps the two key binding sections equal; off, each
         /// keeps its own; on again, they settle on osu!mania's (both were changed from the defaults).
         /// </summary>
@@ -729,7 +803,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
             gameConfig.Highway.SetValue(HighwaySetting.WallKeepsVisibleTime, false);
         }
 
-        private string speedLabel() => this.ChildrenOfType<OsuSpriteText>().Select(t => t.Current.Value).FirstOrDefault(t => t.Contains("(speed ", StringComparison.Ordinal)) ?? string.Empty;
+        // Sliders hidden with their speed scale never load their text (null).
+        private string speedLabel() => this.ChildrenOfType<OsuSpriteText>().Select(t => t.Current.Value).FirstOrDefault(t => t?.Contains("(speed ", StringComparison.Ordinal) == true) ?? string.Empty;
 
         /// <summary>
         /// A legacy skin's mania settings, as far as the speed label asks: HitPosition 480 (the line at the bottom) for 7K,

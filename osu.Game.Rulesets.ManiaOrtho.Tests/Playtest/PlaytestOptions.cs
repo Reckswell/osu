@@ -257,12 +257,18 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Playtest
                     config?.SetValue(setting, scale);
                     break;
 
+                case HighwaySetting.SpeedScale:
+                    var speedScale = Enum.Parse<SpeedScale>(value, true);
+                    config?.SetValue(setting, speedScale);
+                    break;
+
                 case HighwaySetting.WallKeepsVisibleTime:
                 case HighwaySetting.LaneGuides:
                 case HighwaySetting.SkinHitTarget:
                 case HighwaySetting.SkinNoteProportions:
                 case HighwaySetting.SkinPortDefaultsApplied:
                 case HighwaySetting.SkinLayoutDefaultApplied:
+                case HighwaySetting.ShareManiaKeys:
                     bool flag = bool.Parse(value);
                     config?.SetValue(setting, flag);
                     break;

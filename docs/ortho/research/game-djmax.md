@@ -1,5 +1,8 @@
 # DJMAX RESPECT V: gear, speed and key modes
 
+> **Correction (2026-11-07, `topic-speed-scales.md`):** RESPECT V's speed has not depended on the BPM since patch
+> v568 (2020-08-06); T ≈ 2693 / speed ms. The BPM-scaled formula below and [D4] describe the PS4 RESPECT.
+
 Last checked: 2026-11-04
 
 ## Summary
