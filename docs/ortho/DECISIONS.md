@@ -1221,3 +1221,11 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   still map to mania's actions, so judgement and replays are untouched (invariant 1).
 - **Reverse**: `CreateInputManager` back to `new ManiaInputManager(ManiaOrthoRuleset.MANIA.RulesetInfo, Variant)` and the
   mirror always on.
+- **Review** (gameplay-reviewer, changes needed): while shared, the key container read `realm.Realm` from its realm
+  notifications. osu! calls every subscription with an empty set while it blocks realm (Settings > Debug > compact,
+  moving the data folder), when that read throws, so blocking failed with a finished play still under the results
+  screen. Now a notification reloads from its own collection, as upstream's container does; the base's loads of
+  maniaortho's keys are skipped while shared, and `realm.Realm` is read only in `LoadComplete` and when the switch
+  changes. Not covered by a test: the headless test host keeps other realm instances open, so `BlockAllOperations`
+  times out compacting before it calls the subscriptions. Also fixed: the settings test now asserts the panel's mirror
+  stops and starts (`MirroringKeys`) instead of only waiting five steps, and the mirror's remarks name the switch.

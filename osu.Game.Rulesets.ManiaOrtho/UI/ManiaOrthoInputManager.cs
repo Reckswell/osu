@@ -47,6 +47,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             private IDisposable? maniaSubscription;
 
+            /// <summary>
+            /// Set while osu!mania's keys are being loaded, the only keys loaded while shared.
+            /// </summary>
+            private bool loadingManiaKeys;
+
             public SharedKeyBindingContainer(RulesetInfo ruleset, int variant, SimultaneousBindingMode unique)
                 : base(ruleset, variant, unique)
             {
@@ -61,20 +66,54 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
 
             protected override void LoadComplete()
             {
-                // The base follows maniaortho's own keys; osu!mania's are followed here while shared.
-                maniaSubscription = realm.RegisterForNotifications(maniaBindings, (_, _) =>
+                // The base follows maniaortho's own keys; osu!mania's are followed here while shared. A notification reloads
+                // from its own collection, never from realm.Realm: osu! calls every subscription with an empty one while it
+                // blocks realm (compacting, moving the data folder), when the update thread's realm cannot be read.
+                maniaSubscription = realm.RegisterForNotifications(maniaBindings, (sender, _) =>
                 {
                     if (shared.Value)
-                        ReloadMappings();
+                        loadManiaKeys(sender.AsQueryable());
                 });
 
                 base.LoadComplete();
 
-                shared.BindValueChanged(_ => ReloadMappings());
+                if (shared.Value)
+                    loadManiaKeys(maniaBindings(realm.Realm));
+
+                shared.BindValueChanged(e =>
+                {
+                    if (e.NewValue)
+                        loadManiaKeys(maniaBindings(realm.Realm));
+                    else
+                        ReloadMappings();
+                });
             }
 
+            /// <summary>
+            /// Loads maniaortho's own keys when they are not shared. While shared, the base's loads (from its subscription to
+            /// maniaortho's keys) are skipped and osu!mania's are loaded instead.
+            /// </summary>
             protected override void ReloadMappings(IQueryable<RealmKeyBinding> realmKeyBindings)
-                => base.ReloadMappings(shared.Value ? maniaBindings(realm.Realm) : realmKeyBindings);
+            {
+                if (shared.Value && !loadingManiaKeys)
+                    return;
+
+                base.ReloadMappings(realmKeyBindings);
+            }
+
+            private void loadManiaKeys(IQueryable<RealmKeyBinding> maniaKeys)
+            {
+                loadingManiaKeys = true;
+
+                try
+                {
+                    ReloadMappings(maniaKeys);
+                }
+                finally
+                {
+                    loadingManiaKeys = false;
+                }
+            }
 
             private IQueryable<RealmKeyBinding> maniaBindings(Realm r)
                 => r.All<RealmKeyBinding>().Where(b => b.RulesetName == ManiaRuleset.SHORT_NAME && b.Variant == variant);

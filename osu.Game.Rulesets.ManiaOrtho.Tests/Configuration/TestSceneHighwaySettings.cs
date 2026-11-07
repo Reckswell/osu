@@ -635,6 +635,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
             AddUntilStep("maniaortho follows", () => keysOf(ManiaOrthoRuleset.SHORT_NAME), () => Is.EqualTo("Q F J K"));
 
             AddStep("stop sharing", () => gameConfig.Highway.SetValue(HighwaySetting.ShareManiaKeys, false));
+            AddAssert("the panel stopped mirroring", () => this.ChildrenOfType<ManiaOrthoSettingsSubsection>().Single().MirroringKeys, () => Is.False);
             AddStep("osu!mania's first key to W", () => Realm.Write(r => setKeys(r, ManiaRuleset.SHORT_NAME, InputKey.W)));
             AddStep("maniaortho's first key to E", () => Realm.Write(r => setKeys(r, ManiaOrthoRuleset.SHORT_NAME, InputKey.E)));
             AddWaitStep("let a copy happen if it would", 5);
@@ -642,6 +643,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                 () => Is.EqualTo(("W F J K", "E F J K")));
 
             AddStep("share again", () => gameConfig.Highway.SetValue(HighwaySetting.ShareManiaKeys, true));
+            AddAssert("the panel mirrors again", () => this.ChildrenOfType<ManiaOrthoSettingsSubsection>().Single().MirroringKeys);
             AddUntilStep("both on osu!mania's", () => (keysOf(ManiaRuleset.SHORT_NAME), keysOf(ManiaOrthoRuleset.SHORT_NAME)),
                 () => Is.EqualTo(("W F J K", "W F J K")));
         }

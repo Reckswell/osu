@@ -51,6 +51,11 @@ namespace osu.Game.Rulesets.ManiaOrtho
 
         private Bindable<bool> shareManiaKeys = null!;
 
+        /// <summary>
+        /// Whether the panel keeps the two key binding sections equal now.
+        /// </summary>
+        public bool MirroringKeys => keyBindingMirror != null;
+
         private HighwayConfigManager highway = null!;
         private FormSliderBar<double> scrollSpeed = null!;
 
