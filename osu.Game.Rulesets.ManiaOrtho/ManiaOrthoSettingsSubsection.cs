@@ -43,10 +43,13 @@ namespace osu.Game.Rulesets.ManiaOrtho
         private RealmAccess? realm { get; set; }
 
         /// <summary>
-        /// Keeps this ruleset's section of the key binding settings on osu!mania's keys, which gameplay uses. Here because this
-        /// is the ruleset's one part of the game that lives with the settings, where keys are changed.
+        /// While "Share osu!mania's keys" is on, keeps this ruleset's section of the key binding settings on osu!mania's keys,
+        /// which gameplay then uses. Here because this is the ruleset's one part of the game that lives with the settings,
+        /// where keys are changed.
         /// </summary>
         private KeyBindingMirror? keyBindingMirror;
+
+        private Bindable<bool> shareManiaKeys = null!;
 
         private HighwayConfigManager highway = null!;
         private FormSliderBar<double> scrollSpeed = null!;
@@ -165,6 +168,18 @@ namespace osu.Game.Rulesets.ManiaOrtho
                     Caption = RulesetSettingsStrings.TouchOverlay,
                     Current = config.GetBindable<bool>(ManiaRulesetSetting.TouchOverlay),
                 }),
+                new SettingsItemV2(new FormCheckBox
+                {
+                    Caption = "Share osu!mania's keys",
+                    HintText = "On: maniaortho plays with the keys bound for osu!mania, and changing keys in either mode's key binding "
+                               + "settings changes both. Off: maniaortho keeps keys of its own, under maniaortho in the key binding "
+                               + "settings, starting from osu!mania's. Turning it back on keeps osu!mania's keys, or maniaortho's for a key "
+                               + "count where osu!mania's are still the defaults.",
+                    Current = shareManiaKeys = highway.GetBindable<bool>(HighwaySetting.ShareManiaKeys),
+                })
+                {
+                    Keywords = new[] { "key bindings", "keybinds", "link", "controls", "osu!mania" },
+                },
                 new SettingsItemV2(new FormEnumDropdown<HighwayPreset>
                 {
                     Caption = "Highway preset",
@@ -427,8 +442,15 @@ namespace osu.Game.Rulesets.ManiaOrtho
         {
             base.LoadComplete();
 
-            if (realm != null)
-                keyBindingMirror = new KeyBindingMirror(realm);
+            shareManiaKeys.BindValueChanged(e =>
+            {
+                keyBindingMirror?.Dispose();
+                keyBindingMirror = null;
+
+                // The mirror's first sync settles any difference left from while they were apart.
+                if (e.NewValue && realm != null)
+                    keyBindingMirror = new KeyBindingMirror(realm);
+            }, true);
 
             showVisibleTimeOnChange(highway.GetBindable<float>(HighwaySetting.Wall));
 

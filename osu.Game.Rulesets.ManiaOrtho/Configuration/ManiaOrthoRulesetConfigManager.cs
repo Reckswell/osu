@@ -167,6 +167,7 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
             SetDefault(HighwaySetting.KeyBeam, defaults.KeyBeam);
             SetDefault(HighwaySetting.KiaiSway, defaults.KiaiSway, 0f, 1f, 0.01f);
             SetDefault(HighwaySetting.WallScale, defaults.WallScale);
+            SetDefault(HighwaySetting.ShareManiaKeys, true);
             SetDefault(HighwaySetting.SkinPortDefaultsApplied, false);
         }
 
@@ -281,6 +282,12 @@ namespace osu.Game.Rulesets.ManiaOrtho.Configuration
         WallScale,
         SideStagePull,
         SideStageLean,
+
+        /// <summary>
+        /// Whether maniaortho plays with the keys bound for osu!mania, the two key binding sections kept equal
+        /// (<see cref="KeyBindingMirror"/>), or with its own.
+        /// </summary>
+        ShareManiaKeys,
 
         /// <summary>
         /// Not shown: whether <see cref="HighwayConfigManager.ApplySkinPortDefaults"/> has run on this install.

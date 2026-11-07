@@ -1206,3 +1206,18 @@ alternatives considered, how to reverse. If a later decision overrides one, add 
   these maps.
 - **Unverified**: whether stable draws its own 10K as one stage (as osu! does, marked 1 | 9) or as 5 + 5.
 - **Reverse**: `LaneGroups.SpecialSide` returning None.
+
+## 2026-11-07: Sharing osu!mania's keys is a switch (Alpha)
+
+- **Alpha asked** for a setting that links osu!mania's key bindings to maniaortho's. They were already shared (Q21,
+  2026-11-04); this makes it a choice: "Share osu!mania's keys", on by default, so nothing changes for anyone.
+- **Off**: gameplay reads maniaortho's own bindings and `KeyBindingMirror` stops, so maniaortho's section of osu!'s key
+  binding settings is its own. It starts as osu!mania's keys (the mirror kept them equal until then).
+- **On again**: the mirror's first sync (`Merge`) settles each key count as before: the side changed from osu!mania's
+  defaults wins, osu!mania's when both were (maniaortho's are logged first). Gameplay runs the same merge as a play loads.
+- **How gameplay switches**: the drawable ruleset creates its input manager in its constructor, before its config exists,
+  so `ManiaOrthoInputManager` reads the setting as its keys load (the config is resolved from the drawable ruleset's
+  dependencies) and reloads them when it changes; while shared it follows osu!mania's bindings, otherwise its own. Keys
+  still map to mania's actions, so judgement and replays are untouched (invariant 1).
+- **Reverse**: `CreateInputManager` back to `new ManiaInputManager(ManiaOrthoRuleset.MANIA.RulesetInfo, Variant)` and the
+  mirror always on.

@@ -14,6 +14,7 @@ using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Shapes;
 using osu.Framework.Graphics.Textures;
+using osu.Framework.Input.Bindings;
 using osu.Framework.Testing;
 using osu.Game.Audio;
 using osu.Game.Beatmaps;
@@ -21,6 +22,7 @@ using osu.Game.Configuration;
 using osu.Game.Database;
 using osu.Game.Graphics.Sprites;
 using osu.Game.Graphics.UserInterfaceV2;
+using osu.Game.Input.Bindings;
 using osu.Game.Localisation;
 using osu.Game.Overlays;
 using osu.Game.Overlays.Settings;
@@ -33,6 +35,7 @@ using osu.Game.Rulesets.ManiaOrtho.Highway;
 using osu.Game.Rulesets.Mods;
 using osu.Game.Skinning;
 using osu.Game.Tests.Visual;
+using Realms;
 
 namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
 {
@@ -68,6 +71,8 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
                     config.Highway.GetBindable<float>(HighwaySetting.KiaiSway).SetDefault();
                     config.Highway.GetBindable<SkinStageFit>(HighwaySetting.StageFit).SetDefault();
                 }
+
+                gameConfig.Highway.GetBindable<bool>(HighwaySetting.ShareManiaKeys).SetDefault();
             });
         }
 
@@ -611,6 +616,72 @@ namespace osu.Game.Rulesets.ManiaOrtho.Tests.Configuration
         {
             showPanel();
         }
+
+        /// <summary>
+        /// "Share osu!mania's keys" (Alpha 2026-11-07): while on, the panel keeps the two key binding sections equal; off, each
+        /// keeps its own; on again, they settle on osu!mania's (both were changed from the defaults).
+        /// </summary>
+        [Test]
+        public void TestKeySharingSwitch()
+        {
+            AddStep("both 4K on Z F J K", () => Realm.Write(r =>
+            {
+                setKeys(r, ManiaRuleset.SHORT_NAME, InputKey.Z);
+                setKeys(r, ManiaOrthoRuleset.SHORT_NAME, InputKey.Z);
+            }));
+            showPanel();
+
+            AddStep("osu!mania's first key to Q", () => Realm.Write(r => setKeys(r, ManiaRuleset.SHORT_NAME, InputKey.Q)));
+            AddUntilStep("maniaortho follows", () => keysOf(ManiaOrthoRuleset.SHORT_NAME), () => Is.EqualTo("Q F J K"));
+
+            AddStep("stop sharing", () => gameConfig.Highway.SetValue(HighwaySetting.ShareManiaKeys, false));
+            AddStep("osu!mania's first key to W", () => Realm.Write(r => setKeys(r, ManiaRuleset.SHORT_NAME, InputKey.W)));
+            AddStep("maniaortho's first key to E", () => Realm.Write(r => setKeys(r, ManiaOrthoRuleset.SHORT_NAME, InputKey.E)));
+            AddWaitStep("let a copy happen if it would", 5);
+            AddAssert("each kept its own", () => (keysOf(ManiaRuleset.SHORT_NAME), keysOf(ManiaOrthoRuleset.SHORT_NAME)),
+                () => Is.EqualTo(("W F J K", "E F J K")));
+
+            AddStep("share again", () => gameConfig.Highway.SetValue(HighwaySetting.ShareManiaKeys, true));
+            AddUntilStep("both on osu!mania's", () => (keysOf(ManiaRuleset.SHORT_NAME), keysOf(ManiaOrthoRuleset.SHORT_NAME)),
+                () => Is.EqualTo(("W F J K", "W F J K")));
+        }
+
+        private const int key_variant = 4;
+
+        /// <summary>
+        /// Gives each of a ruleset's 4K columns one key, <paramref name="first"/> on the first column and F J K on the others,
+        /// changing the rows in place as osu!'s key binding settings do.
+        /// </summary>
+        private static void setKeys(Realm realm, string rulesetName, InputKey first)
+        {
+            var keys = new[] { first, InputKey.F, InputKey.J, InputKey.K };
+            var existing = realm.All<RealmKeyBinding>().Where(b => b.RulesetName == rulesetName && b.Variant == key_variant).AsEnumerable().ToLookup(b => b.ActionInt);
+
+            for (int i = 0; i < keys.Length; i++)
+            {
+                int action = (int)ManiaAction.Key1 + i;
+                var rows = existing[action].ToArray();
+
+                if (rows.Length == 1)
+                    rows[0].KeyCombination = new KeyCombination(keys[i]);
+                else
+                {
+                    foreach (var row in rows)
+                        realm.Remove(row);
+
+                    realm.Add(new RealmKeyBinding(action, new KeyCombination(keys[i]), rulesetName, key_variant));
+                }
+            }
+        }
+
+        /// <summary>
+        /// A ruleset's 4K keys by column, each column's keys in their order.
+        /// </summary>
+        private string keysOf(string rulesetName) => Realm.Run(r => string.Join(' ', r.All<RealmKeyBinding>()
+                                                                                       .Where(b => b.RulesetName == rulesetName && b.Variant == key_variant)
+                                                                                       .AsEnumerable()
+                                                                                       .OrderBy(b => b.ActionInt)
+                                                                                       .Select(b => string.Join('+', b.KeyCombination.Keys))));
 
         /// <param name="skin">A skin to show the panel with, in place of the game's.</param>
         private void showPanel(ISkinSource? skin = null)

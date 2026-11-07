@@ -56,10 +56,11 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         [BackgroundDependencyLoader]
         private void load(RealmAccess? realm)
         {
-            // Keys set for maniaortho before it shared osu!mania's move to osu!mania, which this plays with, as the settings
-            // would move them (KeyBindingMirror), so they work even if the settings are never opened. Before the input
-            // manager loads its keys; it would follow a later change anyway.
-            realm?.Write(KeyBindingMirror.Merge);
+            // While the two share keys, keys set for maniaortho alone (before they shared, or while sharing was off) move to
+            // osu!mania, which this then plays with, as the settings would move them (KeyBindingMirror), so they work even if
+            // the settings are never opened. Before the input manager loads its keys; it would follow a later change anyway.
+            if ((Config as ManiaOrthoRulesetConfigManager)?.Highway.Get<bool>(HighwaySetting.ShareManiaKeys) != false)
+                realm?.Write(KeyBindingMirror.Merge);
 
             if (Config is ManiaOrthoRulesetConfigManager config)
             {
@@ -81,15 +82,15 @@ namespace osu.Game.Rulesets.ManiaOrtho.UI
         }
 
         /// <summary>
-        /// osu!mania's input manager, with the keys bound for osu!mania (Alpha 2026-11-04: change keys once and both follow).
+        /// osu!mania's input manager, with the keys bound for osu!mania while "Share osu!mania's keys" is on (Alpha 2026-11-04:
+        /// change keys once and both follow), or maniaortho's own (Alpha 2026-11-07: an option).
         /// </summary>
         /// <remarks>
-        /// The ruleset given is only where the input manager looks its key bindings up (by short name, per key count). Keys map
-        /// to the same actions as in osu!mania, and everything after that, judgement and replays included, is mania's own.
-        /// The maniaortho section osu! lists in its key binding settings is kept equal to osu!mania's by
-        /// <see cref="KeyBindingMirror"/>.
+        /// Only where the keys are looked up differs. Keys map to the same actions as in osu!mania, and everything after that,
+        /// judgement and replays included, is mania's own. While shared, the maniaortho section osu! lists in its key binding
+        /// settings is kept equal to osu!mania's by <see cref="KeyBindingMirror"/>.
         /// </remarks>
-        protected override PassThroughInputManager CreateInputManager() => new ManiaInputManager(ManiaOrthoRuleset.MANIA.RulesetInfo, Variant);
+        protected override PassThroughInputManager CreateInputManager() => new ManiaOrthoInputManager(Ruleset.RulesetInfo, Variant);
 
         protected override IReadOnlyDependencyContainer CreateChildDependencies(IReadOnlyDependencyContainer parent)
         {
