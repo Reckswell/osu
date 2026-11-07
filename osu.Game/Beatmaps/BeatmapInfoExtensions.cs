@@ -1,6 +1,8 @@
 // Copyright (c) ppy Pty Ltd <contact@ppy.sh>. Licensed under the MIT Licence.
 // See the LICENCE file in the repository root for full licence text.
 
+using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using osu.Framework.Localisation;
 using osu.Game.Online.API;
@@ -75,7 +77,36 @@ namespace osu.Game.Beatmaps
             if (allowConversion && beatmap.Ruleset.OnlineID == 0 && ruleset.OnlineID != 0)
                 return true;
 
+            if (playsBeatmapsOfRuleset(ruleset) is string playedRuleset && playedRuleset == beatmap.Ruleset.ShortName)
+                return true;
+
             return false;
+        }
+
+        private static readonly ConcurrentDictionary<string, string?> plays_beatmaps_of_ruleset_cache = new ConcurrentDictionary<string, string?>();
+
+        /// <summary>
+        /// Looks up <see cref="Ruleset.PlaysBeatmapsOfRuleset"/> for <paramref name="ruleset"/>, creating the ruleset at most once.
+        /// </summary>
+        private static string? playsBeatmapsOfRuleset(RulesetInfo ruleset)
+        {
+            if (!ruleset.Available || string.IsNullOrEmpty(ruleset.InstantiationInfo))
+                return null;
+
+            if (plays_beatmaps_of_ruleset_cache.TryGetValue(ruleset.InstantiationInfo, out string? playedRuleset))
+                return playedRuleset;
+
+            try
+            {
+                playedRuleset = ruleset.CreateInstance().PlaysBeatmapsOfRuleset;
+            }
+            catch (Exception)
+            {
+                // A ruleset that cannot be loaded plays nothing. Remember that too, so it is not retried for every beatmap.
+                playedRuleset = null;
+            }
+
+            return plays_beatmaps_of_ruleset_cache[ruleset.InstantiationInfo] = playedRuleset;
         }
 
         /// <summary>

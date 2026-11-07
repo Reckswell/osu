@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup Label="Project">
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>osu!mania beatmaps on a tilted highway.</Description>
+  </PropertyGroup>
+
+  <ItemGroup Label="Project References">
+    <ProjectReference Include="..\osu.Game\osu.Game.csproj" />
+    <ProjectReference Include="..\osu.Game.Rulesets.Mania\osu.Game.Rulesets.Mania.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Label="Resources">
+    <!-- The osu!mania release this build's scoring code was checked against (scripts/ortho/live-mania.sh): saved plays are
+         rated again when it changes (Scoring/PlayLogRatings.cs). -->
+    <EmbeddedResource Include="..\docs\ortho\live-mania-version.txt" LogicalName="live-mania-version.txt" />
+  </ItemGroup>
+</Project>

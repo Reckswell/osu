@@ -100,6 +100,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeAnalysis", "CodeAnalysi
 		CodeAnalysis\osu.globalconfig = CodeAnalysis\osu.globalconfig
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "osu.Game.Rulesets.ManiaOrtho", "osu.Game.Rulesets.ManiaOrtho\osu.Game.Rulesets.ManiaOrtho.csproj", "{6E4B7C2A-1F3D-4C8E-9A5B-0D2F7E1C3A41}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "osu.Game.Rulesets.ManiaOrtho.Tests", "osu.Game.Rulesets.ManiaOrtho.Tests\osu.Game.Rulesets.ManiaOrtho.Tests.csproj", "{9C1D5E7F-3A2B-4D6C-8E0F-1B2A3C4D5E62}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -254,6 +258,14 @@ Global
 		{1743BF7C-E6AE-4A06-BAD9-166D62894303}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1743BF7C-E6AE-4A06-BAD9-166D62894303}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1743BF7C-E6AE-4A06-BAD9-166D62894303}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E4B7C2A-1F3D-4C8E-9A5B-0D2F7E1C3A41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E4B7C2A-1F3D-4C8E-9A5B-0D2F7E1C3A41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E4B7C2A-1F3D-4C8E-9A5B-0D2F7E1C3A41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E4B7C2A-1F3D-4C8E-9A5B-0D2F7E1C3A41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C1D5E7F-3A2B-4D6C-8E0F-1B2A3C4D5E62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C1D5E7F-3A2B-4D6C-8E0F-1B2A3C4D5E62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C1D5E7F-3A2B-4D6C-8E0F-1B2A3C4D5E62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C1D5E7F-3A2B-4D6C-8E0F-1B2A3C4D5E62}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

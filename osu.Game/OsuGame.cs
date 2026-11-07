@@ -744,18 +744,20 @@ namespace osu.Game
 
                 // Prefer recommended beatmap if recommendations are available, else fallback to a sane selection.
                 var selection = difficultyRecommender.GetRecommendedBeatmap(beatmaps)
-                                ?? beatmaps.FirstOrDefault(b => b.Ruleset.Equals(Ruleset.Value))
+                                ?? beatmaps.FirstOrDefault(b => b.AllowGameplayWithRuleset(Ruleset.Value, allowConversion: false))
                                 ?? beatmaps.First();
 
                 if (screen is IHandlePresentBeatmap presentableScreen)
                 {
-                    presentableScreen.PresentBeatmap(BeatmapManager.GetWorkingBeatmap(selection), selection.Ruleset);
+                    // A ruleset that plays this beatmap natively (see Ruleset.PlaysBeatmapsOfRuleset) stays selected.
+                    var presentRuleset = selection.AllowGameplayWithRuleset(Ruleset.Value, allowConversion: false) ? Ruleset.Value : selection.Ruleset;
+                    presentableScreen.PresentBeatmap(BeatmapManager.GetWorkingBeatmap(selection), presentRuleset);
                 }
                 else
                 {
                     // Don't change the local ruleset if the user is on another ruleset and is showing converted beatmaps at song select.
                     // Eventually we probably want to check whether conversion is actually possible for the current ruleset.
-                    bool requiresRulesetSwitch = !selection.Ruleset.Equals(Ruleset.Value)
+                    bool requiresRulesetSwitch = !selection.AllowGameplayWithRuleset(Ruleset.Value, allowConversion: false)
                                                  && (selection.Ruleset.OnlineID > 0 || !LocalConfig.Get<bool>(OsuSetting.ShowConvertedBeatmaps));
 
                     if (requiresRulesetSwitch)

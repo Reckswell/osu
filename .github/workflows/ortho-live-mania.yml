@@ -1,0 +1,92 @@
+# maniaortho (this fork, docs/ortho): once a day, find the osu!mania release osu!'s servers rate plays with, and when it
+# is not the one docs/ortho/live-mania-version.txt names, open a pull request that brings this branch to it
+# (scripts/ortho/live-mania.sh; CLAUDE.md invariant 1, BACKLOG M4). Runs from the default branch; nothing outside
+# this repository is changed.
+#
+# Needs Actions enabled for the fork, with "Allow GitHub Actions to create and approve pull requests" (Settings > Actions
+# > General > Workflow permissions). Simulate a bump: Actions > this workflow > Run workflow, with a ppy/osu release in
+# "live_version".
+on:
+  schedule:
+    - cron: '23 5 * * *'
+  workflow_dispatch:
+    inputs:
+      live_version:
+        description: 'A ppy/osu release (e.g. 2026.916.0) to treat as the one osu!''s servers use. Empty: the live one.'
+        required: false
+        type: string
+name: maniaortho live osu!mania
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # to push the proposal's branch
+  pull-requests: write # to open its pull request
+
+jobs:
+  live-mania:
+    name: Match osu!'s servers
+    if: github.repository == 'reckswell/osu'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # whether the branch has the release decides between merging it and taking only its files
+
+      - name: Compare with osu!'s servers
+        id: compare
+        env:
+          LIVE_VERSION: ${{ inputs.live_version }}
+        run: |
+          args=()
+          [ -n "$LIVE_VERSION" ] && args+=(--live-version "$LIVE_VERSION")
+          set +e
+          scripts/ortho/live-mania.sh "${args[@]}"
+          code=$?
+          set -e
+          # 0: the same code; 3: different, which only matters once the release is not the one last checked.
+          [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code
+
+      - name: Propose the release
+        if: steps.compare.outputs.live != steps.compare.outputs.pinned
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LIVE: ${{ steps.compare.outputs.live }}
+          BASE: ${{ github.ref_name }}
+        run: |
+          branch="ortho/live-mania-$LIVE"
+          # One pull request per release, open or closed: a closed one was reviewed.
+          if [ "$(gh pr list --head "$branch" --state all --json number --jq length)" != 0 ] \
+             || git ls-remote --exit-code --heads origin "$branch" > /dev/null; then
+            echo "already proposed on $branch"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          base_sha="$(git rev-parse HEAD)"
+          git switch -c "$branch"
+
+          propose() {
+            set +e
+            scripts/ortho/live-mania.sh --live-version "$LIVE" --apply --pr-body "$RUNNER_TEMP/pr.md" "$@"
+            local code=$?
+            set -e
+            [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code
+            git commit -q -m "Match osu!'s servers: osu!mania $LIVE"
+          }
+          propose
+          # This token cannot push changes to workflows, which a merged release can bring: take only the files then.
+          if [ -n "$(git diff --name-only "$base_sha" HEAD -- .github/workflows)" ]; then
+            echo "the release changes .github/workflows, which this token cannot push: taking only the files"
+            git reset -q --hard "$base_sha"
+            propose --no-merge
+          fi
+
+          git push -u origin "$branch"
+          # Without a pull request the branch would block every later run: remove it, so the next run tries again.
+          if ! gh pr create --base "$BASE" --head "$branch" --title "osu!'s servers moved to osu!mania $LIVE" --body-file "$RUNNER_TEMP/pr.md"; then
+            git push -q origin --delete "$branch"
+            exit 1
+          fi

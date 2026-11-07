@@ -465,6 +465,13 @@ namespace osu.Game.Rulesets
         public virtual IRulesetFilterCriteria? CreateRulesetFilterCriteria() => null;
 
         /// <summary>
+        /// The <see cref="ShortName"/> of another ruleset whose beatmaps this ruleset plays as its own, or <c>null</c>.
+        /// Those beatmaps are listed under this ruleset at song select without enabling converted beatmaps, and presenting one keeps this ruleset selected.
+        /// Intended for rulesets that only change how another ruleset's gameplay is presented.
+        /// </summary>
+        public virtual string? PlaysBeatmapsOfRuleset => null;
+
+        /// <summary>
         /// Can be overridden to add ruleset-specific sections to the editor beatmap setup screen.
         /// </summary>
         public virtual IEnumerable<Drawable> CreateEditorSetupSections() =>
